@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Package;
 use App\Models\Channel;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PackageController extends Controller
 {
@@ -12,17 +13,17 @@ class PackageController extends Controller
     {
         $query = Package::with('channels');
 
-        if ($request->search) {
-            $query->where('name', 'like', "%{$request->search}%");
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // $packages = $query->get();
-        $packages = $query->paginate(10); // or paginate(15), as you need
+        $packages = $query->orderByDesc('id')->paginate(10);
 
-        $channels = Channel::all();
+        // load all channels
+        $channels = Channel::orderBy('channel_name')->get();
 
         $selectedPackage = null;
-        if ($request->package_id) {
+        if ($request->filled('package_id')) {
             $selectedPackage = Package::with('channels')->find($request->package_id);
         }
 
@@ -31,46 +32,45 @@ class PackageController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name'       => 'required|string|max:255',
-            'channel_id' => 'required|array',
-            'channel_id.*' => 'exists:channels,id',
-            'active'     => 'required|in:Yes,No',
+        $validated = $request->validate([
+            'name'        => ['required', 'string', 'max:255', 'unique:packages,name'],
+            'channel_id'  => ['required', 'array', 'min:1'],
+            'channel_id.*'=> ['integer', 'exists:channels,id'],
+            'active'      => ['required', Rule::in(['Yes','No'])],
         ]);
 
         $package = Package::create([
-            'name'   => $request->name,
-            'active' => $request->active,
+            'name'   => $validated['name'],
+            'active' => $validated['active'],
         ]);
 
-        $package->channels()->sync($request->channel_id);
+        $package->channels()->sync($validated['channel_id']);
 
-        return redirect()->route('packages.index')->with('success', 'Package created successfully.');
+        return redirect()->route('packages.index')->with('success','Package created successfully.');
     }
 
     public function update(Request $request, Package $package)
     {
-        $request->validate([
-            'name'       => 'required|string|max:255',
-            'channel_id' => 'required|array',
-            'channel_id.*' => 'exists:channels,id',
-            'active'     => 'required|in:Yes,No',
+        $validated = $request->validate([
+            'name'        => ['required','string','max:255', Rule::unique('packages','name')->ignore($package->id)],
+            'channel_id'  => ['required','array','min:1'],
+            'channel_id.*'=> ['integer','exists:channels,id'],
+            'active'      => ['required', Rule::in(['Yes','No'])],
         ]);
 
         $package->update([
-            'name'   => $request->name,
-            'active' => $request->active,
+            'name'   => $validated['name'],
+            'active' => $validated['active'],
         ]);
 
-        $package->channels()->sync($request->channel_id);
+        $package->channels()->sync($validated['channel_id']);
 
-        return redirect()->route('packages.index')->with('success', 'Package updated successfully.');
+        return redirect()->route('packages.index')->with('success','Package updated successfully.');
     }
 
     public function destroy(Package $package)
     {
         $package->delete();
-        return redirect()->route('packages.index')->with('success', 'Package deleted successfully.');
+        return redirect()->route('packages.index')->with('success','Package deleted successfully.');
     }
 }
-

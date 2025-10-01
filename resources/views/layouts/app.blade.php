@@ -25,7 +25,7 @@
             <!-- User -->
             <div class="sidebar-user-pro media border-end">
                 <div class="position-relative mx-auto">
-                    <img src="{{ asset('assets/images/users/user-4.jpg') }}" alt="user" class="rounded-circle thumb-md" />
+                    <img src="{{ asset('assets/images/logo_new.jpg') }}" alt="user" class="rounded-circle thumb-md" />
                     <span class="online-icon position-absolute end-0"><i class="mdi mdi-record text-success"></i></span>
                 </div>
                 <div class="media-body ms-2 user-detail align-self-center">
@@ -51,12 +51,26 @@
                             </li>
 
                             @if(auth()->user()->hasRole('Admin'))
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('permissions.index') ? 'active' : '' }}" href="{{ route('permissions.index') }}">
-                                    <i class="ti ti-key menu-icon"></i> <span>Permissions</span>
-                                </a>
-                            </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
+                                        <i class="ti ti-user menu-icon"></i> <span>Manage Users</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('permissions.*') || request()->routeIs('roles.*') ? 'active' : '' }}" href="#permissionSubmenu" data-bs-toggle="collapse" aria-expanded="false">
+                                        <i class="ti ti-key menu-icon"></i> <span>Permissions</span>
+                                    </a>
+                                    <ul class="collapse list-unstyled ps-3 {{ request()->routeIs('permissions.*') || request()->routeIs('roles.*') ? 'show' : '' }}" id="permissionSubmenu">
+                                        <li>
+                                            <a class="nav-link {{ request()->routeIs('permissions.index') ? 'active' : '' }}" href="{{ route('permissions.index') }}">Manage Permissions</a>
+                                        </li>
+                                        <li>
+                                            <a class="nav-link {{ request()->routeIs('roles.index') ? 'active' : '' }}" href="{{ route('roles.index') }}">Manage Roles</a>
+                                        </li>
+                                    </ul>
+                                </li>
                             @endif
+
 
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('inventories.*') ? 'active' : '' }}" href="{{ route('inventories.index') }}">
@@ -83,7 +97,7 @@
                             </li>
 
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('dashboard') }}">
+                                <a class="nav-link {{ request()->routeIs('utility.*') ? 'active' : '' }}" href="{{ route('utility.online') }}">
                                     <i class="ti ti-settings menu-icon"></i> <span>Utilities</span>
                                 </a>
                             </li>
@@ -114,7 +128,7 @@
                     <li class="dropdown">
                         <a class="nav-link dropdown-toggle nav-user" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
                             <div class="d-flex align-items-center">
-                                <img src="{{ asset('assets/images/users/user-4.jpg') }}" alt="profile-user" class="rounded-circle me-2 thumb-sm" />
+                                <img src="{{ asset('assets/images/logo_new.jpg') }}" alt="profile-user" class="rounded-circle me-2 thumb-sm" />
                                 <div>
                                     <small class="d-none d-md-block font-11">User</small>
                                     <span class="d-none d-md-block fw-semibold font-12">{{ Auth::user()->name ?? 'Guest' }} <i class="mdi mdi-chevron-down"></i></span>

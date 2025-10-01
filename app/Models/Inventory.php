@@ -18,6 +18,9 @@ class Inventory extends Model
         'warranty_date',
         'client_id',
         'location',
+        'box_ip',       // ✅ new
+        'mgmt_url',     // ✅ new
+        'mgmt_token',   // ✅ new
         'photo',
     ];
 

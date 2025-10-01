@@ -12,16 +12,16 @@
             <div class="page-title-box">
                 <div class="float-end">
                     <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="#"><?php echo $sub_title ?></a></li>
-                        <li class="breadcrumb-item active"><?php echo $page_title ?></li>
+                        <li class="breadcrumb-item"><a href="#">{{ $sub_title }}</a></li>
+                        <li class="breadcrumb-item active">{{ $page_title }}</li>
                     </ol>
                 </div>
-                <h4 class="page-title"><?php echo $page_title ?></h4>
+                <h4 class="page-title">{{ $page_title }}</h4>
             </div>
         </div>
     </div>
-    <!-- End Page Title -->
 
+    <!-- Inventory Packages List -->
     <div class="row">
         <div class="col-12">
             <div class="card">
@@ -37,6 +37,7 @@
                                     <th>Inventory ID</th>
                                     <th>Box Model</th>
                                     <th>Serial No</th>
+                                    <th>Mac ID</th>
                                     <th>Client ID</th>
                                     <th>Client Name</th>
                                     <th>Allocated Packages</th>
@@ -50,6 +51,7 @@
                                         <td><span class="badge bg-secondary">{{ $inventory->id }}</span></td>
                                         <td>{{ $inventory->box_model }}</td>
                                         <td>{{ $inventory->box_serial_no }}</td>
+                                        <td>{{ $inventory->box_mac }}</td>
                                         <td>
                                             @if($inventory->client)
                                                 <span class="badge bg-info">{{ $inventory->client->id }}</span>
@@ -82,7 +84,6 @@
                             </tbody>
                         </table>
                     </div>
-                    <!-- Optional: Pagination -->
                     <div class="mt-3">
                         {{ $inventories->links('pagination::bootstrap-5') }}
                     </div>
@@ -106,25 +107,19 @@
         </div>
 
         <div class="modal-body">
-            <!-- Inventory ID -->
+            <!-- Inventory Info -->
             <div class="mb-3">
                 <label class="form-label">Inventory ID</label>
                 <input type="text" id="inventory_id" class="form-control" readonly>
             </div>
-
-            <!-- Box Model -->
             <div class="mb-3">
                 <label class="form-label">Box Model</label>
                 <input type="text" id="inventory_box_model" class="form-control" readonly>
             </div>
-
-            <!-- Serial No -->
             <div class="mb-3">
                 <label class="form-label">Serial No</label>
                 <input type="text" id="inventory_serial" class="form-control" readonly>
             </div>
-
-            <!-- Client Info -->
             <div class="mb-3">
                 <label class="form-label">Client</label>
                 <input type="text" id="inventory_client" class="form-control" readonly>
@@ -132,18 +127,29 @@
 
             <!-- Packages -->
             <div class="mb-3">
-                <label class="form-label">Packages</label>
-                <div id="packagesWrapper" class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="form-label mb-0">Packages</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="select_all_packages" disabled>
+                        <label class="form-check-label" for="select_all_packages">Select All</label>
+                    </div>
+                </div>
+
+                <div id="packagesWrapper" class="border rounded p-2 mt-2" style="max-height:200px; overflow-y:auto;">
                     @foreach($packages as $pkg)
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="package_ids[]" value="{{ $pkg->id }}" id="pkg_{{ $pkg->id }}" disabled>
+                            <input class="form-check-input pkg-checkbox" type="checkbox" name="package_ids[]" value="{{ $pkg->id }}" id="pkg_{{ $pkg->id }}" disabled>
                             <label class="form-check-label" for="pkg_{{ $pkg->id }}">
                                 {{ $pkg->name }}
                             </label>
                         </div>
                     @endforeach
                 </div>
-                <!-- 🔴 Validation error -->
+
+                <small class="text-muted">
+                    <span id="selectedCount">0</span> / <span id="totalCount">{{ count($packages) }}</span> selected
+                </small>
+
                 @error('package_ids')
                     <small class="text-danger d-block mt-1">{{ $message }}</small>
                 @enderror
@@ -160,10 +166,32 @@
 
 <script>
 function openForm(mode, data = null) {
-    let modalTitle = document.getElementById('inventoryPackageModalLabel');
-    let form = document.getElementById('inventoryPackageForm');
-    let saveBtn = document.getElementById('saveBtn');
-    let methodDiv = document.getElementById('formMethod');
+    const modalTitle = document.getElementById('inventoryPackageModalLabel');
+    const form = document.getElementById('inventoryPackageForm');
+    const saveBtn = document.getElementById('saveBtn');
+    const methodDiv = document.getElementById('formMethod');
+    const selectAll = document.getElementById('select_all_packages');
+    const selectedCountEl = document.getElementById('selectedCount');
+    const totalCountEl = document.getElementById('totalCount');
+
+    const pkgCheckboxes = () => Array.from(document.querySelectorAll('#packagesWrapper .pkg-checkbox'));
+
+    // Update counts and master
+    function updateCounts() {
+        const boxes = pkgCheckboxes();
+        const total = boxes.length;
+        const checked = boxes.filter(cb => cb.checked).length;
+
+        selectedCountEl.textContent = checked;
+        totalCountEl.textContent = total;
+
+        selectAll.indeterminate = (checked > 0 && checked < total);
+        selectAll.checked = (checked === total && total > 0);
+        if (total === 0) {
+            selectAll.indeterminate = false;
+            selectAll.checked = false;
+        }
+    }
 
     // Reset form
     form.reset();
@@ -171,9 +199,22 @@ function openForm(mode, data = null) {
     document.getElementById('inventory_box_model').value = '';
     document.getElementById('inventory_serial').value = '';
     document.getElementById('inventory_client').value = '';
-    document.querySelectorAll('#packagesWrapper input[type=checkbox]').forEach(cb => { cb.checked = false; cb.disabled = true; });
+    pkgCheckboxes().forEach(cb => { cb.checked = false; cb.disabled = true; });
     methodDiv.innerHTML = '';
     saveBtn.style.display = 'none';
+    selectAll.disabled = true;
+    selectAll.checked = false;
+    selectAll.indeterminate = false;
+    updateCounts();
+
+    // Events
+    selectAll.onchange = () => {
+        pkgCheckboxes().forEach(cb => { if (!cb.disabled) cb.checked = selectAll.checked; });
+        updateCounts();
+    };
+    pkgCheckboxes().forEach(cb => {
+        cb.onchange = () => updateCounts();
+    });
 
     if (mode === 'edit' && data) {
         modalTitle.innerText = "Assign Packages";
@@ -185,10 +226,13 @@ function openForm(mode, data = null) {
         document.getElementById('inventory_serial').value = data.box_serial_no;
         document.getElementById('inventory_client').value = data.client ? data.client.id + ' - ' + data.client.name : 'No client';
 
-        document.querySelectorAll('#packagesWrapper input[type=checkbox]').forEach(cb => {
+        pkgCheckboxes().forEach(cb => {
             cb.checked = data.packages.some(pkg => pkg.id == cb.value);
             cb.disabled = false;
         });
+
+        selectAll.disabled = false;
+        updateCounts();
     }
 
     if (mode === 'view' && data) {
@@ -199,11 +243,13 @@ function openForm(mode, data = null) {
         document.getElementById('inventory_serial').value = data.box_serial_no;
         document.getElementById('inventory_client').value = data.client ? data.client.id + ' - ' + data.client.name : 'No client';
 
-        document.querySelectorAll('#packagesWrapper input[type=checkbox]').forEach(cb => {
+        pkgCheckboxes().forEach(cb => {
             cb.checked = data.packages.some(pkg => pkg.id == cb.value);
             cb.disabled = true;
         });
 
+        selectAll.disabled = true;
+        updateCounts();
         saveBtn.style.display = 'none';
     }
 }

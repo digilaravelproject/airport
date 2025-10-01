@@ -14,9 +14,11 @@ class InventoryController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where('box_model', 'like', "%{$search}%")
+            $query->where(function($q) use ($search) {
+                $q->where('box_model', 'like', "%{$search}%")
                   ->orWhere('box_serial_no', 'like', "%{$search}%")
                   ->orWhere('box_mac', 'like', "%{$search}%");
+            });
         }
 
         $inventories = $query->orderBy('id', 'desc')->get();
@@ -32,6 +34,7 @@ class InventoryController extends Controller
             'box_model' => 'required',
             'box_serial_no' => 'required',
             'box_mac' => 'required|unique:inventories,box_mac',
+            // New fields are optional; keeping validations unchanged to avoid side effects
         ]);
 
         $data = $request->all();
@@ -51,6 +54,7 @@ class InventoryController extends Controller
             'box_model' => 'required',
             'box_serial_no' => 'required',
             'box_mac' => 'required|unique:inventories,box_mac,' . $inventory->id,
+            // New fields are optional; keeping validations unchanged to avoid side effects
         ]);
 
         $data = $request->all();
