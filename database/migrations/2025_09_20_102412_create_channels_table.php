@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->string('channel_genre')->nullable();
             $table->string('channel_resolution')->nullable();
             $table->string('channel_type')->nullable(); // Paid / Free
+            $table->string('language')->nullable(); // ✅ new field
             $table->boolean('encryption')->default(false);
             $table->boolean('active')->default(true);
             $table->timestamps();

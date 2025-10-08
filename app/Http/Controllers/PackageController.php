@@ -22,12 +22,19 @@ class PackageController extends Controller
         // load all channels
         $channels = Channel::orderBy('channel_name')->get();
 
+        // unique genres & languages for dropdowns
+        $genres = Channel::whereNotNull('channel_genre')
+            ->pluck('channel_genre')->unique()->sort()->values();
+
+        $languages = Channel::whereNotNull('language')
+            ->pluck('language')->unique()->sort()->values();
+
         $selectedPackage = null;
         if ($request->filled('package_id')) {
             $selectedPackage = Package::with('channels')->find($request->package_id);
         }
 
-        return view('packages.index', compact('packages', 'channels', 'selectedPackage'));
+        return view('packages.index', compact('packages', 'channels', 'genres', 'languages', 'selectedPackage'));
     }
 
     public function store(Request $request)

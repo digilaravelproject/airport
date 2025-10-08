@@ -9,6 +9,7 @@ return new class extends Migration {
     {
         Schema::create('inventories', function (Blueprint $table) {
             $table->id();
+            $table->string('box_id');
             $table->string('box_model');          // Model e.g. H200
             $table->string('box_serial_no');      // Serial number
             $table->string('box_mac')->unique();  // MAC ID

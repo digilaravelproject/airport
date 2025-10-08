@@ -13,14 +13,20 @@ class ClientController extends Controller
         $query = Client::with('locations');
 
         if ($request->filled('search')) {
+            $field = $request->get('field', 'all');
             $search = $request->search;
 
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                ->orWhere('contact_person', 'like', "%{$search}%")
-                ->orWhere('contact_no', 'like', "%{$search}%")
-                ->orWhere('city', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%");
+            $query->where(function($q) use ($field, $search) {
+                if ($field === 'all') {
+                    $q->where('id', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%")
+                    ->orWhere('contact_person', 'like', "%{$search}%")
+                    ->orWhere('contact_no', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+                } else {
+                    $q->where($field, 'like', "%{$search}%");
+                }
             });
         }
 
@@ -28,7 +34,10 @@ class ClientController extends Controller
 
         $selectedClient = null;
         if ($request->client_id) {
-            $selectedClient = Client::with('locations')->find($request->client_id);
+            $selectedClient = Client::with([
+                'locations',
+                'inventories.packages',
+            ])->find($request->client_id);
         }
 
         return view('clients.index', compact('clients', 'selectedClient'));
@@ -36,7 +45,6 @@ class ClientController extends Controller
 
     public function store(Request $request)
     {
-        
         $request->validate([
             'name' => 'required',
             'type' => 'required',

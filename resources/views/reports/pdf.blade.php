@@ -14,7 +14,7 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
+                <th>Box ID</th>
                 <th>Box Model</th>
                 <th>Serial No</th>
                 <th>Status</th>
@@ -26,7 +26,7 @@
         <tbody>
             @forelse($inventories as $inv)
             <tr>
-                <td>{{ $inv->id }}</td>
+                <td>{{ $inv->box_id }}</td>
                 <td>{{ $inv->box_model }}</td>
                 <td>{{ $inv->box_serial_no }}</td>
                 <td>{{ $inv->status ? 'Active' : 'Inactive' }}</td>

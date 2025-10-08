@@ -85,7 +85,8 @@
                                     class="btn btn-outline-secondary"
                                     formaction="{{ route('reports.preview') }}"
                                     formmethod="GET"
-                                    target="_blank">
+                                    target="_blank"
+                                    data-no-loader="true"> <!-- 👈 added -->
                                 View PDF
                             </button>
 
@@ -93,7 +94,8 @@
                             <button type="submit"
                                     class="btn btn-dark"
                                     formaction="{{ route('reports.download') }}"
-                                    formmethod="GET">
+                                    formmethod="GET"
+                                    data-no-loader="true"> <!-- 👈 added -->
                                 Download PDF
                             </button>
 
@@ -108,7 +110,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>No</th>
-                                    <th>Inventory ID</th>
+                                    <th>Box ID</th>
                                     <th>Box Model</th>
                                     <th>Serial No</th>
                                     <th>MAC ID</th>
@@ -122,7 +124,7 @@
                                 @forelse ($inventories as $idx => $inv)
                                     <tr>
                                         <td>{{ $inventories->firstItem() + $idx }}</td>
-                                        <td><span class="badge bg-secondary">{{ $inv->id }}</span></td>
+                                        <td><span class="badge bg-secondary">{{ $inv->box_id }}</span></td>
                                         <td>{{ $inv->box_model }}</td>
                                         <td>{{ $inv->box_serial_no }}</td>
                                         <td>{{ $inv->box_mac }}</td>

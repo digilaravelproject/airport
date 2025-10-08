@@ -2,7 +2,6 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Page-Title -->
     <?php
         $page_title = "Clients";
         $sub_title = "Subscribers";
@@ -20,7 +19,6 @@
             </div>
         </div>
     </div>
-    <!-- End Page Title -->
 
     <div class="row">
         <!-- Left: Clients Table -->
@@ -29,8 +27,20 @@
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Clients List</h5>
                     <form method="GET" action="{{ route('clients.index') }}" class="d-flex">
-                        <input type="text" name="search" value="{{ request('search') }}" 
+
+                        <input type="text" name="search" value="{{ request('search') }}"
                                class="form-control form-control-sm me-2" placeholder="Search">
+                               
+                        <!-- Dropdown for search field -->
+                        <select name="field" class="form-select form-select-sm me-2" style="width:150px;">
+                            <option value="all" {{ request('field') == 'all' ? 'selected' : '' }}>All Fields</option>
+                            <option value="id" {{ request('field') == 'id' ? 'selected' : '' }}>Client ID</option>
+                            <option value="name" {{ request('field') == 'name' ? 'selected' : '' }}>Name</option>
+                            <option value="contact_person" {{ request('field') == 'contact_person' ? 'selected' : '' }}>Contact Person</option>
+                            <option value="contact_no" {{ request('field') == 'contact_no' ? 'selected' : '' }}>Mobile</option>
+                            <option value="city" {{ request('field') == 'city' ? 'selected' : '' }}>City</option>
+                            <option value="email" {{ request('field') == 'email' ? 'selected' : '' }}>Email</option>
+                        </select>
                         <button type="submit" class="btn btn-sm btn-primary me-2">Search</button>
                         <a href="{{ route('clients.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
                     </form>
@@ -85,43 +95,33 @@
                         @csrf
                         @if($selectedClient) @method('PUT') @endif
 
-                        <!-- Client Fields -->
+                        <!-- Form Fields -->
                         <div class="mb-3">
                             <label class="form-label">Client ID</label>
                             <input type="text" class="form-control" value="{{ $selectedClient->id ?? '' }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                                   value="{{ old('name', $selectedClient->name ?? '') }}" readonly>
-                            @error('name')
-                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                            @enderror
+                            <input type="text" name="name" class="form-control" value="{{ old('name', $selectedClient->name ?? '') }}" readonly>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Type <span class="text-danger">*</span></label>
-                            <select name="type" class="form-select @error('type') is-invalid @enderror" disabled>
+                            <label class="form-label">Type</label>
+                            <select name="type" class="form-select" disabled>
                                 <option value="Paid" {{ old('type', $selectedClient->type ?? '')=='Paid' ? 'selected' : '' }}>Paid</option>
                                 <option value="Free" {{ old('type', $selectedClient->type ?? '')=='Free' ? 'selected' : '' }}>Free</option>
                             </select>
-                            @error('type')
-                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Contact Person</label>
-                            <input type="text" name="contact_person" class="form-control"
-                                   value="{{ old('contact_person', $selectedClient->contact_person ?? '') }}" readonly>
+                            <input type="text" name="contact_person" class="form-control" value="{{ old('contact_person', $selectedClient->contact_person ?? '') }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Mobile</label>
-                            <input type="text" name="contact_no" class="form-control"
-                                   value="{{ old('contact_no', $selectedClient->contact_no ?? '') }}" readonly>
+                            <input type="text" name="contact_no" class="form-control" value="{{ old('contact_no', $selectedClient->contact_no ?? '') }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control"
-                                   value="{{ old('email', $selectedClient->email ?? '') }}" readonly>
+                            <input type="email" name="email" class="form-control" value="{{ old('email', $selectedClient->email ?? '') }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Billing Address</label>
@@ -129,49 +129,85 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">City</label>
-                            <input type="text" name="city" class="form-control"
-                                   value="{{ old('city', $selectedClient->city ?? '') }}" readonly>
+                            <input type="text" name="city" class="form-control" value="{{ old('city', $selectedClient->city ?? '') }}" readonly>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">PIN</label>
-                                <input type="text" name="pin" class="form-control"
-                                       value="{{ old('pin', $selectedClient->pin ?? '') }}" readonly>
+                                <input type="text" name="pin" class="form-control" value="{{ old('pin', $selectedClient->pin ?? '') }}" readonly>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">GST No</label>
-                                <input type="text" name="gst_no" class="form-control"
-                                       value="{{ old('gst_no', $selectedClient->gst_no ?? '') }}" readonly>
+                                <input type="text" name="gst_no" class="form-control" value="{{ old('gst_no', $selectedClient->gst_no ?? '') }}" readonly>
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">State</label>
-                            <input type="text" name="state" class="form-control"
-                                   value="{{ old('state', $selectedClient->state ?? '') }}" readonly>
+                            <input type="text" name="state" class="form-control" value="{{ old('state', $selectedClient->state ?? '') }}" readonly>
                         </div>
 
-                        <!-- Location Fields -->
                         <hr>
                         <h6 class="text-muted">Location Info</h6>
                         <div class="mb-3">
                             <label class="form-label">Location</label>
-                            <input type="text" name="location" class="form-control"
+                            <input type="text" name="location" class="form-control" 
                                    value="{{ old('location', $selectedClient && $selectedClient->locations->first() ? $selectedClient->locations->first()->location_name : '') }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Terminal</label>
-                            <input type="text" name="terminal" class="form-control"
+                            <input type="text" name="terminal" class="form-control" 
                                    value="{{ old('terminal', $selectedClient && $selectedClient->locations->first() ? $selectedClient->locations->first()->terminal : '') }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Level</label>
-                            <input type="text" name="level" class="form-control"
+                            <input type="text" name="level" class="form-control" 
                                    value="{{ old('level', $selectedClient && $selectedClient->locations->first() ? $selectedClient->locations->first()->level : '') }}" readonly>
                         </div>
 
-                        <!-- Save Button -->
+                        <hr>
+                        <h6 class="text-muted mb-2">Boxes</h6>
+                        <div class="inventory-panel">
+                            <div class="inventory-scroll table-responsive">
+                                <table class="table table-sm table-bordered inventory-table mb-0">
+                                    <thead class="table-light inventory-head">
+                                        <tr>
+                                            <th style="width:72px;">ID</th>
+                                            <th>IP</th>
+                                            <th>MAC</th>
+                                            <th>SERIAL</th>
+                                            <th>PACKAGE</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php
+                                            $inventories = $selectedClient ? $selectedClient->inventories : collect();
+                                        @endphp
+                                        @forelse($inventories as $inv)
+                                            <tr onclick="window.location='{{ route('inventories.show', $inv->id) }}'" style="cursor:pointer;">
+                                                <td>{{ $inv->box_id }}</td>
+                                                <td class="text-monospace">{{ $inv->box_ip }}</td>
+                                                <td class="text-monospace">{{ $inv->box_mac }}</td>
+                                                <td class="text-monospace">{{ $inv->box_serial_no }}</td>
+                                                <td>
+                                                    @if($inv->relationLoaded('packages') && $inv->packages->count())
+                                                        {{ $inv->packages->pluck('name')->join(', ') }}
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted">No inventory found.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                         <div class="text-end">
-                            <button type="submit" id="saveBtn" class="btn btn-dark px-4" style="display:none;">Save</button>
+                            <button type="submit" id="saveBtn" class="btn btn-dark px-4 mt-3" style="display:none;">Save</button>
                         </div>
                     </form>
                 </div>
@@ -179,6 +215,15 @@
         </div>
     </div>
 </div>
+
+<style>
+    .inventory-panel { border:1px solid #dee2e6; border-radius:.25rem; }
+    .inventory-scroll { max-height: 220px; overflow: auto; }
+    .inventory-table th, .inventory-table td { padding:.35rem .5rem; vertical-align: middle; }
+    .inventory-head th { position: sticky; top: 0; z-index: 1; }
+    .text-monospace { font-family: monospace; }
+</style>
+
 <script>
 function enableForm(mode) {
     let form = document.getElementById('clientForm');

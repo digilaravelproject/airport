@@ -18,6 +18,7 @@ class Channel extends Model
         'channel_genre',
         'channel_resolution',
         'channel_type',
+        'language',
         'encryption',
         'active',
     ];
@@ -32,4 +33,3 @@ class Channel extends Model
         return $this->belongsToMany(Package::class, 'channel_package');
     }
 }
-

@@ -29,8 +29,22 @@
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Channels List</h5>
                     <form method="GET" action="{{ route('channels.index') }}" class="d-flex">
+
                         <input type="text" name="search" value="{{ request('search') }}" 
                                class="form-control form-control-sm me-2" placeholder="Search">
+
+                        <!-- NEW: search-field dropdown -->
+                        <select name="field" class="form-select form-select-sm me-2" style="width:160px;">
+                            <option value="all" {{ request('field','all')=='all' ? 'selected' : '' }}>All Fields</option>
+                            <option value="id" {{ request('field')=='id' ? 'selected' : '' }}>Channel ID</option>
+                            <option value="channel_name" {{ request('field')=='channel_name' ? 'selected' : '' }}>Name</option>
+                            <option value="channel_genre" {{ request('field')=='channel_genre' ? 'selected' : '' }}>Genre</option>
+                            <option value="channel_resolution" {{ request('field')=='channel_resolution' ? 'selected' : '' }}>Resolution</option>
+                            <option value="channel_type" {{ request('field')=='channel_type' ? 'selected' : '' }}>Type</option>
+                            <option value="language" {{ request('field')=='language' ? 'selected' : '' }}>Language</option>
+                            <option value="active" {{ request('field')=='active' ? 'selected' : '' }}>Active</option>
+                        </select>
+                        
                         <button type="submit" class="btn btn-sm btn-primary me-2">Search</button>
                         <a href="{{ route('channels.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
                     </form>
@@ -46,6 +60,7 @@
                                     <th>Genre</th>
                                     <th>Resolution</th>
                                     <th>Type</th>
+                                    <th>Language</th>
                                     <th>Active</th>
                                 </tr>
                             </thead>
@@ -58,6 +73,7 @@
                                         <td>{{ $channel->channel_genre }}</td>
                                         <td>{{ $channel->channel_resolution }}</td>
                                         <td>{{ $channel->channel_type }}</td>
+                                        <td>{{ $channel->language ?? '-' }}</td>
                                         <td>
                                             <span class="badge {{ $channel->active ? 'bg-success' : 'bg-danger' }}">
                                                 {{ $channel->active ? 'Yes' : 'No' }}
@@ -152,6 +168,12 @@
                         </div>
 
                         <div class="mb-3">
+                            <label class="form-label">Language</label>
+                            <input type="text" name="language" class="form-control"
+                                value="{{ old('language', $selectedChannel->language ?? '') }}" readonly>
+                        </div>
+
+                        <div class="mb-3">
                             <label class="form-label">Encryption</label>
                             <select name="encryption" class="form-select" disabled>
                                 <option value="1" {{ old('encryption', $selectedChannel->encryption ?? '') ? 'selected' : '' }}>Yes</option>
@@ -195,7 +217,7 @@ function enableForm(mode) {
         saveBtn.style.display = 'inline-block';
         form.action = "{{ route('channels.store') }}";
 
-        let methodInput = form.querySelector('input[name="_method"]');
+        let methodInput = form.querySelector('input[name=\"_method\"]');
         if (methodInput) methodInput.remove();
     }
 

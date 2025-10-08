@@ -8,16 +8,41 @@ use Illuminate\Http\Request;
 
 class InventoryController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, $id = null)
     {
         $query = Inventory::with('client');
 
+        if (!empty($id)) {
+            // keep existing behavior: filter by primary key when visiting /inventories/{id}
+            $query->where('id', $id);
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('box_model', 'like', "%{$search}%")
-                  ->orWhere('box_serial_no', 'like', "%{$search}%")
-                  ->orWhere('box_mac', 'like', "%{$search}%");
+            $field  = $request->get('field', 'all');
+
+            $query->where(function($q) use ($field, $search) {
+                if ($field === 'all') {
+                    $q->where('box_id', 'like', "%{$search}%")
+                      ->orWhere('box_ip', 'like', "%{$search}%")
+                      ->orWhere('box_model', 'like', "%{$search}%")
+                      ->orWhere('box_serial_no', 'like', "%{$search}%")
+                      ->orWhere('box_mac', 'like', "%{$search}%")
+                      ->orWhere('box_fw', 'like', "%{$search}%")
+                      ->orWhereHas('client', function($cq) use ($search) {
+                          $cq->where('name', 'like', "%{$search}%");
+                      });
+                } elseif ($field === 'client_name') {
+                    $q->whereHas('client', function($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%");
+                    });
+                } else {
+                    // allow only known columns
+                    $allowed = ['box_id','box_ip','box_model','box_serial_no','box_mac','box_fw'];
+                    if (in_array($field, $allowed, true)) {
+                        $q->where($field, 'like', "%{$search}%");
+                    }
+                }
             });
         }
 
@@ -28,13 +53,19 @@ class InventoryController extends Controller
         return view('inventories.index', compact('inventories', 'selectedInventory', 'clients'));
     }
 
+    public function show(Request $request, $id)
+    {
+        // reuse the same listing page but filtered by this primary key $id
+        return $this->index($request, $id);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
-            'box_model' => 'required',
+            'box_id'        => 'required|string|max:255|unique:inventories,box_id',
+            'box_model'     => 'required',
             'box_serial_no' => 'required',
-            'box_mac' => 'required|unique:inventories,box_mac',
-            // New fields are optional; keeping validations unchanged to avoid side effects
+            'box_mac'       => 'required|unique:inventories,box_mac',
         ]);
 
         $data = $request->all();
@@ -51,10 +82,10 @@ class InventoryController extends Controller
     public function update(Request $request, Inventory $inventory)
     {
         $request->validate([
-            'box_model' => 'required',
+            'box_id'        => 'required|string|max:255|unique:inventories,box_id,' . $inventory->id,
+            'box_model'     => 'required',
             'box_serial_no' => 'required',
-            'box_mac' => 'required|unique:inventories,box_mac,' . $inventory->id,
-            // New fields are optional; keeping validations unchanged to avoid side effects
+            'box_mac'       => 'required|unique:inventories,box_mac,' . $inventory->id,
         ]);
 
         $data = $request->all();

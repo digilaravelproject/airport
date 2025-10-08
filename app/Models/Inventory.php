@@ -10,6 +10,7 @@ class Inventory extends Model
     use HasFactory;
 
     protected $fillable = [
+        'box_id',
         'box_model',
         'box_serial_no',
         'box_mac',
@@ -18,9 +19,9 @@ class Inventory extends Model
         'warranty_date',
         'client_id',
         'location',
-        'box_ip',       // ✅ new
-        'mgmt_url',     // ✅ new
-        'mgmt_token',   // ✅ new
+        'box_ip',      // IP
+        'mgmt_url',
+        'mgmt_token',
         'photo',
     ];
 
@@ -33,7 +34,7 @@ class Inventory extends Model
         return $this->belongsTo(Client::class);
     }
 
-    // ✅ Many-to-Many with Packages
+    // Many-to-Many with Packages
     public function packages()
     {
         return $this->belongsToMany(Package::class, 'inventory_package');

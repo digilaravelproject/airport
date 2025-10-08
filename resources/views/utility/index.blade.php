@@ -49,7 +49,7 @@
                             @forelse ($inventories as $key => $inventory)
                                 <tr onclick="window.location='?inventory_id={{ $inventory->id }}&page={{ request('page',1) }}&search={{ urlencode($search ?? '') }}'" style="cursor:pointer;">
                                     <td>{{ ($inventories->currentPage()-1)*$inventories->perPage() + $key + 1 }}</td>
-                                    <td><span class="badge bg-success">{{ $inventory->id }}</span></td>
+                                    <td><span class="badge bg-success">{{ $inventory->box_id }}</span></td>
                                     <td>{{ $inventory->box_model }}</td>
                                     <td>{{ $inventory->box_serial_no }}</td>
                                     <td>{{ $inventory->box_mac }}</td>

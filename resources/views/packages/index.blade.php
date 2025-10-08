@@ -129,19 +129,41 @@
                         <div class="d-flex flex-wrap justify-content-between align-items-center">
                             <label class="form-label mb-0">Channels</label>
 
-                            <div class="d-flex gap-3 align-items-center">
-                                <!-- Filter -->
+                            <div class="d-flex gap-3 align-items-center flex-wrap">
+                                <!-- Filter: Type -->
                                 <div class="d-flex align-items-center gap-2">
-                                    <label class="mb-0 small text-muted">Filter:</label>
-                                    <select id="channel_filter" class="form-select form-select-sm" style="min-width: 140px;" disabled>
+                                    <label class="mb-0 small text-muted">Type:</label>
+                                    <select id="channel_filter_type" class="form-select form-select-sm" style="min-width: 120px;" disabled>
                                         <option value="all" selected>All</option>
                                         <option value="paid">Paid</option>
                                         <option value="free">Free</option>
                                     </select>
                                 </div>
 
+                                <!-- Filter: Genre -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 small text-muted">Genre:</label>
+                                    <select id="channel_filter_genre" class="form-select form-select-sm" style="min-width: 140px;" disabled>
+                                        <option value="all" selected>All</option>
+                                        @foreach($genres as $genre)
+                                            <option value="{{ strtolower($genre) }}">{{ ucfirst($genre) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <!-- Filter: Language -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 small text-muted">Language:</label>
+                                    <select id="channel_filter_language" class="form-select form-select-sm" style="min-width: 140px;" disabled>
+                                        <option value="all" selected>All</option>
+                                        @foreach($languages as $lang)
+                                            <option value="{{ strtolower($lang) }}">{{ ucfirst($lang) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
                                 <!-- Select All -->
-                                <div class="form-check">
+                                <div class="form-check ms-2">
                                     <input class="form-check-input" type="checkbox" id="select_all_channels" disabled>
                                     <label class="form-check-label" for="select_all_channels">Select all (visible)</label>
                                 </div>
@@ -152,23 +174,41 @@
                             @foreach($channels as $ch)
                                 @php
                                     $type = strtolower(trim($ch->channel_type));
+                                    $genre = strtolower(trim($ch->channel_genre ?? ''));
+                                    $language = strtolower(trim($ch->language ?? ''));
                                 @endphp
-                                <div class="form-check channel-row" data-type="{{ $type }}">
-                                    <input class="form-check-input channel-checkbox" type="checkbox" name="channel_id[]" 
-                                        value="{{ $ch->id }}" id="channel_{{ $ch->id }}" disabled>
+                                <div class="form-check channel-row" data-type="{{ $type }}" data-genre="{{ $genre }}" data-language="{{ $language }}">
+                                    <input
+                                        class="form-check-input channel-checkbox"
+                                        type="checkbox"
+                                        name="channel_id[]"
+                                        value="{{ $ch->id }}"
+                                        id="channel_{{ $ch->id }}"
+                                        data-name="{{ $ch->channel_name }}"  {{-- used for selected list --}}
+                                        disabled>
                                     <label class="form-check-label" for="channel_{{ $ch->id }}">
                                         {{ $ch->channel_name }}
-                                        <span class="badge rounded-pill {{ $type === 'paid' ? 'text-bg-warning' : 'text-bg-secondary' }} ms-2">
+                                        <span class="badge bg-light text-dark border ms-2">
                                             {{ ucfirst($type) }}
                                         </span>
+                                        @if($ch->channel_genre)
+                                            <span class="badge bg-light text-dark border ms-1">{{ $ch->channel_genre }}</span>
+                                        @endif
+                                        @if($ch->language)
+                                            <span class="badge bg-light text-dark border ms-1">{{ $ch->language }}</span>
+                                        @endif
                                     </label>
                                 </div>
                             @endforeach
                         </div>
 
-                        <div class="small text-muted mt-1">
-                            <span id="visibleCount">0</span> visible •
-                            <span id="selectedCount">0</span> selected
+                        <div class="small text-muted mt-1 d-flex flex-wrap align-items-center gap-2">
+                            <span><span id="visibleCount">0</span> visible • <span id="selectedCount">0</span> selected</span>
+                        </div>
+
+                        {{-- NEW: read-only selected channel names (badges) --}}
+                        <div id="selectedNamesWrap" class="mt-2" style="min-height: 1rem;">
+                            <div id="selectedNames" class="d-flex flex-wrap gap-1"></div>
                         </div>
                     </div>
 
@@ -193,46 +233,78 @@
 
 <script>
 (function () {
-    const form            = document.getElementById('packageForm');
-    const saveBtn         = document.getElementById('saveBtn');
-    const modalTitle      = document.getElementById('packageModalLabel');
-    const methodDiv       = document.getElementById('formMethod');
-    const pkgIdInput      = document.getElementById('package_id');
-    const nameInput       = document.getElementById('name');
-    const activeSelect    = document.getElementById('active');
+    const form = document.getElementById('packageForm');
+    const saveBtn = document.getElementById('saveBtn');
+    const modalTitle = document.getElementById('packageModalLabel');
+    const methodDiv = document.getElementById('formMethod');
+    const pkgIdInput = document.getElementById('package_id');
+    const nameInput = document.getElementById('name');
+    const activeSelect = document.getElementById('active');
     const channelsWrapper = document.getElementById('channelsWrapper');
-    const filterSelect    = document.getElementById('channel_filter');
-    const allCb           = document.getElementById('select_all_channels');
+    const allCb = document.getElementById('select_all_channels');
     const selectedCountEl = document.getElementById('selectedCount');
-    const visibleCountEl  = document.getElementById('visibleCount');
+    const visibleCountEl = document.getElementById('visibleCount');
+    const selectedNames = document.getElementById('selectedNames');
+
+    // filters
+    const filterType = document.getElementById('channel_filter_type');
+    const filterGenre = document.getElementById('channel_filter_genre');
+    const filterLanguage = document.getElementById('channel_filter_language');
 
     function allChannelRows() {
         return Array.from(channelsWrapper.querySelectorAll('.channel-row'));
     }
+
     function visibleChannelBoxes() {
         return allChannelRows().filter(r => !r.classList.contains('d-none'))
-                               .map(r => r.querySelector('.channel-checkbox'));
+            .map(r => r.querySelector('.channel-checkbox'));
+    }
+
+    function renderSelectedNames() {
+        // Clear
+        selectedNames.innerHTML = '';
+        // Collect names of ALL checked (not just visible) so user sees full selection
+        const checked = channelsWrapper.querySelectorAll('.channel-checkbox:checked');
+        if (!checked.length) return;
+
+        checked.forEach(cb => {
+            const name = cb.dataset.name || '';
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-secondary';
+            badge.textContent = name;
+            selectedNames.appendChild(badge);
+        });
     }
 
     function updateCountsAndMaster() {
         const boxes = visibleChannelBoxes();
         const total = boxes.length;
         const checked = boxes.filter(cb => cb.checked).length;
-
-        visibleCountEl.textContent  = total;
-        selectedCountEl.textContent = checked;
+        visibleCountEl.textContent = total;
+        selectedCountEl.textContent = channelsWrapper.querySelectorAll('.channel-checkbox:checked').length;
 
         allCb.indeterminate = (checked > 0 && checked < total);
         allCb.checked = (total > 0 && checked === total);
         if (total === 0) { allCb.indeterminate = false; allCb.checked = false; }
+
+        renderSelectedNames();
     }
 
     function applyFilter() {
-        const val = filterSelect.value;
+        const typeVal = filterType.value;
+        const genreVal = filterGenre.value;
+        const langVal = filterLanguage.value;
+
         allChannelRows().forEach(row => {
-            const type = (row.getAttribute('data-type') || '').toLowerCase();
-            const show = (val === 'all' || val === type);
-            row.classList.toggle('d-none', !show);
+            const type = (row.dataset.type || '').toLowerCase();
+            const genre = (row.dataset.genre || '').toLowerCase();
+            const language = (row.dataset.language || '').toLowerCase();
+
+            const matchesType = (typeVal === 'all' || type === typeVal);
+            const matchesGenre = (genreVal === 'all' || genre === genreVal);
+            const matchesLang = (langVal === 'all' || language === langVal);
+
+            row.classList.toggle('d-none', !(matchesType && matchesGenre && matchesLang));
         });
         updateCountsAndMaster();
     }
@@ -240,12 +312,14 @@
     function setDisabled(disabled) {
         nameInput.readOnly = disabled;
         activeSelect.disabled = disabled;
-        filterSelect.disabled = disabled;
+        filterType.disabled = disabled;
+        filterGenre.disabled = disabled;
+        filterLanguage.disabled = disabled;
         allCb.disabled = disabled;
         allChannelRows().forEach(r => r.querySelector('.channel-checkbox').disabled = disabled);
     }
 
-    // Public function for modal buttons
+    // main form logic (add/edit/view)
     window.openForm = function(mode, data = null) {
         form.reset();
         methodDiv.innerHTML = '';
@@ -256,9 +330,9 @@
         activeSelect.value = 'Yes';
         allChannelRows().forEach(r => r.querySelector('.channel-checkbox').checked = false);
         allCb.checked = false; allCb.indeterminate = false;
-
-        filterSelect.value = 'all';
+        filterType.value = 'all'; filterGenre.value = 'all'; filterLanguage.value = 'all';
         allChannelRows().forEach(r => r.classList.remove('d-none'));
+        selectedNames.innerHTML = '';
         applyFilter();
 
         if (mode === 'add') {
@@ -275,7 +349,6 @@
             pkgIdInput.value = data.id ?? '';
             nameInput.value  = data.name ?? '';
             activeSelect.value = data.active ?? 'Yes';
-
             setDisabled(false);
             const selectedIds = (data.channels || []).map(ch => String(ch.id));
             allChannelRows().forEach(r => {
@@ -290,7 +363,6 @@
             pkgIdInput.value = data.id ?? '';
             nameInput.value  = data.name ?? '';
             activeSelect.value = data.active ?? 'Yes';
-
             const selectedIds = (data.channels || []).map(ch => String(ch.id));
             allChannelRows().forEach(r => {
                 const cb = r.querySelector('.channel-checkbox');
@@ -301,13 +373,17 @@
         }
     };
 
-    // Wire events
-    filterSelect.addEventListener('change', applyFilter);
+    // filter change events
+    filterType.addEventListener('change', applyFilter);
+    filterGenre.addEventListener('change', applyFilter);
+    filterLanguage.addEventListener('change', applyFilter);
+
     allCb.addEventListener('change', () => {
         const checked = allCb.checked;
         visibleChannelBoxes().forEach(cb => cb.checked = checked);
         updateCountsAndMaster();
     });
+
     channelsWrapper.addEventListener('change', e => {
         if (e.target.classList.contains('channel-checkbox')) updateCountsAndMaster();
     });

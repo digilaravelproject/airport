@@ -25,7 +25,19 @@
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Inventories</h5>
                     <form method="GET" action="{{ route('inventories.index') }}" class="d-flex">
+
                         <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm me-2" placeholder="Search">
+                        <!-- Search field dropdown -->
+                        <select name="field" class="form-select form-select-sm me-2" style="width:160px;">
+                            <option value="all" {{ request('field','all')=='all' ? 'selected' : '' }}>All Fields</option>
+                            <option value="box_id" {{ request('field')=='box_id' ? 'selected' : '' }}>Box ID</option>
+                            <option value="box_ip" {{ request('field')=='box_ip' ? 'selected' : '' }}>Box IP</option>
+                            <option value="box_model" {{ request('field')=='box_model' ? 'selected' : '' }}>Model</option>
+                            <option value="box_serial_no" {{ request('field')=='box_serial_no' ? 'selected' : '' }}>Serial No</option>
+                            <option value="box_mac" {{ request('field')=='box_mac' ? 'selected' : '' }}>MAC</option>
+                            <option value="box_fw" {{ request('field')=='box_fw' ? 'selected' : '' }}>Firmware</option>
+                            <option value="client_name" {{ request('field')=='client_name' ? 'selected' : '' }}>Client Name</option>
+                        </select>
                         <button type="submit" class="btn btn-sm btn-primary me-2">Search</button>
                         <a href="{{ route('inventories.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
                     </form>
@@ -49,7 +61,7 @@
                                 @foreach ($inventories as $key => $inventory)
                                     <tr onclick="window.location='?inventory_id={{ $inventory->id }}'" style="cursor:pointer;">
                                         <td>{{ $key+1 }}</td>
-                                        <td><span class="badge bg-secondary">{{ $inventory->id }}</span></td>
+                                        <td><span class="badge bg-secondary">{{ $inventory->box_id }}</span></td>
                                         <td>{{ $inventory->box_ip }}</td>
                                         <td>{{ $inventory->box_model }}</td>
                                         <td>{{ $inventory->box_serial_no }}</td>
@@ -86,8 +98,13 @@
 
                         <div class="mb-3">
                             <label class="form-label">Box ID</label>
-                            <input type="text" class="form-control" value="{{ $selectedInventory->id ?? '' }}" readonly>
+                            <input type="text" name="box_id" class="form-control"
+                                value="{{ old('box_id', $selectedInventory->box_id ?? '') }}" readonly>
+                            @error('box_id')
+                                <div class="text-danger small">{{ $message }}</div>
+                            @enderror
                         </div>
+
 
                         <div class="mb-3">
                             <label class="form-label">Model</label>
@@ -202,7 +219,7 @@ function enableForm(mode) {
         document.getElementById('previewImage').innerHTML = '';
         saveBtn.style.display = 'inline-block';
         form.action = "{{ route('inventories.store') }}";
-        let methodInput = form.querySelector('input[name="_method"]'); if (methodInput) methodInput.remove();
+        let methodInput = form.querySelector('input[name=\"_method\"]'); if (methodInput) methodInput.remove();
     }
 
     if (mode === 'edit') {

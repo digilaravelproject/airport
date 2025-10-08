@@ -32,9 +32,19 @@
             <h5 class="mb-0">Users</h5>
             <div class="d-flex align-items-center gap-2">
                 <form method="GET" action="{{ route('users.index') }}" class="d-flex">
-                    <input type="text" class="form-control form-control-sm me-2" name="search" value="{{ $search }}"
-                           placeholder="Search name/email">
-                    <button class="btn btn-sm btn-primary">Search</button>
+
+                    <input type="text" class="form-control form-control-sm me-2" name="search"
+                           value="{{ $search }}" placeholder="Search...">
+                    <!-- NEW: Dropdown for field selection -->
+                    <select name="field" class="form-select form-select-sm me-2" style="width:150px;">
+                        <option value="all" {{ request('field','all')=='all' ? 'selected' : '' }}>All Fields</option>
+                        <option value="id" {{ request('field')=='id' ? 'selected' : '' }}>User ID</option>
+                        <option value="name" {{ request('field')=='name' ? 'selected' : '' }}>Name</option>
+                        <option value="email" {{ request('field')=='email' ? 'selected' : '' }}>Email</option>
+                        <option value="role" {{ request('field')=='role' ? 'selected' : '' }}>Role</option>
+                    </select>
+                    <button class="btn btn-sm btn-primary me-2">Search</button>
+                    <a href="{{ route('users.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
                 </form>
                 <a href="{{ route('users.create') }}" class="btn btn-sm btn-success">Add User</a>
             </div>
@@ -66,7 +76,7 @@
                                     @endforelse
                                 </td>
                                 <td>
-                                    @if($r->name != 'Admin')
+                                    @if(!$u->hasRole('Admin'))
                                         <a href="{{ route('users.edit', $u->id) }}" class="btn btn-sm btn-warning">Edit</a>
                                         <form action="{{ route('users.destroy', $u->id) }}" method="POST" class="d-inline">
                                             @csrf @method('DELETE')

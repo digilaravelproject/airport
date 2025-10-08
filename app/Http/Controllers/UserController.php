@@ -12,13 +12,32 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $search = trim((string) $request->get('search', ''));
+        $field  = $request->get('field', 'all');
 
         $users = User::query()
-            ->when($search, function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            })
             ->with('roles')
+            ->when($search, function ($q) use ($search, $field) {
+                $q->where(function ($query) use ($search, $field) {
+                    if ($field === 'all') {
+                        $query->where('id', 'like', "%{$search}%")
+                              ->orWhere('name', 'like', "%{$search}%")
+                              ->orWhere('email', 'like', "%{$search}%")
+                              ->orWhereHas('roles', function ($roleQ) use ($search) {
+                                  $roleQ->where('name', 'like', "%{$search}%");
+                              });
+                    } elseif ($field === 'id') {
+                        $query->where('id', 'like', "%{$search}%");
+                    } elseif ($field === 'name') {
+                        $query->where('name', 'like', "%{$search}%");
+                    } elseif ($field === 'email') {
+                        $query->where('email', 'like', "%{$search}%");
+                    } elseif ($field === 'role') {
+                        $query->whereHas('roles', function ($roleQ) use ($search) {
+                            $roleQ->where('name', 'like', "%{$search}%");
+                        });
+                    }
+                });
+            })
             ->orderBy('id', 'asc')
             ->paginate(10);
 
@@ -47,7 +66,6 @@ class UserController extends Controller
             'password' => bcrypt($request->password),
         ]);
 
-        // assign multiple or single roles
         $user->syncRoles($request->roles);
 
         return redirect()->route('users.index')->with('success', 'User created successfully.');
@@ -85,7 +103,6 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        // (Optional) prevent deleting yourself:
         if (auth()->id() === $user->id) {
             return back()->with('success', 'You cannot delete your own account.');
         }
