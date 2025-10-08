@@ -37,6 +37,7 @@
                                 <tr>
                                     <th>No</th>
                                     <th>Box ID</th>
+                                    <th>Box IP</th>
                                     <th>Model</th>
                                     <th>Serial No</th>
                                     <th>MAC</th>
@@ -49,6 +50,7 @@
                                     <tr onclick="window.location='?inventory_id={{ $inventory->id }}'" style="cursor:pointer;">
                                         <td>{{ $key+1 }}</td>
                                         <td><span class="badge bg-secondary">{{ $inventory->id }}</span></td>
+                                        <td>{{ $inventory->box_ip }}</td>
                                         <td>{{ $inventory->box_model }}</td>
                                         <td>{{ $inventory->box_serial_no }}</td>
                                         <td>{{ $inventory->box_mac }}</td>

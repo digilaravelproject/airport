@@ -66,12 +66,14 @@
                                     @endforelse
                                 </td>
                                 <td>
-                                    <a href="{{ route('users.edit', $u->id) }}" class="btn btn-sm btn-warning">Edit</a>
-                                    <form action="{{ route('users.destroy', $u->id) }}" method="POST" class="d-inline">
-                                        @csrf @method('DELETE')
-                                        <button class="btn btn-sm btn-danger"
-                                                onclick="return confirm('Delete this user?')">Delete</button>
-                                    </form>
+                                    @if($r->name != 'Admin')
+                                        <a href="{{ route('users.edit', $u->id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                        <form action="{{ route('users.destroy', $u->id) }}" method="POST" class="d-inline">
+                                            @csrf @method('DELETE')
+                                            <button class="btn btn-sm btn-danger"
+                                                    onclick="return confirm('Delete this user?')">Delete</button>
+                                        </form>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
