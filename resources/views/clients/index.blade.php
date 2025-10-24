@@ -20,6 +20,22 @@
         </div>
     </div>
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show mt-3 mb-0">
+            <i class="fas fa-check-circle me-1"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger mt-3 mb-0 alert-dismissible fade show">
+            <i class="fas fa-exclamation-circle me-1"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="row">
         <!-- Left: Clients Table -->
         <div class="col-md-8">
@@ -27,10 +43,9 @@
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Clients List</h5>
                     <form method="GET" action="{{ route('clients.index') }}" class="d-flex">
-
                         <input type="text" name="search" value="{{ request('search') }}"
                                class="form-control form-control-sm me-2" placeholder="Search">
-                               
+
                         <!-- Dropdown for search field -->
                         <select name="field" class="form-select form-select-sm me-2" style="width:150px;">
                             <option value="all" {{ request('field') == 'all' ? 'selected' : '' }}>All Fields</option>
@@ -147,24 +162,6 @@
                         </div>
 
                         <hr>
-                        <h6 class="text-muted">Location Info</h6>
-                        <div class="mb-3">
-                            <label class="form-label">Location</label>
-                            <input type="text" name="location" class="form-control" 
-                                   value="{{ old('location', $selectedClient && $selectedClient->locations->first() ? $selectedClient->locations->first()->location_name : '') }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Terminal</label>
-                            <input type="text" name="terminal" class="form-control" 
-                                   value="{{ old('terminal', $selectedClient && $selectedClient->locations->first() ? $selectedClient->locations->first()->terminal : '') }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Level</label>
-                            <input type="text" name="level" class="form-control" 
-                                   value="{{ old('level', $selectedClient && $selectedClient->locations->first() ? $selectedClient->locations->first()->level : '') }}" readonly>
-                        </div>
-
-                        <hr>
                         <h6 class="text-muted mb-2">Boxes</h6>
                         <div class="inventory-panel">
                             <div class="inventory-scroll table-responsive">
@@ -174,7 +171,7 @@
                                             <th style="width:72px;">ID</th>
                                             <th>IP</th>
                                             <th>MAC</th>
-                                            <th>SERIAL</th>
+                                            <th>LOCATION</th> <!-- changed -->
                                             <th>PACKAGE</th>
                                         </tr>
                                     </thead>
@@ -187,7 +184,7 @@
                                                 <td>{{ $inv->box_id }}</td>
                                                 <td class="text-monospace">{{ $inv->box_ip }}</td>
                                                 <td class="text-monospace">{{ $inv->box_mac }}</td>
-                                                <td class="text-monospace">{{ $inv->box_serial_no }}</td>
+                                                <td>{{ $inv->location ?? '-' }}</td> <!-- replaced SERIAL with LOCATION -->
                                                 <td>
                                                     @if($inv->relationLoaded('packages') && $inv->packages->count())
                                                         {{ $inv->packages->pluck('name')->join(', ') }}
@@ -231,33 +228,33 @@ function enableForm(mode) {
     let saveBtn = document.getElementById('saveBtn');
 
     if (mode === 'add') {
-        inputs.forEach(el => { 
-            if (el.name && el.type !== "hidden") { 
-                el.value=''; 
-                el.readOnly = false; 
-                el.disabled = false; 
-            } 
+        inputs.forEach(el => {
+            if (el.name && el.type !== "hidden") {
+                el.value='';
+                el.readOnly = false;
+                el.disabled = false;
+            }
         });
         saveBtn.style.display = 'inline-block';
         form.action = "{{ route('clients.store') }}";
-        let methodInput = form.querySelector('input[name="_method"]');
+        let methodInput = form.querySelector('input[name=\"_method\"]');
         if (methodInput) methodInput.remove();
     }
 
     if (mode === 'edit') {
-        inputs.forEach(el => { 
-            if (el.tagName.toLowerCase() === 'select' || el.tagName.toLowerCase() === 'textarea') { 
-                el.disabled = false; 
+        inputs.forEach(el => {
+            if (el.tagName.toLowerCase() === 'select' || el.tagName.toLowerCase() === 'textarea') {
+                el.disabled = false;
                 el.readOnly = false;
-            } else if (el.type !== "hidden") { 
-                el.readOnly = false; 
+            } else if (el.type !== "hidden") {
+                el.readOnly = false;
             }
         });
         saveBtn.style.display = 'inline-block';
     }
 
     if (mode === 'view') {
-        inputs.forEach(el => { 
+        inputs.forEach(el => {
             el.disabled = true;
             el.readOnly = true;
         });

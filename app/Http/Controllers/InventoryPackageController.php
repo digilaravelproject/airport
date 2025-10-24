@@ -20,64 +20,63 @@ class InventoryPackageController extends Controller
     }
 
     public function assign(Request $request, Inventory $inventory)
-{
-    $request->validate([
-        'package_ids'   => 'required|array',
-        'package_ids.*' => 'exists:packages,id',
-    ]);
+    {
+        $request->validate([
+            'package_ids'   => 'required|array',
+            'package_ids.*' => 'exists:packages,id',
+        ]);
 
-    // Sync packages
-    $inventory->packages()->sync($request->package_ids);
+        // Sync packages
+        $inventory->packages()->sync($request->package_ids);
 
-    // Fetch packages with channels
-    $packages = $inventory->packages()->with('channels')->get();
+        // Fetch packages with channels
+        $packages = $inventory->packages()->with('channels')->get();
 
-    $data = [];
+        $data = [];
 
-    foreach ($packages as $package) {
-        $channels = [];
-        $counter = 1;
+        foreach ($packages as $package) {
+            $channels = [];
+            $counter = 1;
 
-        foreach ($package->channels as $channel) {
-            $item = [
-                "name" => (string) $counter,
-                "desc" => $channel->channel_name,
-                "url"  => $channel->channel_url,
-            ];
+            foreach ($package->channels as $channel) {
+                $item = [
+                    "name" => (string) $counter,
+                    "desc" => $channel->channel_name,
+                    "url"  => $channel->channel_url,
+                ];
 
-            // Add "starting": true only for the first channel
-            if ($counter === 1) {
-                $item["starting"] = true;
+                // Add "starting": true only for the first channel
+                if ($counter === 1) {
+                    $item["starting"] = true;
+                }
+
+                $channels[] = $item;
+                $counter++;
             }
 
-            $channels[] = $item;
-            $counter++;
+            // Dynamic key = package name (like "DTV")
+            $data['DTV'] = $channels;
         }
 
-        // Dynamic key = package name (like "DTV")
-        $data[$package->name] = $channels;
+        // Filename = Box Serial No (e.g., 101.json)
+        $filename = $inventory->box_id . ".json";
+        $path = storage_path("app/public/json/" . $filename);
+
+        if (!file_exists(dirname($path))) {
+            mkdir(dirname($path), 0777, true);
+        }
+
+        if (file_exists($path)) {
+            unlink($path);
+        }
+
+        // Write JSON with pretty print & unescaped slashes
+        file_put_contents(
+            $path,
+            json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
+
+        return redirect()->route('inventory-packages.index')
+            ->with('success', 'Packages assigned successfully.');
     }
-
-    // Filename = Box Serial No (e.g., 101.json)
-    $filename = $inventory->box_serial_no . ".json";
-    $path = storage_path("app/public/json/" . $filename);
-
-    if (!file_exists(dirname($path))) {
-        mkdir(dirname($path), 0777, true);
-    }
-
-    if (file_exists($path)) {
-        unlink($path);
-    }
-
-    // Write JSON with pretty print & unescaped slashes
-    file_put_contents(
-        $path,
-        json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-    );
-
-    return redirect()->route('inventory-packages.index')
-        ->with('success', 'Packages assigned successfully.');
-}
-
 }

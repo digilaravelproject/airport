@@ -95,24 +95,6 @@
                         </a>
                     </li>
 
-                    @if(auth()->user()->hasRole('Admin'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
-                                <i class="ti ti-user menu-icon"></i> <span>Manage Users</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('permissions.*') || request()->routeIs('roles.*') ? 'active' : '' }}"
-                               href="#permissionSubmenu" data-bs-toggle="collapse" aria-expanded="false">
-                                <i class="ti ti-key menu-icon"></i> <span>Permissions</span>
-                            </a>
-                            <ul class="collapse list-unstyled ps-3 {{ request()->routeIs('permissions.*') || request()->routeIs('roles.*') ? 'show' : '' }}" id="permissionSubmenu">
-                                <li><a class="nav-link {{ request()->routeIs('permissions.index') ? 'active' : '' }}" href="{{ route('permissions.index') }}">Manage Permissions</a></li>
-                                <li><a class="nav-link {{ request()->routeIs('roles.index') ? 'active' : '' }}" href="{{ route('roles.index') }}">Manage Roles</a></li>
-                            </ul>
-                        </li>
-                    @endif
-
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('inventories.*') ? 'active' : '' }}" href="{{ route('inventories.index') }}">
                             <i class="ti ti-archive menu-icon"></i> <span>Inventory</span>
@@ -138,11 +120,46 @@
                             <i class="ti ti-settings menu-icon"></i> <span>Utilities</span>
                         </a>
                     </li>
+
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}">
+                        <a class="nav-link {{ request()->routeIs('live-reports.*') || request()->routeIs('channel-reports.*') || request()->routeIs('package-reports.*') || request()->routeIs('installed-reports.*') ? 'active' : '' }}"
+                            href="#reportSubmenu" data-bs-toggle="collapse" aria-expanded="false">
                             <i class="ti ti-report menu-icon"></i> <span>Reports</span>
                         </a>
+                        <ul class="collapse list-unstyled ps-3 {{ request()->routeIs('live-reports.*') || request()->routeIs('channel-reports.*') || request()->routeIs('package-reports.*') || request()->routeIs('installed-reports.*') ? 'show' : '' }}" id="reportSubmenu">
+                            <li>
+                                <a class="nav-link {{ request()->routeIs('live-reports.index') ? 'active' : '' }}" href="{{ route('live-reports.index') }}">Live Boxes</a>
+                            </li>
+                            <li>
+                                <a class="nav-link {{ request()->routeIs('installed-reports.index') ? 'active' : '' }}" href="{{ route('installed-reports.index') }}">Installed Boxes</a>
+                            </li>
+                            <li>
+                                <a class="nav-link {{ request()->routeIs('channel-reports.index') ? 'active' : '' }}" href="{{ route('channel-reports.index') }}">Channels</a>
+                            </li>
+                            <li>
+                                <a class="nav-link {{ request()->routeIs('package-reports.index') ? 'active' : '' }}" href="{{ route('package-reports.index') }}">Packages</a>
+                            </li>
+                        </ul>
                     </li>
+
+                          @if(auth()->user()->hasRole('Admin'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
+                                <i class="ti ti-user menu-icon"></i> <span>Manage Users</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('permissions.*') || request()->routeIs('roles.*') ? 'active' : '' }}"
+                               href="#permissionSubmenu" data-bs-toggle="collapse" aria-expanded="false">
+                                <i class="ti ti-key menu-icon"></i> <span>Permissions</span>
+                            </a>
+                            <ul class="collapse list-unstyled ps-3 {{ request()->routeIs('permissions.*') || request()->routeIs('roles.*') ? 'show' : '' }}" id="permissionSubmenu">
+                                <li><a class="nav-link {{ request()->routeIs('permissions.index') ? 'active' : '' }}" href="{{ route('permissions.index') }}">Manage Permissions</a></li>
+                                <li><a class="nav-link {{ request()->routeIs('roles.index') ? 'active' : '' }}" href="{{ route('roles.index') }}">Manage Roles</a></li>
+                            </ul>
+                        </li>
+                    @endif
+
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('help.*') ? 'active' : '' }}" href="{{ route('help.index') }}">
                             <i class="ti ti-help menu-icon"></i> <span>Help</span>

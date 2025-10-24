@@ -5,18 +5,34 @@ namespace App\Http\Controllers;
 use App\Models\Inventory;
 use App\Models\Client;
 use Illuminate\Http\Request;
+use Rap2hpoutre\FastExcel\FastExcel;
+use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class InventoryController extends Controller
 {
     public function index(Request $request, $id = null)
     {
+        // Counts for summary tabs
+        $totalBoxes     = Inventory::count();
+        $assignedBoxes  = Inventory::whereHas('packages')->count();
+        $unassignedBoxes= Inventory::whereDoesntHave('packages')->count();
+
         $query = Inventory::with('client');
 
         if (!empty($id)) {
-            // keep existing behavior: filter by primary key when visiting /inventories/{id}
             $query->where('id', $id);
         }
 
+        // Apply assignment filter from summary tabs
+        $assign = $request->get('assign', 'all'); // 'all' | 'assigned' | 'unassigned'
+        if ($assign === 'assigned') {
+            $query->whereHas('packages');
+        } elseif ($assign === 'unassigned') {
+            $query->whereDoesntHave('packages');
+        }
+
+        // Search
         if ($request->filled('search')) {
             $search = $request->search;
             $field  = $request->get('field', 'all');
@@ -37,7 +53,6 @@ class InventoryController extends Controller
                         $cq->where('name', 'like', "%{$search}%");
                     });
                 } else {
-                    // allow only known columns
                     $allowed = ['box_id','box_ip','box_model','box_serial_no','box_mac','box_fw'];
                     if (in_array($field, $allowed, true)) {
                         $q->where($field, 'like', "%{$search}%");
@@ -50,12 +65,14 @@ class InventoryController extends Controller
         $selectedInventory = $request->inventory_id ? Inventory::with('client')->find($request->inventory_id) : null;
         $clients = Client::all();
 
-        return view('inventories.index', compact('inventories', 'selectedInventory', 'clients'));
+        return view('inventories.index', compact(
+            'inventories', 'selectedInventory', 'clients',
+            'totalBoxes', 'assignedBoxes', 'unassignedBoxes'
+        ));
     }
 
     public function show(Request $request, $id)
     {
-        // reuse the same listing page but filtered by this primary key $id
         return $this->index($request, $id);
     }
 
@@ -97,5 +114,74 @@ class InventoryController extends Controller
         $inventory->update($data);
 
         return redirect()->route('inventories.index')->with('success', 'Inventory updated successfully.');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:20480',
+        ]);
+
+        $rows = (new FastExcel)->import($request->file('file'));
+
+        $report = ['inserted'=>0,'updated'=>0,'skipped'=>0];
+        $payload = [];
+
+        foreach ($rows as $row) {
+            $row = collect($row)->keyBy(fn($v,$k)=>strtolower(str_replace(' ','_',$k)));
+
+            if (collect($row)->filter()->isEmpty()) continue;
+
+            $serial = trim((string)($row['box_serial_no'] ?? ''));
+            if ($serial === '') { $report['skipped']++; continue; }
+
+            $payload[] = [
+                'box_id'           => trim((string)($row['box_id'] ?? '')),
+                'box_model'        => trim((string)($row['box_model'] ?? '')),
+                'box_serial_no'    => $serial,
+                'box_mac'          => trim((string)($row['box_mac'] ?? '')),
+                'box_ip'           => trim((string)($row['box_ip'] ?? '')),
+                'box_subnet'       => trim((string)($row['box_subnet'] ?? '')),
+                'gateway'          => trim((string)($row['box_gateway'] ?? '')),
+                'box_fw'           => trim((string)($row['box_fw'] ?? '')),
+                'box_os'           => trim((string)($row['box_os'] ?? '')),
+                'box_remote_model' => trim((string)($row['box_remote_model'] ?? '')),
+                'supplier_name'    => trim((string)($row['supplier'] ?? $row['supplier_name'] ?? '')),
+                'status'           => in_array(strtolower(trim((string)($row['status'] ?? ''))), ['1','active','Active','yes','true','y'], true) ? 1 : 0,
+                'created_at'       => $this->parseImportDate($row['import_date'] ?? null),
+                'updated_at'       => now(),
+            ];
+        }
+
+        if ($payload) {
+            $serials   = array_column($payload, 'box_serial_no');
+            $existing  = Inventory::whereIn('box_serial_no', $serials)->pluck('box_serial_no')->all();
+            $existsMap = array_flip($existing);
+
+            foreach ($payload as $p) {
+                isset($existsMap[$p['box_serial_no']]) ? $report['updated']++ : $report['inserted']++;
+            }
+
+            Inventory::upsert(
+                $payload,
+                ['box_serial_no'],
+                ['box_id','box_model','box_mac','box_ip','box_subnet','gateway','box_fw','box_os','box_remote_model','supplier_name','status','created_at','updated_at']
+            );
+        }
+
+        return back()->with('success', "Import completed. Inserted: {$report['inserted']}, Updated: {$report['updated']}, Skipped: {$report['skipped']}.");
+    }
+
+    private function parseImportDate($value): ?Carbon
+    {
+        if (!$value) return null;
+        if (is_numeric($value)) {
+            try { return Carbon::instance(ExcelDate::excelToDateTimeObject($value)); } catch (\Throwable) {}
+        }
+        $value = trim((string)$value);
+        foreach (['d/m/Y','d-m-Y','Y-m-d','m/d/Y'] as $fmt) {
+            try { return Carbon::createFromFormat($fmt, $value); } catch (\Throwable) {}
+        }
+        return null;
     }
 }

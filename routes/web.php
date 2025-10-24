@@ -14,9 +14,16 @@ use App\Http\Controllers\InventoryActionController;
 use App\Http\Controllers\UtilityController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\LiveReportController;
+use App\Http\Controllers\InstalledReportController;
+use App\Http\Controllers\ChannelReportController;
+use App\Http\Controllers\PackageReportController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => view('welcome'));
+// Route::get('/', fn () => view('welcome'));
+Route::get('/', function () {
+    return redirect()->route('login');
+});
 
 Route::get('/dashboard', fn () => view('dashboard'))
     ->middleware(['auth', 'verified'])
@@ -62,10 +69,16 @@ Route::middleware('auth')->group(function () {
     // Channels
     Route::resource('channels', ChannelController::class)
         ->middleware('permission:channels.index|channels.show|channels.create|channels.store|channels.edit|channels.update|channels.destroy');
+    // routes/web.php
+    Route::post('/channels/import', [\App\Http\Controllers\ChannelController::class, 'import'])
+    ->name('channels.import');
+
 
     // Inventories
     Route::resource('inventories', InventoryController::class)
         ->middleware('permission:inventories.index|inventories.show|inventories.create|inventories.store|inventories.edit|inventories.update|inventories.destroy');
+
+    Route::post('/inventories/import', [InventoryController::class, 'import'])->name('inventories.import');
 
     // Device actions
     Route::post('/inventories/{inventory}/ping',   [InventoryActionController::class, 'ping'])
@@ -75,6 +88,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/inventories/{inventory}/reboot', [InventoryActionController::class, 'reboot'])
         ->middleware('permission:inventories.reboot')
         ->name('inventories.reboot');
+
+    Route::post('/inventories/{inventory}/screenshot', [InventoryActionController::class, 'screenshot'])
+    ->name('inventories.screenshot');
 
     // Packages
     Route::resource('packages', PackageController::class)
@@ -98,6 +114,62 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports',           [ReportController::class, 'index'])  ->middleware('permission:reports.index')->name('reports.index');
     Route::get('/reports/preview',   [ReportController::class, 'preview'])->middleware('permission:reports.preview')->name('reports.preview');
     Route::get('/reports/download',  [ReportController::class, 'download'])->middleware('permission:reports.download')->name('reports.download');
+
+    Route::prefix('reports/live')->name('live-reports.')->group(function () {
+        Route::get('/', [LiveReportController::class, 'index'])
+            ->middleware('permission:live-reports.index')
+            ->name('index');
+
+        Route::get('/preview', [LiveReportController::class, 'preview'])
+            ->middleware('permission:live-reports.preview')
+            ->name('preview');
+
+        Route::get('/download', [LiveReportController::class, 'download'])
+            ->middleware('permission:live-reports.download')
+            ->name('download');
+    });
+
+    Route::prefix('reports/installed')->name('installed-reports.')->group(function () {
+        Route::get('/', [InstalledReportController::class, 'index'])
+            ->middleware('permission:installed-reports.index')
+            ->name('index');
+        Route::post('/preview', [InstalledReportController::class, 'preview'])
+            ->middleware('permission:installed-reports.preview')
+            ->name('preview');
+        Route::post('/download', [InstalledReportController::class, 'download'])
+            ->middleware('permission:installed-reports.download')
+            ->name('download');
+    });
+
+    // Channels
+    Route::prefix('reports/channels')->name('channel-reports.')->group(function () {
+        Route::get('/', [ChannelReportController::class, 'index'])
+            ->middleware('permission:channel-reports.index')
+            ->name('index');
+
+        Route::post('/preview', [ChannelReportController::class, 'preview'])
+            ->middleware('permission:channel-reports.preview')
+            ->name('preview');
+
+        Route::post('/download', [ChannelReportController::class, 'download'])
+            ->middleware('permission:channel-reports.download')
+            ->name('download');
+    });
+
+    // Packages
+    Route::prefix('reports/packages')->name('package-reports.')->group(function () {
+        Route::get('/', [PackageReportController::class, 'index'])
+            ->middleware('permission:package-reports.index')
+            ->name('index');
+
+        Route::post('/preview', [PackageReportController::class, 'preview'])
+            ->middleware('permission:package-reports.preview')
+            ->name('preview');
+
+        Route::post('/download', [PackageReportController::class, 'download'])
+            ->middleware('permission:package-reports.download')
+            ->name('download');
+    });
 
     // Help
     Route::get('/help', [HelpController::class, 'index'])

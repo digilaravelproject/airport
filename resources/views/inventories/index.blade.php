@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    .import-header { background-color: #0f172a !important; }
+    .summary-card { cursor:pointer; transition: transform .05s ease-in; }
+    .summary-card:hover { transform: translateY(-1px); }
+    .summary-active { border-color:#0d6efd !important; box-shadow: 0 0 0 .1rem rgba(13,110,253,.15); }
+</style>
 <div class="container-fluid">
     <?php $page_title = "Inventories"; $sub_title = "Setup Boxes"; ?>
 
@@ -18,6 +24,106 @@
         </div>
     </div>
 
+    <!-- Inventory Import Section -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header import-header text-white d-flex justify-content-between align-items-center">
+                    <h6 class="text-light">
+                        <i class="fas fa-file-import me-2"></i>Import Inventory Data
+                    </h6>
+                    <small class="text-light">Upload Excel (.xlsx, .xls, .csv)</small>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ route('inventories.import') }}" enctype="multipart/form-data" id="importForm">
+                        @csrf
+                        <div class="row align-items-end g-3">
+                            <div class="col-md-6">
+                                <label for="file" class="form-label fw-semibold">Select File</label>
+                                <input type="file" name="file" id="file" accept=".xlsx,.xls,.csv" class="form-control" required>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-upload me-1"></i> Import
+                                </button>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <a href="{{ asset('sample/Inventory_Import_Format.xlsx') }}"
+                                   class="btn btn-outline-secondary w-100" download>
+                                    <i class="fas fa-download me-1"></i> Sample File
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+
+                    @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show mt-3 mb-0">
+                            <i class="fas fa-check-circle me-1"></i>
+                            {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    @if(session('error'))
+                        <div class="alert alert-danger mt-3 mb-0 alert-dismissible fade show">
+                            <i class="fas fa-exclamation-circle me-1"></i>
+                            {{ session('error') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Tabs -->
+    @php $assign = request('assign','all'); @endphp
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <a class="text-decoration-none"
+               href="{{ route('inventories.index', array_merge(request()->except('page'), ['assign'=>'all'])) }}">
+                <div class="card border summary-card {{ $assign==='all' ? 'summary-active' : '' }}">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Total Boxes</div>
+                            <div class="h5 mb-0">{{ $totalBoxes }}</div>
+                        </div>
+                        <span class="badge bg-secondary">All</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a class="text-decoration-none"
+               href="{{ route('inventories.index', array_merge(request()->except('page'), ['assign'=>'assigned'])) }}">
+                <div class="card border summary-card {{ $assign==='assigned' ? 'summary-active' : '' }}">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Assigned Boxes</div>
+                            <div class="h5 mb-0">{{ $assignedBoxes }}</div>
+                        </div>
+                        <span class="badge bg-success">Assigned</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a class="text-decoration-none"
+               href="{{ route('inventories.index', array_merge(request()->except('page'), ['assign'=>'unassigned'])) }}">
+                <div class="card border summary-card {{ $assign==='unassigned' ? 'summary-active' : '' }}">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Non-assigned Boxes</div>
+                            <div class="h5 mb-0">{{ $unassignedBoxes }}</div>
+                        </div>
+                        <span class="badge bg-warning text-dark">None</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
     <div class="row">
         <!-- Left: Inventories Table -->
         <div class="col-md-8">
@@ -25,7 +131,7 @@
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Inventories</h5>
                     <form method="GET" action="{{ route('inventories.index') }}" class="d-flex">
-
+                        <input type="hidden" name="assign" value="{{ request('assign','all') }}">
                         <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm me-2" placeholder="Search">
                         <!-- Search field dropdown -->
                         <select name="field" class="form-select form-select-sm me-2" style="width:160px;">
@@ -39,7 +145,7 @@
                             <option value="client_name" {{ request('field')=='client_name' ? 'selected' : '' }}>Client Name</option>
                         </select>
                         <button type="submit" class="btn btn-sm btn-primary me-2">Search</button>
-                        <a href="{{ route('inventories.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                        <a href="{{ route('inventories.index', ['assign'=>request('assign','all')]) }}" class="btn btn-sm btn-outline-secondary">Reset</a>
                     </form>
                 </div>
                 <div class="card-body">
@@ -50,11 +156,12 @@
                                     <th>No</th>
                                     <th>Box ID</th>
                                     <th>Box IP</th>
+                                    <th>Establishment</th>
+                                    <th>MAC</th>
+                                    <th>Client</th>
                                     <th>Model</th>
                                     <th>Serial No</th>
-                                    <th>MAC</th>
                                     <th>Firmware</th>
-                                    <th>Client</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -63,11 +170,12 @@
                                         <td>{{ $key+1 }}</td>
                                         <td><span class="badge bg-secondary">{{ $inventory->box_id }}</span></td>
                                         <td>{{ $inventory->box_ip }}</td>
+                                        <td>{{ $inventory->location }}</td>
+                                        <td>{{ $inventory->box_mac }}</td>
+                                        <td>{{ $inventory->client?->name }}</td>
                                         <td>{{ $inventory->box_model }}</td>
                                         <td>{{ $inventory->box_serial_no }}</td>
-                                        <td>{{ $inventory->box_mac }}</td>
                                         <td>{{ $inventory->box_fw }}</td>
-                                        <td>{{ $inventory->client?->name }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -99,12 +207,9 @@
                         <div class="mb-3">
                             <label class="form-label">Box ID</label>
                             <input type="text" name="box_id" class="form-control"
-                                value="{{ old('box_id', $selectedInventory->box_id ?? '') }}" readonly>
-                            @error('box_id')
-                                <div class="text-danger small">{{ $message }}</div>
-                            @enderror
+                                   value="{{ old('box_id', $selectedInventory->box_id ?? '') }}" readonly>
+                            @error('box_id') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
-
 
                         <div class="mb-3">
                             <label class="form-label">Model</label>
@@ -153,8 +258,18 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Location</label>
+                            <label class="form-label">Establishment</label>
                             <input type="text" name="location" class="form-control" value="{{ old('location', $selectedInventory->location ?? '') }}" readonly>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Terminal</label>
+                            <input type="text" name="terminal" class="form-control" value="{{ old('terminal', $selectedInventory->terminal ?? '') }}" readonly>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Level</label>
+                            <input type="text" name="level" class="form-control" value="{{ old('level', $selectedInventory->level ?? '') }}" readonly>
                         </div>
 
                         {{-- Management fields --}}
@@ -163,7 +278,7 @@
                             <input type="text" name="mgmt_url" class="form-control"
                                    placeholder="http://<HOST>:PORT/api/v2"
                                    value="{{ old('mgmt_url', $selectedInventory->mgmt_url ?? '') }}" readonly>
-                            <small class="text-muted">Example: http://192.168.1.50:8090/api/v2</small>
+                            <small class="text-muted">Example: http://api.aminocom.com:8090/api/v2</small>
                         </div>
 
                         <div class="mb-3">
@@ -192,8 +307,10 @@
                         <div class="mb-2 d-flex gap-2 align-items-center">
                             <button type="button" class="btn btn-dark" id="btnPing" {{ !$selectedInventory ? 'disabled' : '' }}>Ping</button>
                             <button type="button" class="btn btn-dark" id="btnReboot" {{ !$selectedInventory ? 'disabled' : '' }}>Reboot</button>
+                            <button type="button" class="btn btn-dark" id="btnScreenshot" {{ !$selectedInventory ? 'disabled' : '' }}>Screenshot</button>
                             <span id="actionStatus" class="ms-2 small text-muted"></span>
                         </div>
+                        <div id="screenshotArea" class="mt-2"></div>
 
                         <div class="text-end">
                             <button type="submit" id="saveBtn" class="btn btn-dark px-4" style="display:none;">Save</button>
@@ -263,10 +380,7 @@ const actionStatus = document.getElementById('actionStatus');
 async function postJSON(url) {
     const res = await fetch(url, {
         method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'application/json'
-        }
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
     });
     let json = null; try { json = await res.json(); } catch {}
     if (!res.ok && json?.message) throw new Error(json.message);
@@ -319,6 +433,58 @@ document.getElementById('btnReboot')?.addEventListener('click', async () => {
         actionStatus.className = 'ms-2 small text-danger';
     } finally {
         pingBtn.disabled = false; rebootBtn.disabled = false;
+    }
+});
+</script>
+<script>
+document.getElementById('btnScreenshot')?.addEventListener('click', async () => {
+    const pingBtn   = document.getElementById('btnPing');
+    const rebootBtn = document.getElementById('btnReboot');
+    const shotBtn   = document.getElementById('btnScreenshot');
+    const preview   = document.getElementById('previewImage');
+    const below     = document.getElementById('screenshotArea');
+
+    pingBtn.disabled = true; rebootBtn.disabled = true; shotBtn.disabled = true;
+    actionStatus.textContent = 'Capturing screenshot...';
+    actionStatus.className = 'ms-2 small text-muted';
+
+    try {
+        const data = await postJSON("{{ $selectedInventory ? route('inventories.screenshot', $selectedInventory->id) : '#' }}");
+        if (data.success && data.path) {
+            if (preview) {
+                preview.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = data.path;
+                img.className = 'img-thumbnail';
+                img.width = 120;
+                preview.appendChild(img);
+            }
+            if (below) {
+                below.innerHTML = `
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-image me-2"></i>
+                                <strong>Latest Screenshot</strong>
+                            </div>
+                            <img src="${data.path}" alt="Screenshot" class="img-fluid rounded">
+                        </div>
+                    </div>
+                `;
+            }
+            actionStatus.textContent = data.message || 'Screenshot captured.';
+            actionStatus.className = 'ms-2 small text-success';
+        } else {
+            const extra = data?.code ? ` (HTTP ${data.code})` : '';
+            actionStatus.textContent = (data?.message || 'Screenshot failed') + extra;
+            actionStatus.className = 'ms-2 small text-danger';
+            console.warn('Screenshot error details:', data?.error || data?.raw);
+        }
+    } catch (e) {
+        actionStatus.textContent = e.message || 'Screenshot failed';
+        actionStatus.className = 'ms-2 small text-danger';
+    } finally {
+        pingBtn.disabled = false; rebootBtn.disabled = false; shotBtn.disabled = false;
     }
 });
 </script>

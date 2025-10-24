@@ -21,6 +21,22 @@
         </div>
     </div>
 
+    @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show mt-3 mb-0">
+                            <i class="fas fa-check-circle me-1"></i>
+                            {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    @if(session('error'))
+                        <div class="alert alert-danger mt-3 mb-0 alert-dismissible fade show">
+                            <i class="fas fa-exclamation-circle me-1"></i>
+                            {{ session('error') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
     <!-- Package List -->
     <div class="row">
         <div class="col-12">

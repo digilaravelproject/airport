@@ -19,10 +19,18 @@ class Inventory extends Model
         'warranty_date',
         'client_id',
         'location',
-        'box_ip',      // IP
+        'terminal',   // NEW
+        'level',      // NEW
+        'box_ip',
         'mgmt_url',
         'mgmt_token',
         'photo',
+        'box_subnet',
+        'gateway',
+        'box_os',
+        'supplier_name',
+        'status',
+        'created_at',
     ];
 
     protected $casts = [
@@ -34,7 +42,6 @@ class Inventory extends Model
         return $this->belongsTo(Client::class);
     }
 
-    // Many-to-Many with Packages
     public function packages()
     {
         return $this->belongsToMany(Package::class, 'inventory_package');

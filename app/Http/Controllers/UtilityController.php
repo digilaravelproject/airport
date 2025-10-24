@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/UtilityController.php
 
 namespace App\Http\Controllers;
 
@@ -7,12 +6,14 @@ use App\Models\Inventory;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Http\Client\Pool;
 
 class UtilityController extends Controller
 {
     public function index(Request $request)
     {
-        $search = trim((string)$request->get('search', ''));
+        $search = trim((string) $request->get('search', ''));
 
         // 1) Load all boxes (optionally filter by search)
         $all = Inventory::query()
@@ -28,59 +29,85 @@ class UtilityController extends Controller
             ->orderBy('id')
             ->get();
 
-        // 2) Concurrent HTTP status checks (for boxes with mgmt_url)
+        // Normalize mgmt_url => '/system'
         $httpTargets = [];
         foreach ($all as $inv) {
-            if ($inv->mgmt_url) {
+            if (!empty($inv->mgmt_url)) {
                 $httpTargets[$inv->id] = rtrim($inv->mgmt_url, '/').'/system';
             }
         }
 
-        $httpResults = [];
+        // 2) Concurrent HTTP status checks for /system
+        $httpResults = []; // id => true/false
+        $responses = [];
+
         if (!empty($httpTargets)) {
-            // Build concurrent requests
             $responses = Http::timeout(3)
                 ->withoutVerifying()
-                ->pool(function ($pool) use ($all, $httpTargets) {
+                ->pool(function (Pool $pool) use ($all, $httpTargets) {
                     $reqs = [];
                     foreach ($all as $inv) {
-                        if (!isset($httpTargets[$inv->id])) continue;
-                        $req = Http::timeout(3)->withoutVerifying();
+                        if (!isset($httpTargets[$inv->id])) {
+                            continue;
+                        }
+                        $req = $pool->as((string) $inv->id);
                         if (!empty($inv->mgmt_token)) {
                             $req = $req->withToken($inv->mgmt_token);
                         }
-                        $reqs[$inv->id] = $pool->as((string)$inv->id)->get($httpTargets[$inv->id]);
+                        $reqs[] = $req->get($httpTargets[$inv->id]);
                     }
                     return $reqs;
                 });
 
-            // Map back by inventory id
-            foreach ($responses as $key => $resp) {
-                // $key is the alias we set (string of id)
-                if (method_exists($resp, 'successful') && $resp->successful()) {
-                    $httpResults[(int)$key] = true; // online by HTTP
-                } else {
-                    $httpResults[(int)$key] = false; // not proven online by HTTP
+            // Map back by alias (inventory id)
+            foreach ($responses as $alias => $resp) {
+                // $alias is the string alias set via ->as((string)$inv->id)
+                $id = (int) $alias;
+                $httpResults[$id] = (method_exists($resp, 'successful') && $resp->successful());
+            }
+        }
+
+        // 2b) Fast sequential retry for /system/health if /system failed
+        if (!empty($httpTargets)) {
+            foreach ($all as $inv) {
+                if (!isset($httpTargets[$inv->id])) {
+                    continue;
+                }
+                if (!isset($httpResults[$inv->id]) || $httpResults[$inv->id] === false) {
+                    // Try /system/health
+                    $healthUrl = rtrim($inv->mgmt_url, '/').'/system/health';
+                    $req = Http::timeout(2)->withoutVerifying();
+                    if (!empty($inv->mgmt_token)) {
+                        $req = $req->withToken($inv->mgmt_token);
+                    }
+                    try {
+                        $resp = $req->get($healthUrl);
+                        if ($resp->successful()) {
+                            $httpResults[$inv->id] = true;
+                        }
+                    } catch (\Throwable $e) {
+                        // ignore; will fall back to ICMP
+                    }
                 }
             }
         }
 
         // 3) Build final online list (HTTP success OR ICMP reachable)
         $online = collect();
+        $isWindows = (strtoupper(PHP_OS_FAMILY) === 'WINDOWS');
 
         foreach ($all as $inv) {
             $isOnline = false;
 
             // If HTTP check exists for this ID, trust it
             if (array_key_exists($inv->id, $httpResults)) {
-                $isOnline = $httpResults[$inv->id] === true;
+                $isOnline = ($httpResults[$inv->id] === true);
             }
 
             // If HTTP didn’t prove online, try ICMP as fallback (only if we have IP)
-            if (!$isOnline && $inv->box_ip) {
-                $isWindows = str_starts_with(PHP_OS_FAMILY, 'Windows');
+            if (!$isOnline && !empty($inv->box_ip)) {
                 $cmd = $isWindows
-                    ? 'ping -n 1 -w 1000 ' . escapeshellarg($inv->box_ip)
+                    ? 'ping -n 1 -w 1000 ' . escapeshellarg($inv->box_ip)   // 1 packet, 1s timeout
                     : 'ping -c 1 -W 1 '    . escapeshellarg($inv->box_ip);
 
                 $out = [];
@@ -94,22 +121,26 @@ class UtilityController extends Controller
             }
         }
 
-        // 4) Optional: paginate *online* results in-memory (simpleLengthAwarePaginator)
-        $perPage = 10;
-        $page = max(1, (int)$request->get('page', 1));
-        $slice = $online->slice(($page - 1) * $perPage, $perPage)->values();
-        $inventories = new \Illuminate\Pagination\LengthAwarePaginator(
+        // 4) Paginate *online* results in-memory
+        $perPage = (int) ($request->get('per_page', 10) ?: 10);
+        $page    = max(1, (int) $request->get('page', 1));
+        $slice   = $online->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $inventories = new LengthAwarePaginator(
             $slice,
             $online->count(),
             $perPage,
             $page,
-            ['path' => route('utility.online'), 'query' => $request->query()]
+            [
+                'path'  => route('utility.online'), // <- make sure this route name exists
+                'query' => $request->query(),
+            ]
         );
 
         // 5) Selected inventory (if user clicked a row)
         $selectedInventory = null;
-        if ($request->has('inventory_id')) {
-            $selectedInventory = $online->firstWhere('id', (int)$request->get('inventory_id'));
+        if ($request->filled('inventory_id')) {
+            $selectedInventory = $online->firstWhere('id', (int) $request->get('inventory_id'));
         }
 
         $clients = Client::all();

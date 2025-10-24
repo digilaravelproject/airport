@@ -22,6 +22,63 @@
     </div>
     <!-- End Page Title -->
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show mt-3 mb-0">
+            <i class="fas fa-check-circle me-1"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger mt-3 mb-0 alert-dismissible fade show">
+            <i class="fas fa-exclamation-circle me-1"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <!-- Channel Import Section (same UX as Inventory Import) -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color:#0f172a;">
+                    <h6 class="text-light mb-0">
+                        <i class="fas fa-file-import me-2"></i>Import Channel Data
+                    </h6>
+                    <small class="text-light">Upload Excel (.xlsx, .xls, .csv)</small>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ route('channels.import') }}" enctype="multipart/form-data" id="channelImportForm">
+                        @csrf
+                        <div class="row align-items-end g-3">
+                            <div class="col-md-6">
+                                <label for="file" class="form-label fw-semibold">Select File</label>
+                                <input type="file" name="file" id="file" accept=".xlsx,.xls,.csv" class="form-control" required>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-upload me-1"></i> Import
+                                </button>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <a href="{{ asset('sample/Channel_Import_Format.xlsx') }}"
+                                   class="btn btn-outline-secondary w-100" download>
+                                    <i class="fas fa-download me-1"></i> Sample File
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+
+                    @if ($errors->has('file'))
+                        <div class="text-danger small mt-2">{{ $errors->first('file') }}</div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /Channel Import Section -->
+
     <div class="row">
         <!-- Left: Channels Table -->
         <div class="col-md-8">
@@ -29,11 +86,10 @@
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Channels List</h5>
                     <form method="GET" action="{{ route('channels.index') }}" class="d-flex">
-
-                        <input type="text" name="search" value="{{ request('search') }}" 
+                        <input type="text" name="search" value="{{ request('search') }}"
                                class="form-control form-control-sm me-2" placeholder="Search">
 
-                        <!-- NEW: search-field dropdown -->
+                        <!-- search-field dropdown -->
                         <select name="field" class="form-select form-select-sm me-2" style="width:160px;">
                             <option value="all" {{ request('field','all')=='all' ? 'selected' : '' }}>All Fields</option>
                             <option value="id" {{ request('field')=='id' ? 'selected' : '' }}>Channel ID</option>
@@ -44,7 +100,7 @@
                             <option value="language" {{ request('field')=='language' ? 'selected' : '' }}>Language</option>
                             <option value="active" {{ request('field')=='active' ? 'selected' : '' }}>Active</option>
                         </select>
-                        
+
                         <button type="submit" class="btn btn-sm btn-primary me-2">Search</button>
                         <a href="{{ route('channels.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
                     </form>
@@ -83,6 +139,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        {{-- Add pagination here if you later switch to paginate() --}}
                     </div>
                 </div>
             </div>
@@ -207,12 +264,10 @@ function enableForm(mode) {
     let saveBtn = document.getElementById('saveBtn');
 
     if (mode === 'add') {
-        inputs.forEach(el => { 
-            if (el.name && el.type !== "hidden") { 
-                el.value=''; 
-                el.readOnly = false; 
-                el.disabled = false; 
-            } 
+        inputs.forEach(el => {
+            if (el.name && el.type !== "hidden") {
+                el.value=''; el.readOnly = false; el.disabled = false;
+            }
         });
         saveBtn.style.display = 'inline-block';
         form.action = "{{ route('channels.store') }}";
@@ -222,7 +277,7 @@ function enableForm(mode) {
     }
 
     if (mode === 'edit') {
-        inputs.forEach(el => { 
+        inputs.forEach(el => {
             if (el.tagName.toLowerCase() === 'select') { el.disabled = false; }
             else if (el.type !== "hidden") { el.readOnly = false; }
         });
@@ -230,7 +285,7 @@ function enableForm(mode) {
     }
 
     if (mode === 'view') {
-        inputs.forEach(el => { 
+        inputs.forEach(el => {
             if (el.tagName.toLowerCase() === 'select') { el.disabled = true; }
             else if (el.type !== "hidden") { el.readOnly = true; }
         });
