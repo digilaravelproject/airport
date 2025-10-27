@@ -14,9 +14,9 @@ class InventoryController extends Controller
     public function index(Request $request, $id = null)
     {
         // Counts for summary tabs
-        $totalBoxes     = Inventory::count();
-        $assignedBoxes  = Inventory::whereHas('packages')->count();
-        $unassignedBoxes= Inventory::whereDoesntHave('packages')->count();
+        $totalBoxes      = Inventory::count();
+        $assignedBoxes   = Inventory::whereHas('packages')->count();
+        $unassignedBoxes = Inventory::whereDoesntHave('packages')->count();
 
         $query = Inventory::with('client');
 
@@ -61,8 +61,13 @@ class InventoryController extends Controller
             });
         }
 
-        $inventories = $query->orderBy('id', 'desc')->get();
-        $selectedInventory = $request->inventory_id ? Inventory::with('client')->find($request->inventory_id) : null;
+        // PAGINATE: 10 per page (keeps existing behavior otherwise)
+        $inventories = $query->orderBy('id', 'desc')->paginate(10);
+
+        $selectedInventory = $request->inventory_id
+            ? Inventory::with('client')->find($request->inventory_id)
+            : null;
+
         $clients = Client::all();
 
         return view('inventories.index', compact(

@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    .import-header { background-color: #0f172a !important; }
+    .summary-card { cursor:pointer; transition: transform .05s ease-in; }
+    .summary-card:hover { transform: translateY(-1px); }
+    .summary-active { border-color:#0d6efd !important; box-shadow: 0 0 0 .1rem rgba(13,110,253,.15); }
+</style>
 <div class="container-fluid">
     <!-- Page-Title -->
     <?php
@@ -94,6 +100,7 @@
                             <option value="all" {{ request('field','all')=='all' ? 'selected' : '' }}>All Fields</option>
                             <option value="id" {{ request('field')=='id' ? 'selected' : '' }}>Channel ID</option>
                             <option value="channel_name" {{ request('field')=='channel_name' ? 'selected' : '' }}>Name</option>
+                            <option value="broadcast" {{ request('field')=='broadcast' ? 'selected' : '' }}>Broadcast</option>
                             <option value="channel_genre" {{ request('field')=='channel_genre' ? 'selected' : '' }}>Genre</option>
                             <option value="channel_resolution" {{ request('field')=='channel_resolution' ? 'selected' : '' }}>Resolution</option>
                             <option value="channel_type" {{ request('field')=='channel_type' ? 'selected' : '' }}>Type</option>
@@ -113,6 +120,7 @@
                                     <th>No</th>
                                     <th>Channel ID</th>
                                     <th>Name</th>
+                                    <th>Broadcast</th>
                                     <th>Genre</th>
                                     <th>Resolution</th>
                                     <th>Type</th>
@@ -122,10 +130,11 @@
                             </thead>
                             <tbody>
                                 @foreach ($channels as $key => $channel)
-                                    <tr onclick="window.location='?channel_id={{ $channel->id }}'" style="cursor: pointer;">
-                                        <td>{{ $key+1 }}</td>
+                                    <tr onclick="window.location='{{ request()->fullUrlWithQuery(['channel_id'=>$channel->id]) }}'" style="cursor: pointer;">
+                                        <td>{{ ($channels->firstItem() ?? 1) + $key }}</td>
                                         <td><span class="badge bg-secondary">{{ $channel->id }}</span></td>
                                         <td>{{ $channel->channel_name }}</td>
+                                        <td>{{ $channel->broadcast }}</td>
                                         <td>{{ $channel->channel_genre }}</td>
                                         <td>{{ $channel->channel_resolution }}</td>
                                         <td>{{ $channel->channel_type }}</td>
@@ -139,7 +148,22 @@
                                 @endforeach
                             </tbody>
                         </table>
-                        {{-- Add pagination here if you later switch to paginate() --}}
+
+                        @if($channels->isEmpty())
+                            <div class="text-center text-muted py-3">No records found.</div>
+                        @endif
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                        <div class="small text-muted">
+                            @if($channels->total())
+                                Showing {{ $channels->firstItem() }}–{{ $channels->lastItem() }} of {{ $channels->total() }}
+                            @endif
+                        </div>
+                        <div>
+                            {{ $channels->appends(request()->except('page'))->links('pagination::bootstrap-5') }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -173,6 +197,16 @@
                             <input type="text" name="channel_name" class="form-control @error('channel_name') is-invalid @enderror"
                                 value="{{ old('channel_name', $selectedChannel->channel_name ?? '') }}" readonly>
                             @error('channel_name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <!-- NEW: Broadcast (below Name) -->
+                        <div class="mb-3">
+                            <label class="form-label">Broadcast</label>
+                            <input type="text" name="broadcast" class="form-control @error('broadcast') is-invalid @enderror"
+                                value="{{ old('broadcast', $selectedChannel->broadcast ?? '') }}" readonly>
+                            @error('broadcast')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -272,7 +306,7 @@ function enableForm(mode) {
         saveBtn.style.display = 'inline-block';
         form.action = "{{ route('channels.store') }}";
 
-        let methodInput = form.querySelector('input[name=\"_method\"]');
+        let methodInput = form.querySelector('input[name="_method"]');
         if (methodInput) methodInput.remove();
     }
 

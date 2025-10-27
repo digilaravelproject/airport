@@ -167,7 +167,7 @@
                             <tbody>
                                 @foreach ($inventories as $key => $inventory)
                                     <tr onclick="window.location='?inventory_id={{ $inventory->id }}'" style="cursor:pointer;">
-                                        <td>{{ $key+1 }}</td>
+                                        <td>{{ ($inventories->firstItem() ?? 1) + $key }}</td>
                                         <td><span class="badge bg-secondary">{{ $inventory->box_id }}</span></td>
                                         <td>{{ $inventory->box_ip }}</td>
                                         <td>{{ $inventory->location }}</td>
@@ -180,7 +180,11 @@
                                 @endforeach
                             </tbody>
                         </table>
-                        {{-- Add pagination if needed --}}
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="mt-3">
+                        {{ $inventories->appends(request()->except('page'))->links('pagination::bootstrap-5') }}
                     </div>
                 </div>
             </div>

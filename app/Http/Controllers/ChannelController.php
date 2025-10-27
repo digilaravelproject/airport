@@ -20,6 +20,7 @@ class ChannelController extends Controller
                 if ($field === 'all') {
                     $q->where('id', 'like', "%{$search}%")
                       ->orWhere('channel_name', 'like', "%{$search}%")
+                      ->orWhere('broadcast', 'like', "%{$search}%")
                       ->orWhere('channel_genre', 'like', "%{$search}%")
                       ->orWhere('channel_resolution', 'like', "%{$search}%")
                       ->orWhere('channel_type', 'like', "%{$search}%")
@@ -28,7 +29,7 @@ class ChannelController extends Controller
                 } elseif ($field === 'active') {
                     $q->where('active', $this->matchActive($search));
                 } else {
-                    $allowed = ['id','channel_name','channel_genre','channel_resolution','channel_type','language'];
+                    $allowed = ['id','channel_name','channel_genre','channel_resolution','channel_type','language','broadcast'];
                     if (in_array($field, $allowed, true)) {
                         $q->where($field, 'like', "%{$search}%");
                     }
@@ -36,7 +37,11 @@ class ChannelController extends Controller
             });
         }
 
-        $channels = $query->orderBy('id', 'desc')->get();
+        // Paginate 10 per page and keep current query string (search, field, channel_id, etc.)
+        $channels = $query->orderBy('id', 'desc')
+                          ->paginate(10)
+                          ->withQueryString();
+
         $selectedChannel = $request->channel_id ? Channel::find($request->channel_id) : null;
 
         return view('channels.index', compact('channels', 'selectedChannel'));
@@ -55,6 +60,7 @@ class ChannelController extends Controller
         $request->validate([
             'channel_name' => 'required',
             'channel_type' => 'required',
+            'broadcast'    => 'nullable|string',
         ]);
 
         Channel::create($request->all());
@@ -64,6 +70,10 @@ class ChannelController extends Controller
 
     public function update(Request $request, Channel $channel)
     {
+        $request->validate([
+            'broadcast' => 'nullable|string',
+        ]);
+
         $channel->update($request->all());
 
         return redirect()->route('channels.index')->with('success', 'Channel updated successfully.');
@@ -72,6 +82,7 @@ class ChannelController extends Controller
     /**
      * Bulk import channels (same UX & behavior style as inventory import).
      * Accepts .xlsx, .xls, .csv. Upserts on channel_name.
+     * Optionally accepts a "broadcast" column.
      */
     public function import(Request $request)
     {
@@ -107,17 +118,18 @@ class ChannelController extends Controller
             $active     = $this->toBoolInt($row['active'] ?? null);
 
             $payload[] = [
-                'channel_name'          => $name,
-                'channel_source_in'     => trim((string)($row['channel_source_in'] ?? '')),
-                'channel_source_details'=> trim((string)($row['channel_source_details'] ?? '')),
+                'channel_name'           => $name,
+                'broadcast'              => trim((string)($row['broadcast'] ?? '')),
+                'channel_source_in'      => trim((string)($row['channel_source_in'] ?? '')),
+                'channel_source_details' => trim((string)($row['channel_source_details'] ?? '')),
                 'channel_stream_type_out'=> trim((string)($row['channel_stream_type_out'] ?? '')),
-                'channel_url'           => trim((string)($row['channel_url'] ?? '')),
-                'channel_genre'         => trim((string)($row['channel_genre'] ?? '')),
-                'channel_resolution'    => trim((string)($row['channel_resolution'] ?? '')),
-                'channel_type'          => trim((string)($row['channel_type'] ?? '')),
-                'language'              => trim((string)($row['language'] ?? '')),
-                'encryption'            => $encryption,
-                'active'                => $active,
+                'channel_url'            => trim((string)($row['channel_url'] ?? '')),
+                'channel_genre'          => trim((string)($row['channel_genre'] ?? '')),
+                'channel_resolution'     => trim((string)($row['channel_resolution'] ?? '')),
+                'channel_type'           => trim((string)($row['channel_type'] ?? '')),
+                'language'               => trim((string)($row['language'] ?? '')),
+                'encryption'             => $encryption,
+                'active'                 => $active,
             ];
         }
 
@@ -135,6 +147,7 @@ class ChannelController extends Controller
                 $payload,
                 ['channel_name'],
                 [
+                    'broadcast',
                     'channel_source_in',
                     'channel_source_details',
                     'channel_stream_type_out',

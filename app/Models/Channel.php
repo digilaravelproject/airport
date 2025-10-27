@@ -11,6 +11,7 @@ class Channel extends Model
 
     protected $fillable = [
         'channel_name',
+        'broadcast',
         'channel_source_in',
         'channel_source_details',
         'channel_stream_type_out',
