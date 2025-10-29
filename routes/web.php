@@ -19,6 +19,20 @@ use App\Http\Controllers\InstalledReportController;
 use App\Http\Controllers\ChannelReportController;
 use App\Http\Controllers\PackageReportController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\File;
+
+Route::get('/{filename}.json', function ($filename) {
+    $path = base_path("{$filename}.json"); // file in project root
+
+    if (!File::exists($path)) {
+        abort(404, "File not found: {$filename}.json");
+    }
+
+    $content = File::get($path);
+    return Response::make($content, 200, [
+        'Content-Type' => 'application/json',
+    ]);
+});
 
 // Route::get('/', fn () => view('welcome'));
 Route::get('/', function () {

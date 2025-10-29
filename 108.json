@@ -1,0 +1,15 @@
+{
+    "DTV": [
+        {
+            "name": "1",
+            "desc": "CNN INTL",
+            "url": "udp://239.15.0.13:1234",
+            "starting": true
+        },
+        {
+            "name": "2",
+            "desc": "Times Now World HD",
+            "url": "udp://239.15.0.12:1234"
+        }
+    ]
+}

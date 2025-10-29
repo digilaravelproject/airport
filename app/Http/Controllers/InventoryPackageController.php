@@ -5,17 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Inventory;
 use App\Models\Package;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;               // <-- add this
-use Symfony\Component\Process\Process;           // <-- and this
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Process;
 
 class InventoryPackageController extends Controller
 {
     public function index()
     {
-        // Load inventories with related client and packages
-        $inventories = Inventory::with(['client', 'packages']);
-        $inventories = $inventories->paginate(10); // or paginate(15), as you need
-        // ->get();
+        $inventories = Inventory::with(['client', 'packages'])->paginate(10);
         $packages = Package::all();
 
         return view('inventory_package_allocation.index', compact('inventories', 'packages'));
@@ -28,10 +25,7 @@ class InventoryPackageController extends Controller
             'package_ids.*' => 'exists:packages,id',
         ]);
 
-        // Sync packages
         $inventory->packages()->sync($request->package_ids);
-
-        // Fetch packages with channels
         $packages = $inventory->packages()->with('channels')->get();
 
         $data = [];
@@ -39,112 +33,113 @@ class InventoryPackageController extends Controller
         foreach ($packages as $package) {
             $channels = [];
             $counter = 1;
-
-            foreach ($package->channels as $channel) {
+            foreach ($package->channels as $k => $channel) {
                 $item = [
-                    "name" => $channel->id,
+                    "name" => (string) ($k + 1),
                     "desc" => $channel->channel_name,
-                    "url"  => $channel->channel_url,
+                    "url"  => (str_starts_with($channel->channel_source_in, 'udp://'))
+                        ? $channel->channel_source_in
+                        : 'udp://' . $channel->channel_source_in,
                 ];
-
-                // Add "starting": true only for the first channel
                 if ($counter === 1) {
                     $item["starting"] = true;
                 }
-
                 $channels[] = $item;
                 $counter++;
             }
-
-            // Dynamic key = package name (like "DTV")
             $data['DTV'] = $channels;
         }
 
-        // Filename = Box Serial No (e.g., 101.json)
         $filename = $inventory->box_id . ".json";
-        $path = storage_path("app/public/json/" . $filename);
+        $path = base_path($filename);
 
         if (!file_exists(dirname($path))) {
             mkdir(dirname($path), 0777, true);
         }
-
         if (file_exists($path)) {
             unlink($path);
         }
 
-        // Write JSON with pretty print & unescaped slashes
         file_put_contents(
             $path,
             json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
         );
 
-        // === Reboot device via ADB over IP (after JSON is created) ===
-        $ip = $inventory->box_ip ?? null; // ensure your Inventory has this column
-
+        $ip = $inventory->box_ip ?? null;
         $rebootMsg = ' (reboot skipped: no device IP)';
+
         if ($ip) {
-            $ok = $this->rebootViaAdb($ip);
-            $rebootMsg = $ok ? ' (reboot command sent)' : ' (reboot failed; see logs)';
-        } else {
-            Log::warning('ADB reboot skipped: Inventory missing device_ip', ['inventory_id' => $inventory->id]);
+            // We’ll collect messages and send them back as JSON for frontend
+            $messages = $this->rebootViaAdb($ip);
+            return response()->json(['success' => true, 'messages' => $messages]);
         }
 
-        return redirect()->route('inventory-packages.index')
-            ->with('success', 'Packages assigned successfully.');
+        return response()->json(['success' => true, 'messages' => ['Packages assigned, reboot skipped (no device IP).']]);
     }
 
-    /**
-     * Reboot an Android/TV box via ADB over TCP/IP.
-     * Requires ADB_PATH and optional ADB_PORT in .env.
-     */
-    private function rebootViaAdb(string $ip): bool
+    private function rebootViaAdb(string $deviceIP): array
     {
-        $adbPath = env('ADB_PATH');                 // absolute path to adb.exe
-        $port    = (int) env('ADB_PORT', 5555);
-        $serial  = $ip . ':' . $port;
+        $port = 5555;
+        $messages = [];
 
-        if (!$adbPath || !file_exists($adbPath)) {
-            Log::error('ADB reboot failed: invalid ADB_PATH', ['ADB_PATH' => $adbPath]);
-            return false;
+        $adbPath = '/usr/bin/adb';
+
+        if (!file_exists($adbPath)) {
+            return ["❌ ADB binary not found at: $adbPath"];
         }
 
-        // Build processes as arrays to avoid quoting issues on Windows paths
-        $steps = [
-            ['label' => 'disconnect', 'proc' => new Process([$adbPath, 'disconnect', $serial])],
-            ['label' => 'connect',    'proc' => new Process([$adbPath, 'connect', $serial])],
-            ['label' => 'reboot',     'proc' => new Process([$adbPath, '-s', $serial, 'reboot'])],
-        ];
+        // 👇 Add this line
+        putenv('ADB_VENDOR_KEYS=/var/www/.android');
 
-        $allOk = true;
+        $adb    = escapeshellarg($adbPath);
+        $serial = escapeshellarg("{$deviceIP}:{$port}");
 
-        foreach ($steps as $step) {
-            /** @var \Symfony\Component\Process\Process $p */
-            $p = $step['proc'];
-            $p->setTimeout(20); // seconds
-            try {
-                $p->run();
-                $ok = $p->isSuccessful();
-                $allOk = $allOk && $ok;
-                Log::info('ADB step ' . $step['label'], [
-                    'serial'  => $serial,
-                    'ok'      => $ok,
-                    'exit'    => $p->getExitCode(),
-                    'out'     => trim($p->getOutput()),
-                    'err'     => trim($p->getErrorOutput()),
-                ]);
-                // if connect fails, no point continuing
-                if ($step['label'] === 'connect' && !$ok) {
-                    break;
-                }
-            } catch (\Throwable $e) {
-                Log::error('ADB step exception: ' . $step['label'], [
-                    'serial' => $serial,
-                    'error'  => $e->getMessage(),
-                ]);
-                return false;
-            }
+        // 1) Ping
+        $messages[] = "🔍 Pinging device at $deviceIP...";
+        $pingCmd = (stripos(PHP_OS, 'WIN') === 0) ? "ping -n 1 $deviceIP" : "ping -c 1 $deviceIP";
+        exec($pingCmd, $pingOut, $pingStatus);
+        if ($pingStatus !== 0) {
+            $messages[] = "❌ Device not reachable (ping failed)";
+            return $messages;
+        }
+        $messages[] = "✅ Device is online";
+        sleep(1);
+
+        // 2) (Optional) disconnect then connect (avoids sticky state)
+        $messages[] = "🔗 Connecting via ADB...";
+        exec("$adb disconnect $serial", $discOut, $discStatus); // ignore status
+        exec("$adb connect $serial", $connOut, $connStatus);
+
+        // Some ADBs return 0 even if "already connected"; treat non-zero as failure
+        if ($connStatus !== 0) {
+            $messages[] = "❌ Failed to connect via ADB";
+            if (!empty($connOut)) { $messages = array_merge($messages, $connOut); }
+            return $messages;
+        }
+        $messages[] = "✅ ADB connected";
+        sleep(1);
+
+        // 3) Reboot
+        $messages[] = "🔁 Sending reboot command...";
+        exec("$adb -s $serial reboot", $rebootOut, $rebootStatus);
+        if ($rebootStatus === 0) {
+            $messages[] = "✅ Reboot command sent successfully";
+        } else {
+            $messages[] = "❌ Failed to send reboot command";
+            if (!empty($rebootOut)) { $messages = array_merge($messages, $rebootOut); }
+            return $messages;
         }
 
-        return $allOk;
+        // 4) Wait for this specific device to return
+        $messages[] = "⏳ Waiting for device to come back online...";
+        exec("$adb -s $serial wait-for-device", $waitOut, $waitStatus);
+        if ($waitStatus === 0) {
+            $messages[] = "✅ Device rebooted and is back online";
+        } else {
+            $messages[] = "⚠️ Device did not come back online automatically";
+            if (!empty($waitOut)) { $messages = array_merge($messages, $waitOut); }
+        }
+
+        return $messages;
     }
 }

@@ -1,0 +1,15 @@
+{
+    "DTV": [
+        {
+            "name": 2,
+            "desc": "TV10",
+            "url": "udp://239.15.0.1:1234",
+            "starting": true
+        },
+        {
+            "name": 3,
+            "desc": "ABP Maza",
+            "url": "udp://239.15.0.1:1234"
+        }
+    ]
+}
