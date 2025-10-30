@@ -20,17 +20,19 @@
     <table>
         <thead>
             <tr>
-                <th>#</th>
                 <th>ID</th>
                 <th>Name</th>
+                <th>Broadcast</th>
+                <th>Genre</th>
             </tr>
         </thead>
         <tbody>
             @foreach($channels as $i => $ch)
             <tr>
-                <td>{{ $i + 1 }}</td>
                 <td><span class="badge">{{ $ch->id }}</span></td>
                 <td>{{ $ch->channel_name }}</td>
+                <td>{{ $ch->broadcast }}</td>
+                <td>{{ $ch->channel_genre }}</td>
             </tr>
             @endforeach
         </tbody>

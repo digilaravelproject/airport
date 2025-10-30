@@ -1,32 +1,14 @@
-@extends('layouts.app')
-@section('content')
+@extends('layouts.app') @section('content')
 <style>
-    #adbProgressModal.modal { z-index: 4000; }
-    .modal-backdrop.adb-backdrop { z-index: 3990 !important; }
-    .table thead a { font-weight: 600; }
+    /* Make sure the ADB modal always stays above any overlay/loader */
+    #adbProgressModal.modal {
+        z-index: 4000;
+    }
+    /* When shown, upgrade the backdrop too */
+    .modal-backdrop.adb-backdrop {
+        z-index: 3990 !important;
+    }
 </style>
-
-@php
-    // Helpers for DataTables-like sort arrows
-    function nextDirIPA($col) {
-        $currentSort = request('sort','id');
-        $currentDir  = request('direction','desc');
-        if ($currentSort === $col) return $currentDir === 'asc' ? 'desc' : 'asc';
-        return 'asc';
-    }
-    function sortIconIPA($col) {
-        $currentSort = request('sort','id');
-        $currentDir  = request('direction','desc');
-        if ($currentSort !== $col) return 'fas fa-sort text-muted';
-        return $currentDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
-    }
-    function sortUrlIPA($col) {
-        $params = request()->all();
-        $params['sort'] = $col;
-        $params['direction'] = nextDirIPA($col);
-        return request()->fullUrlWithQuery($params);
-    }
-@endphp
 
 <div class="container-fluid">
     <?php
@@ -53,8 +35,7 @@
         {{ session('success') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-    @endif
-    @if(session('error'))
+    @endif @if(session('error'))
     <div class="alert alert-danger mt-3 mb-0 alert-dismissible fade show">
         <i class="fas fa-exclamation-circle me-1"></i>
         {{ session('error') }}
@@ -76,99 +57,64 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>No</th>
-                                    <th>
-                                        <a href="{{ sortUrlIPA('box_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Box ID <i class="{{ sortIconIPA('box_id') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlIPA('box_model') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Box Model <i class="{{ sortIconIPA('box_model') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlIPA('box_serial_no') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Serial No <i class="{{ sortIconIPA('box_serial_no') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlIPA('box_mac') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Mac ID <i class="{{ sortIconIPA('box_mac') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlIPA('client_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Client ID <i class="{{ sortIconIPA('client_id') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlIPA('client_name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Client Name <i class="{{ sortIconIPA('client_name') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlIPA('packages') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Allocated Packages <i class="{{ sortIconIPA('packages') }}"></i>
-                                        </a>
-                                    </th>
+                                    <th>Box ID</th>
+                                    <th>Box Model</th>
+                                    <th>Serial No</th>
+                                    <th>Mac ID</th>
+                                    <th>Client ID</th>
+                                    <th>Client Name</th>
+                                    <th>Allocated Packages</th>
                                     <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($inventories as $key => $inventory)
-                                    @php
-                                        $jsonFile = base_path($inventory->box_id . '.json');
-                                        $jsonUrl = file_exists($jsonFile) ? url($inventory->box_id . '.json') : null;
-                                        $invPayload = $inventory->toArray();
-                                        $invPayload['json_url'] = $jsonUrl;
-                                    @endphp
-                                    <tr>
-                                        <td>{{ ($inventories->firstItem() ?? 1) + $key }}</td>
-                                        <td><span class="badge bg-secondary">{{ $inventory->box_id }}</span></td>
-                                        <td>{{ $inventory->box_model }}</td>
-                                        <td>{{ $inventory->box_serial_no }}</td>
-                                        <td>{{ $inventory->box_mac }}</td>
-                                        <td>
-                                            @if($inventory->client)
-                                                <span class="badge bg-info">{{ $inventory->client->id }}</span>
-                                            @else
-                                                <span class="text-muted">No client</span>
-                                            @endif
-                                        </td>
-                                        <td>{{ $inventory->client->name ?? '-' }}</td>
-                                        <td>
-                                            @if($inventory->packages->count())
-                                                {{ $inventory->packages->pluck('name')->join(', ') }}
-                                            @else
-                                                <span class="text-muted">No packages</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
-                                            <button
-                                                class="btn btn-sm btn-warning"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#inventoryPackageModal"
-                                                onclick='openForm("edit", {!! json_encode($invPayload, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT) !!})'
-                                            >
-                                                <i class="las la-pen"></i> Edit
-                                            </button>
-                                            <button
-                                                class="btn btn-sm btn-info"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#inventoryPackageModal"
-                                                onclick='openForm("view", {!! json_encode($invPayload, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT) !!})'
-                                            >
-                                                <i class="las la-eye"></i> View
-                                            </button>
-                                        </td>
-                                    </tr>
+                                @foreach ($inventories as $key => $inventory) @php $jsonFile = base_path($inventory->box_id . '.json'); $jsonUrl = file_exists($jsonFile) ? url($inventory->box_id . '.json') : null; $invPayload =
+                                $inventory->toArray(); $invPayload['json_url'] = $jsonUrl; @endphp
+                                <tr>
+                                    <td>{{ $key+1 }}</td>
+                                    <td><span class="badge bg-secondary">{{ $inventory->box_id }}</span></td>
+                                    <td>{{ $inventory->box_model }}</td>
+                                    <td>{{ $inventory->box_serial_no }}</td>
+                                    <td>{{ $inventory->box_mac }}</td>
+                                    <td>
+                                        @if($inventory->client)
+                                        <span class="badge bg-info">{{ $inventory->client->id }}</span>
+                                        @else
+                                        <span class="text-muted">No client</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $inventory->client->name ?? '-' }}</td>
+                                    <td>
+                                        @if($inventory->packages->count()) {{ $inventory->packages->pluck('name')->join(', ') }} @else
+                                        <span class="text-muted">No packages</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        <button
+                                            class="btn btn-sm btn-warning"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#inventoryPackageModal"
+                                            onclick='openForm("edit", {!! json_encode($invPayload, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT) !!})'
+                                        >
+                                            <i class="las la-pen"></i> Edit
+                                        </button>
+                                        <button
+                                            class="btn btn-sm btn-info"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#inventoryPackageModal"
+                                            onclick='openForm("view", {!! json_encode($invPayload, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT) !!})'
+                                        >
+                                            <i class="las la-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
 
                     <div class="mt-3">
-                        {{ $inventories->appends(request()->except('page'))->links('pagination::bootstrap-5') }}
+                        {{ $inventories->links('pagination::bootstrap-5') }}
                     </div>
                 </div>
             </div>
@@ -176,7 +122,6 @@
     </div>
 </div>
 
-{{-- Modal + scripts below remain unchanged from your version --}}
 <!-- Inventory Package Modal -->
 <div class="modal fade" id="inventoryPackageModal" tabindex="-1" aria-labelledby="inventoryPackageModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -187,9 +132,7 @@
 
                 <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title" id="inventoryPackageModalLabel">Assign Packages</h5>
-                    <a id="viewJsonLink" href="#" target="_blank" class="btn btn-outline-light btn-sm ms-2" style="display: none;">
-                        <i class="las la-file-code me-1"></i> View JSON
-                    </a>
+                    <a id="viewJsonLink" href="#" target="_blank" class="btn btn-outline-light btn-sm ms-2" style="display: none;"> <i class="las la-file-code me-1"></i> View JSON </a>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
 
@@ -232,9 +175,7 @@
                             @endforeach
                         </div>
 
-                        <small class="text-muted d-block mt-1">
-                            <span id="selectedCount">0</span> / <span id="totalCount">{{ count($packages) }}</span> selected
-                        </small>
+                        <small class="text-muted d-block mt-1"> <span id="selectedCount">0</span> / <span id="totalCount">{{ count($packages) }}</span> selected </small>
 
                         <div class="mt-2">
                             <span class="small text-muted me-2">Selected package:</span>
@@ -251,6 +192,7 @@
     </div>
 </div>
 
+<!-- NEW: ADB Progress Modal -->
 <!-- ADB Progress Modal -->
 <div class="modal fade" id="adbProgressModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered">
@@ -286,17 +228,26 @@
         function enforceSingleSelection(changedCb) {
             const boxes = pkgCheckboxes();
             if (changedCb && changedCb.checked) {
-                boxes.forEach((cb) => { if (cb !== changedCb) cb.disabled = true; });
+                boxes.forEach((cb) => {
+                    if (cb !== changedCb) cb.disabled = true;
+                });
             } else {
-                boxes.forEach((cb) => { cb.disabled = false; });
+                boxes.forEach((cb) => {
+                    cb.disabled = false;
+                });
             }
         }
-        function currentSelected() { return pkgCheckboxes().find((cb) => cb.checked) || null; }
+
+        function currentSelected() {
+            return pkgCheckboxes().find((cb) => cb.checked) || null;
+        }
+
         function updateSelectedName() {
             const cb = currentSelected();
             selectedNameEl.textContent = cb ? cb.dataset.name || "Selected" : "None";
             selectedNameEl.className = "badge " + (cb ? "bg-primary" : "bg-secondary");
         }
+
         function updateCounts() {
             const boxes = pkgCheckboxes();
             const total = boxes.length;
@@ -308,14 +259,17 @@
             updateSelectedName();
         }
 
-        // Reset
+        // Reset form
         form.reset();
         document.getElementById("inventory_id").value = "";
         document.getElementById("box_id").value = "";
         document.getElementById("inventory_box_model").value = "";
         document.getElementById("inventory_serial").value = "";
         document.getElementById("inventory_client").value = "";
-        pkgCheckboxes().forEach((cb) => { cb.checked = false; cb.disabled = true; });
+        pkgCheckboxes().forEach((cb) => {
+            cb.checked = false;
+            cb.disabled = true;
+        });
         methodDiv.innerHTML = "";
         saveBtn.style.display = "none";
         selectAll.disabled = true;
@@ -326,7 +280,9 @@
         pkgCheckboxes().forEach((cb) => {
             cb.onchange = () => {
                 if (cb.checked) {
-                    pkgCheckboxes().forEach((other) => { if (other !== cb) other.checked = false; });
+                    pkgCheckboxes().forEach((other) => {
+                        if (other !== cb) other.checked = false;
+                    });
                 }
                 enforceSingleSelection(cb);
                 updateCounts();
@@ -349,7 +305,9 @@
             if (Array.isArray(data.packages) && data.packages.length > 0) {
                 preselectId = String(data.packages[0].id);
             }
-            pkgCheckboxes().forEach((cb) => { cb.checked = preselectId !== null && cb.value === preselectId; });
+            pkgCheckboxes().forEach((cb) => {
+                cb.checked = preselectId !== null && cb.value === preselectId;
+            });
 
             enforceSingleSelection(currentSelected());
             updateCounts();
@@ -368,7 +326,10 @@
             if (Array.isArray(data.packages) && data.packages.length > 0) {
                 selectedId = String(data.packages[0].id);
             }
-            pkgCheckboxes().forEach((cb) => { cb.checked = selectedId !== null && cb.value === selectedId; cb.disabled = true; });
+            pkgCheckboxes().forEach((cb) => {
+                cb.checked = selectedId !== null && cb.value === selectedId;
+                cb.disabled = true;
+            });
 
             enforceSingleSelection(currentSelected());
             updateCounts();
@@ -385,16 +346,19 @@
     }
 
     function hideAnyLoader() {
+        // Try to hide common loaders if they exist (no error if they don't)
         const selectors = ["#globalLoader", "#preloader", "#loader", "#loading", ".loading", ".loading-overlay"];
         selectors.forEach((sel) => {
             const el = document.querySelector(sel);
             if (!el) return;
+            // Prefer class-based hide to avoid layout shift; fallback to style if needed
             el.classList.add("d-none");
             el.style.display = "none";
             el.style.visibility = "hidden";
         });
     }
 
+    // Ensure the adb modal/backdrop are always on top
     (function wireAdbModalZIndex() {
         const modalEl = document.getElementById("adbProgressModal");
         if (!modalEl) return;
@@ -404,11 +368,12 @@
     })();
 
     function showAdbProgress(messages) {
-        hideAnyLoader();
+        hideAnyLoader(); // << hide any overlay BEFORE showing
         const modal = new bootstrap.Modal(document.getElementById("adbProgressModal"), { backdrop: true, keyboard: true });
         const msgBox = document.getElementById("adbMessages");
         msgBox.innerHTML = "";
         modal.show();
+
         let i = 0;
         function nextMsg() {
             if (i < messages.length) {
@@ -423,12 +388,15 @@
         nextMsg();
     }
 
+    // AJAX submit for Assign Packages (your same code with loader hide guarantees)
     document.addEventListener("DOMContentLoaded", function () {
         const form = document.getElementById("inventoryPackageForm");
         if (!form) return;
 
         form.addEventListener("submit", function (e) {
             e.preventDefault();
+
+            // If your site shows a loader here, it will get hidden by showAdbProgress()
             const formData = new FormData(form);
             const action = form.action;
 
@@ -439,6 +407,7 @@
             })
                 .then((res) => res.json())
                 .then((data) => {
+                    // Hide any loader just in case it was shown globally
                     hideAnyLoader();
                     if (data.success) {
                         showAdbProgress(data.messages || ["Process completed"]);

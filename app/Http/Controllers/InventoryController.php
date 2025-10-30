@@ -18,10 +18,10 @@ class InventoryController extends Controller
         $assignedBoxes   = Inventory::whereHas('packages')->count();
         $unassignedBoxes = Inventory::whereDoesntHave('packages')->count();
 
-        $query = Inventory::with('client');
+        $query = Inventory::query();
 
         if (!empty($id)) {
-            $query->where('id', $id);
+            $query->where('inventories.id', $id);
         }
 
         // Apply assignment filter from summary tabs
@@ -39,12 +39,12 @@ class InventoryController extends Controller
 
             $query->where(function($q) use ($field, $search) {
                 if ($field === 'all') {
-                    $q->where('box_id', 'like', "%{$search}%")
-                      ->orWhere('box_ip', 'like', "%{$search}%")
-                      ->orWhere('box_model', 'like', "%{$search}%")
-                      ->orWhere('box_serial_no', 'like', "%{$search}%")
-                      ->orWhere('box_mac', 'like', "%{$search}%")
-                      ->orWhere('box_fw', 'like', "%{$search}%")
+                    $q->where('inventories.box_id', 'like', "%{$search}%")
+                      ->orWhere('inventories.box_ip', 'like', "%{$search}%")
+                      ->orWhere('inventories.box_model', 'like', "%{$search}%")
+                      ->orWhere('inventories.box_serial_no', 'like', "%{$search}%")
+                      ->orWhere('inventories.box_mac', 'like', "%{$search}%")
+                      ->orWhere('inventories.box_fw', 'like', "%{$search}%")
                       ->orWhereHas('client', function($cq) use ($search) {
                           $cq->where('name', 'like', "%{$search}%");
                       });
@@ -55,14 +55,41 @@ class InventoryController extends Controller
                 } else {
                     $allowed = ['box_id','box_ip','box_model','box_serial_no','box_mac','box_fw'];
                     if (in_array($field, $allowed, true)) {
-                        $q->where($field, 'like', "%{$search}%");
+                        $q->where("inventories.$field", 'like', "%{$search}%");
                     }
                 }
             });
         }
 
-        // PAGINATE: 10 per page (keeps existing behavior otherwise)
-        $inventories = $query->orderBy('id', 'desc')->paginate(10);
+        // Sorting
+        $map = [
+            'id'            => 'inventories.id',
+            'box_id'        => 'inventories.box_id',
+            'box_ip'        => 'inventories.box_ip',
+            'location'      => 'inventories.location',
+            'box_mac'       => 'inventories.box_mac',
+            'client_name'   => 'clients.name',
+            'box_model'     => 'inventories.box_model',
+            'box_serial_no' => 'inventories.box_serial_no',
+            'box_fw'        => 'inventories.box_fw',
+            'created_at'    => 'inventories.created_at',
+        ];
+
+        $sort = $request->get('sort', 'id');
+        $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $sortColumn = $map[$sort] ?? $map['id'];
+
+        // Only join clients if needed (sorting by client name)
+        if ($sort === 'client_name') {
+            $query->leftJoin('clients', 'clients.id', '=', 'inventories.client_id')
+                  ->select('inventories.*');
+        }
+
+        // Eager load client for view
+        $query->with('client');
+
+        // PAGINATE: keep existing 10 per page
+        $inventories = $query->orderBy($sortColumn, $direction)->paginate(10);
 
         $selectedInventory = $request->inventory_id
             ? Inventory::with('client')->find($request->inventory_id)
@@ -72,7 +99,8 @@ class InventoryController extends Controller
 
         return view('inventories.index', compact(
             'inventories', 'selectedInventory', 'clients',
-            'totalBoxes', 'assignedBoxes', 'unassignedBoxes'
+            'totalBoxes', 'assignedBoxes', 'unassignedBoxes',
+            'sort', 'direction'
         ));
     }
 
@@ -86,8 +114,11 @@ class InventoryController extends Controller
         $request->validate([
             'box_id'        => 'required|string|max:255|unique:inventories,box_id',
             'box_model'     => 'required',
-            'box_serial_no' => 'required',
+            // ensure unique serial on create
+            'box_serial_no' => 'required|unique:inventories,box_serial_no',
             'box_mac'       => 'required|unique:inventories,box_mac',
+            // keep: box_ip unique when provided
+            'box_ip'        => 'nullable|unique:inventories,box_ip',
         ]);
 
         $data = $request->all();
@@ -106,8 +137,11 @@ class InventoryController extends Controller
         $request->validate([
             'box_id'        => 'required|string|max:255|unique:inventories,box_id,' . $inventory->id,
             'box_model'     => 'required',
-            'box_serial_no' => 'required',
+            // ensure unique serial, ignoring current record
+            'box_serial_no' => 'required|unique:inventories,box_serial_no,' . $inventory->id,
             'box_mac'       => 'required|unique:inventories,box_mac,' . $inventory->id,
+            // keep: unique box_ip, ignoring current record
+            'box_ip'        => 'nullable|unique:inventories,box_ip,' . $inventory->id,
         ]);
 
         $data = $request->all();
@@ -132,6 +166,15 @@ class InventoryController extends Controller
         $report = ['inserted'=>0,'updated'=>0,'skipped'=>0];
         $payload = [];
 
+        // Preload existing IP -> serial map to enforce uniqueness across DB
+        // Allows the *same* serial to keep/update its own IP, but prevents conflicts with other serials
+        $existingIpToSerial = Inventory::whereNotNull('box_ip')
+            ->pluck('box_serial_no', 'box_ip')
+            ->all();
+
+        // Track IPs seen within the current import to prevent duplicates in the same file
+        $seenIps = []; // box_ip => box_serial_no
+
         foreach ($rows as $row) {
             $row = collect($row)->keyBy(fn($v,$k)=>strtolower(str_replace(' ','_',$k)));
 
@@ -140,12 +183,32 @@ class InventoryController extends Controller
             $serial = trim((string)($row['box_serial_no'] ?? ''));
             if ($serial === '') { $report['skipped']++; continue; }
 
+            $ip = trim((string)($row['box_ip'] ?? ''));
+
+            // Enforce uniqueness for non-empty IPs
+            if ($ip !== '') {
+                // Duplicate within the same file (and for a different serial)
+                if (isset($seenIps[$ip]) && $seenIps[$ip] !== $serial) {
+                    $report['skipped']++;
+                    continue;
+                }
+
+                // Conflict with an existing record in DB (and for a different serial)
+                if (isset($existingIpToSerial[$ip]) && $existingIpToSerial[$ip] !== $serial) {
+                    $report['skipped']++;
+                    continue;
+                }
+
+                // Reserve this IP for this serial in this import batch
+                $seenIps[$ip] = $serial;
+            }
+
             $payload[] = [
                 'box_id'           => trim((string)($row['box_id'] ?? '')),
                 'box_model'        => trim((string)($row['box_model'] ?? '')),
                 'box_serial_no'    => $serial,
                 'box_mac'          => trim((string)($row['box_mac'] ?? '')),
-                'box_ip'           => trim((string)($row['box_ip'] ?? '')),
+                'box_ip'           => $ip,
                 'box_subnet'       => trim((string)($row['box_subnet'] ?? '')),
                 'gateway'          => trim((string)($row['box_gateway'] ?? '')),
                 'box_fw'           => trim((string)($row['box_fw'] ?? '')),

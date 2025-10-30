@@ -35,7 +35,30 @@
         </div>
 
         <div class="card-body">
-            <form id="selectionForm" method="POST">
+
+            {{-- Client Filter --}}
+            <form method="GET" action="{{ route('installed-reports.index') }}" class="row g-2 align-items-end mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Client</label>
+                    <select name="client_id" class="form-select">
+                        <option value="">-- All Clients --</option>
+                        @foreach($clients as $client)
+                            <option value="{{ $client->id }}"
+                                {{ (string)request('client_id') === (string)$client->id ? 'selected' : '' }}>
+                                {{ $client->id }} - {{ $client->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">Search</button>
+                </div>
+                <div class="col-md-3">
+                    <a href="{{ route('installed-reports.index') }}" class="btn btn-outline-secondary w-100">Reset</a>
+                </div>
+            </form>
+
+            <form id="selectionForm" method="POST" target="_self">
                 @csrf
 
                 <div class="d-flex align-items-center mb-3">
@@ -103,16 +126,17 @@
                 </div>
 
                 <div class="mt-3 d-flex flex-wrap gap-2">
-                    <button type="submit"
+                    <button type="button"
                             class="btn btn-outline-secondary"
-                            formaction="{{ route('installed-reports.preview') }}"
-                            formtarget="_blank">
+                            id="btnViewSelected"
+                            data-action="{{ route('installed-reports.preview') }}">
                         View Selected
                     </button>
 
-                    <button type="submit"
+                    <button type="button"
                             class="btn btn-dark"
-                            formaction="{{ route('installed-reports.download') }}">
+                            id="btnDownloadSelected"
+                            data-action="{{ route('installed-reports.download') }}">
                         Download Selected
                     </button>
 
@@ -126,30 +150,29 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const selectAll = document.getElementById('selectAll');
+    const form = document.getElementById('selectionForm');
+    const btnView = document.getElementById('btnViewSelected');
+    const btnDownload = document.getElementById('btnDownloadSelected');
 
-    // Helper to get ALL row checkboxes currently in the DOM
+    // helper to get all row checkboxes
     const getRowChecks = () => Array.from(document.querySelectorAll('input.row-check'));
 
     function setAllRows(state) {
-        getRowChecks().forEach(cb => { cb.checked = state; });
-        selectAll.indeterminate = false; // reset the dash state
-        selectAll.checked = state;       // reflect final state on master
+        getRowChecks().forEach(cb => cb.checked = state);
+        selectAll.indeterminate = false;
+        selectAll.checked = state;
     }
 
-    // Master checkbox toggles all rows
     if (selectAll) {
         selectAll.addEventListener('change', (e) => {
             setAllRows(e.target.checked);
         });
     }
 
-    // Keep master checkbox state in sync (checked / unchecked / indeterminate)
     document.addEventListener('change', (e) => {
         if (!e.target.classList.contains('row-check')) return;
-
         const cbs = getRowChecks();
         const checkedCount = cbs.filter(cb => cb.checked).length;
-
         if (checkedCount === 0) {
             selectAll.checked = false;
             selectAll.indeterminate = false;
@@ -158,8 +181,46 @@ document.addEventListener('DOMContentLoaded', function () {
             selectAll.indeterminate = false;
         } else {
             selectAll.checked = false;
-            selectAll.indeterminate = true; // dashed state
+            selectAll.indeterminate = true;
         }
+    });
+
+    // --- ✅ prevent page from "loading" forever on new tab open ---
+    function openInNewTab(actionUrl, isDownload = false) {
+        const formData = new FormData(form);
+        const newTab = window.open('', '_blank');
+        fetch(actionUrl, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            body: formData
+        })
+        .then(res => res.blob())
+        .then(blob => {
+            const fileURL = URL.createObjectURL(blob);
+            if (isDownload) {
+                const a = document.createElement('a');
+                a.href = fileURL;
+                a.download = 'installed_boxes_selected.pdf';
+                a.click();
+                newTab.close();
+            } else {
+                newTab.location.href = fileURL;
+            }
+        })
+        .catch(err => {
+            newTab.document.write('<p style="color:red;">Error generating PDF.</p>');
+            console.error(err);
+        });
+    }
+
+    btnView?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openInNewTab(btnView.dataset.action, false);
+    });
+
+    btnDownload?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openInNewTab(btnDownload.dataset.action, true);
     });
 });
 </script>

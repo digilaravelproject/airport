@@ -31,10 +31,11 @@
                         @forelse($permissions as $permission)
                             <div class="col-md-4 mb-2">
                                 <div class="form-check">
+                                    {{-- USE PERMISSION NAME AS VALUE (not id) --}}
                                     <input class="form-check-input" type="checkbox"
-                                           name="permissions[]" value="{{ $permission->id }}"
-                                           id="perm{{ $permission->id }}"
-                                           {{ in_array($permission->id, (array)old('permissions', [])) ? 'checked' : '' }}>
+                                        name="permissions[]" value="{{ $permission->name }}"
+                                        id="perm{{ $permission->id }}"
+                                        {{ in_array($permission->name, (array) old('permissions', [])) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="perm{{ $permission->id }}">
                                         {{ $permission->name }}
                                     </label>

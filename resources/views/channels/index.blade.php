@@ -6,7 +6,31 @@
     .summary-card { cursor:pointer; transition: transform .05s ease-in; }
     .summary-card:hover { transform: translateY(-1px); }
     .summary-active { border-color:#0d6efd !important; box-shadow: 0 0 0 .1rem rgba(13,110,253,.15); }
+    .table thead a { font-weight:600; }
 </style>
+
+@php
+    // Helpers for sortable headers (DataTables-like arrows)
+    function nextDirCh($col) {
+        $currentSort = request('sort','id');
+        $currentDir  = request('direction','desc');
+        if ($currentSort === $col) return $currentDir === 'asc' ? 'desc' : 'asc';
+        return 'asc';
+    }
+    function sortIconCh($col) {
+        $currentSort = request('sort','id');
+        $currentDir  = request('direction','desc');
+        if ($currentSort !== $col) return 'fas fa-sort text-muted';
+        return $currentDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+    }
+    function sortUrlCh($col) {
+        $params = request()->all();
+        $params['sort'] = $col;
+        $params['direction'] = nextDirCh($col);
+        return request()->fullUrlWithQuery($params);
+    }
+@endphp
+
 <div class="container-fluid">
     <!-- Page-Title -->
     <?php
@@ -44,7 +68,7 @@
         </div>
     @endif
 
-    <!-- Channel Import Section (same UX as Inventory Import) -->
+    <!-- Channel Import Section -->
     <div class="row mb-3">
         <div class="col-md-12">
             <div class="card shadow-sm border-0">
@@ -108,6 +132,10 @@
                             <option value="active" {{ request('field')=='active' ? 'selected' : '' }}>Active</option>
                         </select>
 
+                        {{-- Preserve current sort in the search form --}}
+                        <input type="hidden" name="sort" value="{{ request('sort','id') }}">
+                        <input type="hidden" name="direction" value="{{ request('direction','desc') }}">
+
                         <button type="submit" class="btn btn-sm btn-primary me-2">Search</button>
                         <a href="{{ route('channels.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
                     </form>
@@ -118,14 +146,46 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>No</th>
-                                    <th>Channel ID</th>
-                                    <th>Name</th>
-                                    <th>Broadcast</th>
-                                    <th>Genre</th>
-                                    <th>Resolution</th>
-                                    <th>Type</th>
-                                    <th>Language</th>
-                                    <th>Active</th>
+                                    <th>
+                                        <a href="{{ sortUrlCh('id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Channel ID <i class="{{ sortIconCh('id') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlCh('channel_name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Name <i class="{{ sortIconCh('channel_name') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlCh('broadcast') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Broadcast <i class="{{ sortIconCh('broadcast') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlCh('channel_genre') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Genre <i class="{{ sortIconCh('channel_genre') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlCh('channel_resolution') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Resolution <i class="{{ sortIconCh('channel_resolution') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlCh('channel_type') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Type <i class="{{ sortIconCh('channel_type') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlCh('language') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Language <i class="{{ sortIconCh('language') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlCh('active') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Active <i class="{{ sortIconCh('active') }}"></i>
+                                        </a>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -201,7 +261,7 @@
                             @enderror
                         </div>
 
-                        <!-- NEW: Broadcast (below Name) -->
+                        <!-- Broadcast -->
                         <div class="mb-3">
                             <label class="form-label">Broadcast</label>
                             <input type="text" name="broadcast" class="form-control @error('broadcast') is-invalid @enderror"
@@ -306,7 +366,7 @@ function enableForm(mode) {
         saveBtn.style.display = 'inline-block';
         form.action = "{{ route('channels.store') }}";
 
-        let methodInput = form.querySelector('input[name="_method"]');
+        let methodInput = form.querySelector('input[name=\"_method\"]');
         if (methodInput) methodInput.remove();
     }
 

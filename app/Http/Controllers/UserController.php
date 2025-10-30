@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\UserCredentialsMail;
 
 class UserController extends Controller
 {
@@ -60,13 +62,32 @@ class UserController extends Controller
             'roles.*'  => ['string','exists:roles,name'],
         ]);
 
+        $plainPassword = $request->password;
+
         $user = User::create([
             'name'     => $request->name,
             'email'    => $request->email,
-            'password' => bcrypt($request->password),
+            'password' => bcrypt($plainPassword),
         ]);
 
+        // Assign roles by name
         $user->syncRoles($request->roles);
+
+        // Send credentials email
+        try {
+            Mail::to($user->email)->send(
+                new UserCredentialsMail(
+                    user: $user,
+                    plainPassword: $plainPassword,           // send on create
+                    roles: $request->roles,
+                    event: 'created',
+                    passwordChanged: true
+                )
+            );
+        } catch (\Throwable $e) {
+            // Optional: log error but don't block the request
+            \Log::error('UserCredentialsMail failed: '.$e->getMessage());
+        }
 
         return redirect()->route('users.index')->with('success', 'User created successfully.');
     }
@@ -91,12 +112,34 @@ class UserController extends Controller
         $user->name  = $request->name;
         $user->email = $request->email;
 
+        $passwordChanged = false;
+        $plainPassword   = null;
         if ($request->filled('password')) {
-            $user->password = bcrypt($request->password);
+            $passwordChanged = true;
+            $plainPassword   = $request->password;
+            $user->password  = bcrypt($plainPassword);
         }
 
         $user->save();
         $user->syncRoles($request->roles);
+
+        // Send update email (include password only if changed)
+        try {
+            // Get final role names to display (fresh)
+            $finalRoles = $user->roles()->pluck('name')->all();
+
+            Mail::to($user->email)->send(
+                new UserCredentialsMail(
+                    user: $user,
+                    plainPassword: $plainPassword, // null if not changed
+                    roles: $finalRoles,
+                    event: 'updated',
+                    passwordChanged: $passwordChanged
+                )
+            );
+        } catch (\Throwable $e) {
+            \Log::error('UserCredentialsMail (update) failed: '.$e->getMessage());
+        }
 
         return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }

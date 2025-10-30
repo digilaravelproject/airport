@@ -4,10 +4,6 @@
 
 @section('content')
 
-{{-- Card Title --}}
-<!-- <h3 class="text-center mb-4">Register</h3> -->
-
-{{-- Session Status --}}
 @if (session('status'))
     <div class="alert alert-success text-center">
         {{ session('status') }}
@@ -17,78 +13,91 @@
 <form method="POST" action="{{ route('register') }}">
     @csrf
 
-    <!-- Name -->
+    {{-- Name --}}
     <div class="mb-3">
         <label for="name" class="form-label">Name</label>
-        <input 
-            type="text" 
-            id="name" 
-            name="name" 
-            value="{{ old('name') }}" 
-            class="form-control @error('name') is-invalid @enderror" 
-            required 
+        <input
+            type="text"
+            id="name"
+            name="name"
+            value="{{ old('name') }}"
+            class="form-control @error('name') is-invalid @enderror"
+            required
             autofocus
         >
         @error('name')
-            <div class="invalid-feedback">
-                {{ $message }}
-            </div>
+            <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
 
-    <!-- Email -->
+    {{-- Email --}}
     <div class="mb-3">
         <label for="email" class="form-label">Email</label>
-        <input 
-            type="email" 
-            id="email" 
-            name="email" 
-            value="{{ old('email') }}" 
-            class="form-control @error('email') is-invalid @enderror" 
+        <input
+            type="email"
+            id="email"
+            name="email"
+            value="{{ old('email') }}"
+            class="form-control @error('email') is-invalid @enderror"
             required
         >
         @error('email')
-            <div class="invalid-feedback">
-                {{ $message }}
-            </div>
+            <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
 
-    <!-- Password -->
+    {{-- Password --}}
     <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input 
-            type="password" 
-            id="password" 
-            name="password" 
-            class="form-control @error('password') is-invalid @enderror" 
+        <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-control @error('password') is-invalid @enderror"
             required
         >
         @error('password')
-            <div class="invalid-feedback">
-                {{ $message }}
-            </div>
+            <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
 
-    <!-- Confirm Password -->
+    {{-- Confirm Password --}}
     <div class="mb-3">
         <label for="password_confirmation" class="form-label">Confirm Password</label>
-        <input 
-            type="password" 
-            id="password_confirmation" 
-            name="password_confirmation" 
-            class="form-control @error('password_confirmation') is-invalid @enderror" 
+        <input
+            type="password"
+            id="password_confirmation"
+            name="password_confirmation"
+            class="form-control @error('password_confirmation') is-invalid @enderror"
             required
         >
         @error('password_confirmation')
-            <div class="invalid-feedback">
-                {{ $message }}
-            </div>
+            <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
 
-    <!-- Already Registered & Submit -->
+    {{-- Role dropdown --}}
+    <div class="mb-3">
+        <label for="role" class="form-label">Select Role</label>
+        <select
+            id="role"
+            name="role"
+            class="form-select @error('role') is-invalid @enderror"
+            required
+        >
+            <option value="" disabled {{ old('role') ? '' : 'selected' }}>-- Choose a role --</option>
+            @foreach($roles as $role)
+                <option value="{{ $role->name }}" {{ old('role') === $role->name ? 'selected' : '' }}>
+                    {{ $role->name }}
+                </option>
+            @endforeach
+        </select>
+        @error('role')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+        <small class="text-muted">Pick the role that best matches your account type.</small>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center">
         <a href="{{ route('login') }}" class="text-decoration-underline small">
             Already registered?

@@ -11,6 +11,7 @@ class ClientController extends Controller
     {
         $query = Client::query();
 
+        // Search
         if ($request->filled('search')) {
             $field = $request->get('field', 'all');
             $search = $request->search;
@@ -29,8 +30,19 @@ class ClientController extends Controller
             });
         }
 
-        $clients = $query->orderBy('id', 'desc')->get();
+        // Sorting (server-side for Clients table)
+        $allowedSorts = ['id','name','contact_person','contact_no','city','email','created_at'];
+        $sort = $request->get('sort', 'id');
+        $direction = $request->get('direction', 'desc');
 
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'id';
+        }
+        $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';
+
+        $clients = $query->orderBy($sort, $direction)->get();
+
+        // Selected client + relations
         $selectedClient = null;
         if ($request->client_id) {
             $selectedClient = Client::with([
@@ -38,7 +50,7 @@ class ClientController extends Controller
             ])->find($request->client_id);
         }
 
-        return view('clients.index', compact('clients', 'selectedClient'));
+        return view('clients.index', compact('clients', 'selectedClient', 'sort', 'direction'));
     }
 
     public function store(Request $request)

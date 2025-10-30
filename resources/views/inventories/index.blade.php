@@ -6,7 +6,31 @@
     .summary-card { cursor:pointer; transition: transform .05s ease-in; }
     .summary-card:hover { transform: translateY(-1px); }
     .summary-active { border-color:#0d6efd !important; box-shadow: 0 0 0 .1rem rgba(13,110,253,.15); }
+    .table thead a { font-weight:600; }
 </style>
+
+@php
+    // Helpers for sortable headers (like DataTables icons)
+    function nextDirInv($col) {
+        $currentSort = request('sort','id');
+        $currentDir  = request('direction','desc');
+        if ($currentSort === $col) return $currentDir === 'asc' ? 'desc' : 'asc';
+        return 'asc';
+    }
+    function sortIconInv($col) {
+        $currentSort = request('sort','id');
+        $currentDir  = request('direction','desc');
+        if ($currentSort !== $col) return 'fas fa-sort text-muted';
+        return $currentDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+    }
+    function sortUrlInv($col) {
+        $params = request()->all();
+        $params['sort'] = $col;
+        $params['direction'] = nextDirInv($col);
+        return request()->fullUrlWithQuery($params);
+    }
+@endphp
+
 <div class="container-fluid">
     <?php $page_title = "Inventories"; $sub_title = "Setup Boxes"; ?>
 
@@ -144,8 +168,13 @@
                             <option value="box_fw" {{ request('field')=='box_fw' ? 'selected' : '' }}>Firmware</option>
                             <option value="client_name" {{ request('field')=='client_name' ? 'selected' : '' }}>Client Name</option>
                         </select>
+
+                        {{-- Preserve current sort in the search form --}}
+                        <input type="hidden" name="sort" value="{{ request('sort','id') }}">
+                        <input type="hidden" name="direction" value="{{ request('direction','desc') }}">
+
                         <button type="submit" class="btn btn-sm btn-primary me-2">Search</button>
-                        <a href="{{ route('inventories.index', ['assign'=>request('assign','all')]) }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                        <a href="{{ route('inventories.index', array_merge(request()->except('page'), ['assign'=>request('assign','all')])) }}" class="btn btn-sm btn-outline-secondary">Reset</a>
                     </form>
                 </div>
                 <div class="card-body">
@@ -154,19 +183,51 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>No</th>
-                                    <th>Box ID</th>
-                                    <th>Box IP</th>
-                                    <th>Establishment</th>
-                                    <th>MAC</th>
-                                    <th>Client</th>
-                                    <th>Model</th>
-                                    <th>Serial No</th>
-                                    <th>Firmware</th>
+                                    <th>
+                                        <a href="{{ sortUrlInv('box_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Box ID <i class="{{ sortIconInv('box_id') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlInv('box_ip') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Box IP <i class="{{ sortIconInv('box_ip') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlInv('location') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Establishment <i class="{{ sortIconInv('location') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlInv('box_mac') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            MAC <i class="{{ sortIconInv('box_mac') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlInv('client_name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Client <i class="{{ sortIconInv('client_name') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlInv('box_model') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Model <i class="{{ sortIconInv('box_model') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlInv('box_serial_no') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Serial No <i class="{{ sortIconInv('box_serial_no') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlInv('box_fw') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Firmware <i class="{{ sortIconInv('box_fw') }}"></i>
+                                        </a>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($inventories as $key => $inventory)
-                                    <tr onclick="window.location='?inventory_id={{ $inventory->id }}'" style="cursor:pointer;">
+                                    <tr onclick="window.location='?{{ http_build_query(array_merge(request()->except('inventory_id'), ['inventory_id' => $inventory->id])) }}'" style="cursor:pointer;">
                                         <td>{{ ($inventories->firstItem() ?? 1) + $key }}</td>
                                         <td><span class="badge bg-secondary">{{ $inventory->box_id }}</span></td>
                                         <td>{{ $inventory->box_ip }}</td>
@@ -178,6 +239,11 @@
                                         <td>{{ $inventory->box_fw }}</td>
                                     </tr>
                                 @endforeach
+                                @if($inventories->isEmpty())
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted">No inventories found.</td>
+                                    </tr>
+                                @endif
                             </tbody>
                         </table>
                     </div>
@@ -294,6 +360,7 @@
                             <label class="form-label">Box IP (optional ICMP fallback)</label>
                             <input type="text" name="box_ip" class="form-control" placeholder="192.168.1.50"
                                    value="{{ old('box_ip', $selectedInventory->box_ip ?? '') }}" readonly>
+                            @error('box_ip') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
 
                         <div class="mb-3">
@@ -439,8 +506,7 @@ document.getElementById('btnReboot')?.addEventListener('click', async () => {
         pingBtn.disabled = false; rebootBtn.disabled = false;
     }
 });
-</script>
-<script>
+
 document.getElementById('btnScreenshot')?.addEventListener('click', async () => {
     const pingBtn   = document.getElementById('btnPing');
     const rebootBtn = document.getElementById('btnReboot');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Inventory;
+use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use PDF;
@@ -11,16 +12,22 @@ class InstalledReportController extends Controller
 {
     /**
      * Show all installed boxes (status = 1) with selection checkboxes.
+     * Adds optional filtering by client_id (GET param).
      */
-    public function index()
+    public function index(Request $request)
     {
-        // You can adjust the "installed" definition here
+        $clientId = $request->query('client_id');
+
         $inventories = Inventory::with(['client', 'packages'])
             ->where('status', 1)
+            ->when($clientId, fn($q) => $q->where('client_id', $clientId))
             ->orderByDesc('id')
-            ->get(); // Load all, since Select All means all records anyway
+            ->get(); // Load all (keeps Select All behavior for the current view)
 
-        return view('reports.installed.index', compact('inventories'));
+        // For dropdown
+        $clients = Client::orderBy('name')->get();
+
+        return view('reports.installed.index', compact('inventories', 'clients'));
     }
 
     /**
@@ -31,7 +38,7 @@ class InstalledReportController extends Controller
         [$inventories, $title] = $this->collectSelected($request);
         $pdf = PDF::loadView('reports.installed.pdf', compact('inventories', 'title'))
                  ->setPaper('a4', 'landscape');
-        return $pdf->stream('installed_boxes_selected.pdf');
+        return $pdf->stream('installed_boxes.pdf');
     }
 
     /**
@@ -42,7 +49,7 @@ class InstalledReportController extends Controller
         [$inventories, $title] = $this->collectSelected($request);
         $pdf = PDF::loadView('reports.installed.pdf', compact('inventories', 'title'))
                  ->setPaper('a4', 'landscape');
-        return $pdf->download('installed_boxes_selected.pdf');
+        return $pdf->download('installed_boxes.pdf');
     }
 
     /**

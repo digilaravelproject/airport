@@ -4,8 +4,31 @@
 <div class="container-fluid">
     <?php
         $page_title = "Packages";
-        $sub_title = "Channel Management";
+        $sub_title  = "Channel Management";
     ?>
+
+    @php
+        // Helpers for sortable headers (same pattern you used on other pages)
+        function nextDirPkg($col) {
+            $currentSort = request('sort', 'id');
+            $currentDir  = request('direction', 'desc');
+            if ($currentSort === $col) return $currentDir === 'asc' ? 'desc' : 'asc';
+            return 'asc';
+        }
+        function sortIconPkg($col) {
+            $currentSort = request('sort', 'id');
+            $currentDir  = request('direction', 'desc');
+            if ($currentSort !== $col) return 'fas fa-sort text-muted';
+            return $currentDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+        }
+        function sortUrlPkg($col) {
+            $params = request()->all();
+            $params['sort'] = $col;
+            $params['direction'] = nextDirPkg($col);
+            return request()->fullUrlWithQuery($params);
+        }
+    @endphp
+
     <!-- Page Title -->
     <div class="row">
         <div class="col-sm-12">
@@ -22,20 +45,20 @@
     </div>
 
     @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show mt-3 mb-0">
-                            <i class="fas fa-check-circle me-1"></i>
-                            {{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
+        <div class="alert alert-success alert-dismissible fade show mt-3 mb-0">
+            <i class="fas fa-check-circle me-1"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
-                    @if(session('error'))
-                        <div class="alert alert-danger mt-3 mb-0 alert-dismissible fade show">
-                            <i class="fas fa-exclamation-circle me-1"></i>
-                            {{ session('error') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
+    @if(session('error'))
+        <div class="alert alert-danger mt-3 mb-0 alert-dismissible fade show">
+            <i class="fas fa-exclamation-circle me-1"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
     <!-- Package List -->
     <div class="row">
@@ -53,10 +76,26 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>No</th>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Channels</th>
-                                    <th>Status</th>
+                                    <th>
+                                        <a href="{{ sortUrlPkg('id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            ID <i class="{{ sortIconPkg('id') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlPkg('name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Name <i class="{{ sortIconPkg('name') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlPkg('channels') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Channels <i class="{{ sortIconPkg('channels') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlPkg('active') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Status <i class="{{ sortIconPkg('active') }}"></i>
+                                        </a>
+                                    </th>
                                     <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
@@ -103,7 +142,7 @@
 
                     <div class="row mt-3">
                         <div class="col">
-                            {{ $packages->links('pagination::bootstrap-5') }}
+                            {{ $packages->appends(request()->except('page'))->links('pagination::bootstrap-5') }}
                         </div>
                     </div>
                 </div>
@@ -111,7 +150,7 @@
         </div>
     </div>
 
-    <!-- Package Modal -->
+    <!-- Package Modal (unchanged except JS below uses openForm) -->
     <div class="modal fade" id="packageModal" tabindex="-1" aria-labelledby="packageModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -146,7 +185,6 @@
                             <label class="form-label mb-0">Channels</label>
 
                             <div class="d-flex gap-3 align-items-center flex-wrap">
-                                <!-- Filter: Type -->
                                 <div class="d-flex align-items-center gap-2">
                                     <label class="mb-0 small text-muted">Type:</label>
                                     <select id="channel_filter_type" class="form-select form-select-sm" style="min-width: 120px;" disabled>
@@ -156,7 +194,6 @@
                                     </select>
                                 </div>
 
-                                <!-- Filter: Genre -->
                                 <div class="d-flex align-items-center gap-2">
                                     <label class="mb-0 small text-muted">Genre:</label>
                                     <select id="channel_filter_genre" class="form-select form-select-sm" style="min-width: 140px;" disabled>
@@ -167,7 +204,6 @@
                                     </select>
                                 </div>
 
-                                <!-- Filter: Language -->
                                 <div class="d-flex align-items-center gap-2">
                                     <label class="mb-0 small text-muted">Language:</label>
                                     <select id="channel_filter_language" class="form-select form-select-sm" style="min-width: 140px;" disabled>
@@ -178,7 +214,6 @@
                                     </select>
                                 </div>
 
-                                <!-- Select All -->
                                 <div class="form-check ms-2">
                                     <input class="form-check-input" type="checkbox" id="select_all_channels" disabled>
                                     <label class="form-check-label" for="select_all_channels">Select all (visible)</label>
@@ -200,13 +235,11 @@
                                         name="channel_id[]"
                                         value="{{ $ch->id }}"
                                         id="channel_{{ $ch->id }}"
-                                        data-name="{{ $ch->channel_name }}"  {{-- used for selected list --}}
+                                        data-name="{{ $ch->channel_name }}"
                                         disabled>
                                     <label class="form-check-label" for="channel_{{ $ch->id }}">
                                         {{ $ch->channel_name }}
-                                        <span class="badge bg-light text-dark border ms-2">
-                                            {{ ucfirst($type) }}
-                                        </span>
+                                        <span class="badge bg-light text-dark border ms-2">{{ ucfirst($type) }}</span>
                                         @if($ch->channel_genre)
                                             <span class="badge bg-light text-dark border ms-1">{{ $ch->channel_genre }}</span>
                                         @endif
@@ -222,7 +255,6 @@
                             <span><span id="visibleCount">0</span> visible • <span id="selectedCount">0</span> selected</span>
                         </div>
 
-                        {{-- NEW: read-only selected channel names (badges) --}}
                         <div id="selectedNamesWrap" class="mt-2" style="min-height: 1rem;">
                             <div id="selectedNames" class="d-flex flex-wrap gap-1"></div>
                         </div>
@@ -261,28 +293,16 @@
     const selectedCountEl = document.getElementById('selectedCount');
     const visibleCountEl = document.getElementById('visibleCount');
     const selectedNames = document.getElementById('selectedNames');
-
-    // filters
     const filterType = document.getElementById('channel_filter_type');
     const filterGenre = document.getElementById('channel_filter_genre');
     const filterLanguage = document.getElementById('channel_filter_language');
 
-    function allChannelRows() {
-        return Array.from(channelsWrapper.querySelectorAll('.channel-row'));
-    }
-
-    function visibleChannelBoxes() {
-        return allChannelRows().filter(r => !r.classList.contains('d-none'))
-            .map(r => r.querySelector('.channel-checkbox'));
-    }
+    function allChannelRows() { return Array.from(channelsWrapper.querySelectorAll('.channel-row')); }
+    function visibleChannelBoxes() { return allChannelRows().filter(r => !r.classList.contains('d-none')).map(r => r.querySelector('.channel-checkbox')); }
 
     function renderSelectedNames() {
-        // Clear
         selectedNames.innerHTML = '';
-        // Collect names of ALL checked (not just visible) so user sees full selection
         const checked = channelsWrapper.querySelectorAll('.channel-checkbox:checked');
-        if (!checked.length) return;
-
         checked.forEach(cb => {
             const name = cb.dataset.name || '';
             const badge = document.createElement('span');
@@ -335,7 +355,6 @@
         allChannelRows().forEach(r => r.querySelector('.channel-checkbox').disabled = disabled);
     }
 
-    // main form logic (add/edit/view)
     window.openForm = function(mode, data = null) {
         form.reset();
         methodDiv.innerHTML = '';
@@ -389,7 +408,6 @@
         }
     };
 
-    // filter change events
     filterType.addEventListener('change', applyFilter);
     filterGenre.addEventListener('change', applyFilter);
     filterLanguage.addEventListener('change', applyFilter);

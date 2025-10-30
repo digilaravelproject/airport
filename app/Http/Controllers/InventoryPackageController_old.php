@@ -5,46 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Inventory;
 use App\Models\Package;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Process;
 
 class InventoryPackageController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        // Base query + eager loads for the view
-        $query = Inventory::query()
-            ->with(['client', 'packages'])
-            ->withCount('packages'); // for sorting by allocated packages count
-
-        // Sorting map (column => db column)
-        $map = [
-            'id'            => 'inventories.id',
-            'box_id'        => 'inventories.box_id',
-            'box_model'     => 'inventories.box_model',
-            'box_serial_no' => 'inventories.box_serial_no',
-            'box_mac'       => 'inventories.box_mac',
-            'client_id'     => 'clients.id',
-            'client_name'   => 'clients.name',
-            'packages'      => 'packages_count',   // number of allocated packages
-            'created_at'    => 'inventories.created_at',
-        ];
-
-        $sort = $request->get('sort', 'id');
-        $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
-        $sortColumn = $map[$sort] ?? $map['id'];
-
-        // Join clients only if needed for sorting by client columns
-        if (in_array($sort, ['client_id', 'client_name'], true)) {
-            $query->leftJoin('clients', 'clients.id', '=', 'inventories.client_id')
-                  ->select('inventories.*'); // keep Inventory model hydration correct
-        }
-
-        $inventories = $query->orderBy($sortColumn, $direction)
-            ->paginate(10)
-            ->withQueryString();
-
+        $inventories = Inventory::with(['client', 'packages'])->paginate(10);
         $packages = Package::all();
 
-        return view('inventory_package_allocation.index', compact('inventories', 'packages', 'sort', 'direction'));
+        return view('inventory_package_allocation.index', compact('inventories', 'packages'));
     }
 
     public function assign(Request $request, Inventory $inventory)
@@ -58,6 +29,7 @@ class InventoryPackageController extends Controller
         $packages = $inventory->packages()->with('channels')->get();
 
         $data = [];
+
         foreach ($packages as $package) {
             $channels = [];
             $counter = 1;
@@ -80,16 +52,24 @@ class InventoryPackageController extends Controller
 
         $filename = $inventory->box_id . ".json";
         $path = base_path($filename);
+
         if (!file_exists(dirname($path))) {
             mkdir(dirname($path), 0777, true);
         }
         if (file_exists($path)) {
             unlink($path);
         }
-        file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        file_put_contents(
+            $path,
+            json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
 
         $ip = $inventory->box_ip ?? null;
+        $rebootMsg = ' (reboot skipped: no device IP)';
+
         if ($ip) {
+            // We’ll collect messages and send them back as JSON for frontend
             $messages = $this->rebootViaAdb($ip);
             return response()->json(['success' => true, 'messages' => $messages]);
         }
@@ -101,12 +81,14 @@ class InventoryPackageController extends Controller
     {
         $port = 5555;
         $messages = [];
+
         $adbPath = '/usr/bin/adb';
 
         if (!file_exists($adbPath)) {
             return ["❌ ADB binary not found at: $adbPath"];
         }
 
+        // 👇 Add this line
         putenv('ADB_VENDOR_KEYS=/var/www/.android');
 
         $adb    = escapeshellarg($adbPath);
@@ -123,10 +105,12 @@ class InventoryPackageController extends Controller
         $messages[] = "✅ Device is online";
         sleep(1);
 
-        // 2) ADB connect
+        // 2) (Optional) disconnect then connect (avoids sticky state)
         $messages[] = "🔗 Connecting via ADB...";
-        exec("$adb disconnect $serial", $discOut, $discStatus);
+        exec("$adb disconnect $serial", $discOut, $discStatus); // ignore status
         exec("$adb connect $serial", $connOut, $connStatus);
+
+        // Some ADBs return 0 even if "already connected"; treat non-zero as failure
         if ($connStatus !== 0) {
             $messages[] = "❌ Failed to connect via ADB";
             if (!empty($connOut)) { $messages = array_merge($messages, $connOut); }
@@ -146,7 +130,7 @@ class InventoryPackageController extends Controller
             return $messages;
         }
 
-        // 4) Wait for device
+        // 4) Wait for this specific device to return
         $messages[] = "⏳ Waiting for device to come back online...";
         exec("$adb -s $serial wait-for-device", $waitOut, $waitStatus);
         if ($waitStatus === 0) {

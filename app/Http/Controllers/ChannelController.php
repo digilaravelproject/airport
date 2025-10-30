@@ -12,6 +12,7 @@ class ChannelController extends Controller
     {
         $query = Channel::query();
 
+        // Search
         if ($request->filled('search')) {
             $search = trim($request->search);
             $field  = $request->get('field', 'all');
@@ -37,14 +38,31 @@ class ChannelController extends Controller
             });
         }
 
-        // Paginate 10 per page and keep current query string (search, field, channel_id, etc.)
-        $channels = $query->orderBy('id', 'desc')
+        // Sorting (server-side, arrow UI in blade)
+        $map = [
+            'id'                 => 'id',
+            'channel_name'       => 'channel_name',
+            'broadcast'          => 'broadcast',
+            'channel_genre'      => 'channel_genre',
+            'channel_resolution' => 'channel_resolution',
+            'channel_type'       => 'channel_type',
+            'language'           => 'language',
+            'active'             => 'active',
+            'created_at'         => 'created_at',
+        ];
+
+        $sort = $request->get('sort', 'id');
+        $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $sortColumn = $map[$sort] ?? 'id';
+
+        // Paginate 10 per page and keep current query string (search, field, channel_id, sort, direction, etc.)
+        $channels = $query->orderBy($sortColumn, $direction)
                           ->paginate(10)
                           ->withQueryString();
 
         $selectedChannel = $request->channel_id ? Channel::find($request->channel_id) : null;
 
-        return view('channels.index', compact('channels', 'selectedChannel'));
+        return view('channels.index', compact('channels', 'selectedChannel', 'sort', 'direction'));
     }
 
     private function matchActive(string $term): int
@@ -52,7 +70,7 @@ class ChannelController extends Controller
         $t = strtolower(trim($term));
         if (in_array($t, ['1','yes','y','true','on','active'], true)) return 1;
         if (in_array($t, ['0','no','n','false','off','inactive'], true)) return 0;
-        return -1;
+        return -1; // will match nothing, effectively
     }
 
     public function store(Request $request)
@@ -118,18 +136,18 @@ class ChannelController extends Controller
             $active     = $this->toBoolInt($row['active'] ?? null);
 
             $payload[] = [
-                'channel_name'           => $name,
-                'broadcast'              => trim((string)($row['broadcast'] ?? '')),
-                'channel_source_in'      => trim((string)($row['channel_source_in'] ?? '')),
-                'channel_source_details' => trim((string)($row['channel_source_details'] ?? '')),
-                'channel_stream_type_out'=> trim((string)($row['channel_stream_type_out'] ?? '')),
-                'channel_url'            => trim((string)($row['channel_url'] ?? '')),
-                'channel_genre'          => trim((string)($row['channel_genre'] ?? '')),
-                'channel_resolution'     => trim((string)($row['channel_resolution'] ?? '')),
-                'channel_type'           => trim((string)($row['channel_type'] ?? '')),
-                'language'               => trim((string)($row['language'] ?? '')),
-                'encryption'             => $encryption,
-                'active'                 => $active,
+                'channel_name'            => $name,
+                'broadcast'               => trim((string)($row['broadcast'] ?? '')),
+                'channel_source_in'       => trim((string)($row['channel_source_in'] ?? '')),
+                'channel_source_details'  => trim((string)($row['channel_source_details'] ?? '')),
+                'channel_stream_type_out' => trim((string)($row['channel_stream_type_out'] ?? '')),
+                'channel_url'             => trim((string)($row['channel_url'] ?? '')),
+                'channel_genre'           => trim((string)($row['channel_genre'] ?? '')),
+                'channel_resolution'      => trim((string)($row['channel_resolution'] ?? '')),
+                'channel_type'            => trim((string)($row['channel_type'] ?? '')),
+                'language'                => trim((string)($row['language'] ?? '')),
+                'encryption'              => $encryption,
+                'active'                  => $active,
             ];
         }
 
