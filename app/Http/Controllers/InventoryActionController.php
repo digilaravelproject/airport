@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Process;
 
 class InventoryActionController extends Controller
 {
@@ -91,59 +92,101 @@ class InventoryActionController extends Controller
         ], 502);
     }
 
-    /** POST {mgmt_url}/system/reboot with a few fallback paths */
+    /** POST /inventories/{inventory}/reboot — ADB-based reboot */
     public function reboot(Request $request, Inventory $inventory)
     {
-        $base = $this->base($inventory->mgmt_url);
-        if (!$base) {
+        $ip = trim((string) $inventory->box_ip);
+
+        if ($ip === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'No management URL configured for reboot.'
+                'message' => 'Reboot skipped: no device IP configured.',
             ], 422);
         }
 
-        $endpoint = rtrim($base, '/') . '/system/reboot';
-
         try {
-            $http = Http::timeout(10)->withoutVerifying();
-            if (!empty($inventory->mgmt_token)) {
-                $http = $http->withToken($inventory->mgmt_token);
-            }
+            $messages = $this->rebootViaAdb($ip);
 
-            $response = $http->acceptJson()->post($endpoint);
+            // If the last line looks successful, mark success=true, else false
+            $ok = collect($messages)->contains(fn ($m) =>
+                str_starts_with($m, '✅ Reboot command sent successfully') ||
+                str_starts_with($m, '✅ Device rebooted and is back online')
+            );
 
-            if ($response->successful() || in_array($response->status(), [200, 201, 202, 204])) {
-                // Success: reboot command accepted
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Reboot command sent successfully.',
-                    'code'    => $response->status(),
-                    'raw'     => $response->json() ?? $response->body(),
-                ]);
-            }
-
-            // Device responded but not success
             return response()->json([
-                'success' => false,
-                'message' => 'Device responded with an unexpected status.',
-                'code'    => $response->status(),
-                'raw'     => $response->body(),
-            ], 502);
+                'success'  => $ok,
+                'message'  => $ok ? 'Reboot command processed via ADB.' : 'Not rebooted.',
+                'messages' => $messages,
+            ], $ok ? 200 : 502);
 
-        } catch (\Illuminate\Http\Client\RequestException $e) {
-            // Laravel HTTP client exceptions
-            return response()->json([
-                'success' => false,
-                'message' => 'HTTP request failed: ' . $e->getMessage(),
-                'trace'   => $e->getTraceAsString(),
-            ], 500);
         } catch (\Throwable $e) {
-            // Catch-all for any other error
             return response()->json([
                 'success' => false,
-                'message' => 'Reboot failed: ' . $e->getMessage(),
+                'message' => 'ADB reboot failed: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function rebootViaAdb(string $deviceIP): array
+    {
+        $port = 5555;
+        $messages = [];
+        $adbPath = '/usr/bin/adb';
+
+        if (!file_exists($adbPath)) {
+            return ["❌ ADB binary not found at: $adbPath"];
+        }
+
+        putenv('ADB_VENDOR_KEYS=/var/www/.android');
+
+        $adb    = escapeshellarg($adbPath);
+        $serial = escapeshellarg("{$deviceIP}:{$port}");
+
+        // 1) Ping
+        $messages[] = "🔍 Pinging device at $deviceIP...";
+        $pingCmd = (stripos(PHP_OS, 'WIN') === 0) ? "ping -n 1 $deviceIP" : "ping -c 1 $deviceIP";
+        exec($pingCmd, $pingOut, $pingStatus);
+        if ($pingStatus !== 0) {
+            $messages[] = "❌ Device not reachable (ping failed)";
+            return $messages;
+        }
+        $messages[] = "✅ Device is online";
+        sleep(1);
+
+        // 2) ADB connect
+        $messages[] = "🔗 Connecting via ADB...";
+        exec("$adb disconnect $serial", $discOut, $discStatus);
+        exec("$adb connect $serial", $connOut, $connStatus);
+        if ($connStatus !== 0) {
+            $messages[] = "❌ Failed to connect via ADB";
+            if (!empty($connOut)) { $messages = array_merge($messages, $connOut); }
+            return $messages;
+        }
+        $messages[] = "✅ ADB connected";
+        sleep(1);
+
+        // 3) Reboot
+        $messages[] = "🔁 Sending reboot command...";
+        exec("$adb -s $serial reboot", $rebootOut, $rebootStatus);
+        if ($rebootStatus === 0) {
+            $messages[] = "✅ Reboot command sent successfully";
+        } else {
+            $messages[] = "❌ Failed to send reboot command";
+            if (!empty($rebootOut)) { $messages = array_merge($messages, $rebootOut); }
+            return $messages;
+        }
+
+        // 4) Wait for device
+        $messages[] = "⏳ Waiting for device to come back online...";
+        exec("$adb -s $serial wait-for-device", $waitOut, $waitStatus);
+        if ($waitStatus === 0) {
+            $messages[] = "✅ Device rebooted and is back online";
+        } else {
+            $messages[] = "⚠️ Device did not come back online automatically";
+            if (!empty($waitOut)) { $messages = array_merge($messages, $waitOut); }
+        }
+
+        return $messages;
     }
 
     public function screenshot(Inventory $inventory)

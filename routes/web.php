@@ -20,18 +20,13 @@ use App\Http\Controllers\ChannelReportController;
 use App\Http\Controllers\PackageReportController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Response;
 
 Route::get('/{filename}.json', function ($filename) {
     $path = base_path("{$filename}.json"); // file in project root
-
-    if (!File::exists($path)) {
-        abort(404, "File not found: {$filename}.json");
-    }
-
+    if (!File::exists($path)) abort(404, "File not found: {$filename}.json");
     $content = File::get($path);
-    return Response::make($content, 200, [
-        'Content-Type' => 'application/json',
-    ]);
+    return Response::make($content, 200, ['Content-Type' => 'application/json']);
 });
 
 // Route::get('/', fn () => view('welcome'));
@@ -51,143 +46,127 @@ Route::middleware('auth')->group(function () {
 
     /* ========= Admin-only: Role/Permission management ========= */
     Route::middleware('role:Admin')->group(function () {
+        // Permissions pages (gate by "manage permission")
         Route::get('/permissions',            [PermissionController::class, 'index'])
-            ->middleware('permission:permissions.index')
+            ->middleware('permission:manage permission')
             ->name('permissions.index');
 
         Route::post('/permissions/update',    [PermissionController::class, 'update'])
-            ->middleware('permission:permissions.update')
+            ->middleware('permission:manage permission')
             ->name('permissions.update');
 
         Route::post('/permissions/store',     [PermissionController::class, 'storePermission'])
-            ->middleware('permission:permissions.store')
+            ->middleware('permission:manage permission')
             ->name('permissions.store');
 
+        // Roles page: keep Admin role requirement; no extra permission needed (or you can add manage users if you prefer)
         Route::resource('roles', RoleController::class)
-            ->only(['index','create','store','destroy'])
-            ->middleware('permission:roles.index|roles.create|roles.store|roles.destroy');
+            ->only(['index','create','store','destroy']);
 
-          Route::resource('users', UserController::class);
+        // Users (gate by "manage users")
+        Route::resource('users', UserController::class)
+            ->middleware('permission:manage users');
     });
 
-    /* ========= App modules: permission-gated (no role:Admin here) ========= */
+    /* ========= App modules ========= */
 
-    // Clients
+    // Clients -> manage subscriber
     Route::resource('clients', ClientController::class)
-        ->middleware('permission:clients.index|clients.show|clients.create|clients.store|clients.edit|clients.update|clients.destroy');
+        ->middleware('permission:manage subscriber');
 
-    // Locations
+    // Locations -> manage utilities
     Route::resource('locations', LocationController::class)
-        ->middleware('permission:locations.index|locations.show|locations.create|locations.store|locations.edit|locations.update|locations.destroy');
+        ->middleware('permission:manage utilities');
 
-    // Channels
+    // Channels -> manage channels
     Route::resource('channels', ChannelController::class)
-        ->middleware('permission:channels.index|channels.show|channels.create|channels.store|channels.edit|channels.update|channels.destroy');
-    // routes/web.php
-    Route::post('/channels/import', [\App\Http\Controllers\ChannelController::class, 'import'])
-    ->name('channels.import');
+        ->middleware('permission:manage channels');
 
+    // Import channels -> manage channels
+    Route::post('/channels/import', [ChannelController::class, 'import'])
+        ->middleware('permission:manage channels')
+        ->name('channels.import');
 
-    // Inventories
+    // Inventories -> manage inventory
     Route::resource('inventories', InventoryController::class)
-        ->middleware('permission:inventories.index|inventories.show|inventories.create|inventories.store|inventories.edit|inventories.update|inventories.destroy');
+        ->middleware('permission:manage inventory');
 
-    Route::post('/inventories/import', [InventoryController::class, 'import'])->name('inventories.import');
+    // Inventory import -> manage inventory
+    Route::post('/inventories/import', [InventoryController::class, 'import'])
+        ->middleware('permission:manage inventory')
+        ->name('inventories.import');
 
-    // Device actions
+    // Device actions -> manage inventory
     Route::post('/inventories/{inventory}/ping',   [InventoryActionController::class, 'ping'])
-        ->middleware('permission:inventories.ping')
+        ->middleware('permission:manage inventory')
         ->name('inventories.ping');
 
     Route::post('/inventories/{inventory}/reboot', [InventoryActionController::class, 'reboot'])
-        ->middleware('permission:inventories.reboot')
+        ->middleware('permission:manage inventory')
         ->name('inventories.reboot');
 
     Route::post('/inventories/{inventory}/screenshot', [InventoryActionController::class, 'screenshot'])
-    ->name('inventories.screenshot');
+        ->middleware('permission:manage inventory')
+        ->name('inventories.screenshot');
 
-    // Packages
+    // Packages -> manage package
     Route::resource('packages', PackageController::class)
-        ->middleware('permission:packages.index|packages.show|packages.create|packages.store|packages.edit|packages.update|packages.destroy');
+        ->middleware('permission:manage package');
 
-    // Inventory ↔ Package allocation
+    // Inventory ↔ Package allocation -> manage allocations
     Route::get('/inventory-packages', [InventoryPackageController::class, 'index'])
-        ->middleware('permission:inventory-packages.index')
+        ->middleware('permission:manage allocations')
         ->name('inventory-packages.index');
 
     Route::post('/inventory-packages/{inventory}/assign', [InventoryPackageController::class, 'assign'])
-        ->middleware('permission:inventory-packages.assign')
+        ->middleware('permission:manage allocations')
         ->name('inventory-packages.assign');
 
-    // Utility
+    // Utility -> manage utilities
     Route::get('/utility/online', [UtilityController::class, 'index'])
-        ->middleware('permission:utility.online')
+        ->middleware('permission:manage utilities')
         ->name('utility.online');
 
-    // Reports
-    Route::get('/reports',           [ReportController::class, 'index'])  ->middleware('permission:reports.index')->name('reports.index');
-    Route::get('/reports/preview',   [ReportController::class, 'preview'])->middleware('permission:reports.preview')->name('reports.preview');
-    Route::get('/reports/download',  [ReportController::class, 'download'])->middleware('permission:reports.download')->name('reports.download');
+    // Reports (all) -> manage reports
+    Route::get('/reports',           [ReportController::class, 'index'])
+        ->middleware('permission:manage reports')
+        ->name('reports.index');
 
-    Route::prefix('reports/live')->name('live-reports.')->group(function () {
-        Route::get('/', [LiveReportController::class, 'index'])
-            ->middleware('permission:live-reports.index')
-            ->name('index');
+    Route::get('/reports/preview',   [ReportController::class, 'preview'])
+        ->middleware('permission:manage reports')
+        ->name('reports.preview');
 
-        Route::get('/preview', [LiveReportController::class, 'preview'])
-            ->middleware('permission:live-reports.preview')
-            ->name('preview');
+    Route::get('/reports/download',  [ReportController::class, 'download'])
+        ->middleware('permission:manage reports')
+        ->name('reports.download');
 
-        Route::get('/download', [LiveReportController::class, 'download'])
-            ->middleware('permission:live-reports.download')
-            ->name('download');
+    Route::prefix('reports/live')->name('live-reports.')->middleware('permission:manage reports')->group(function () {
+        Route::get('/',        [LiveReportController::class, 'index'])->name('index');
+        Route::get('/preview', [LiveReportController::class, 'preview'])->name('preview');
+        Route::get('/download',[LiveReportController::class, 'download'])->name('download');
     });
 
-    Route::prefix('reports/installed')->name('installed-reports.')->group(function () {
-        Route::get('/', [InstalledReportController::class, 'index'])
-            ->middleware('permission:installed-reports.index')
-            ->name('index');
-        Route::post('/preview', [InstalledReportController::class, 'preview'])
-            ->middleware('permission:installed-reports.preview')
-            ->name('preview');
-        Route::post('/download', [InstalledReportController::class, 'download'])
-            ->middleware('permission:installed-reports.download')
-            ->name('download');
+    Route::prefix('reports/installed')->name('installed-reports.')->middleware('permission:manage reports')->group(function () {
+        Route::get('/',        [InstalledReportController::class, 'index'])->name('index');
+        Route::post('/preview',[InstalledReportController::class, 'preview'])->name('preview');
+        Route::post('/download',[InstalledReportController::class, 'download'])->name('download');
     });
 
-    // Channels
-    Route::prefix('reports/channels')->name('channel-reports.')->group(function () {
-        Route::get('/', [ChannelReportController::class, 'index'])
-            ->middleware('permission:channel-reports.index')
-            ->name('index');
-
-        Route::post('/preview', [ChannelReportController::class, 'preview'])
-            ->middleware('permission:channel-reports.preview')
-            ->name('preview');
-
-        Route::post('/download', [ChannelReportController::class, 'download'])
-            ->middleware('permission:channel-reports.download')
-            ->name('download');
+    Route::prefix('reports/channels')->name('channel-reports.')->middleware('permission:manage reports')->group(function () {
+        Route::get('/',        [ChannelReportController::class, 'index'])->name('index');
+        Route::post('/preview',[ChannelReportController::class, 'preview'])->name('preview');
+        Route::post('/download',[ChannelReportController::class, 'download'])->name('download');
     });
 
-    // Packages
-    Route::prefix('reports/packages')->name('package-reports.')->group(function () {
-        Route::get('/', [PackageReportController::class, 'index'])
-            ->middleware('permission:package-reports.index')
-            ->name('index');
-
-        Route::post('/preview', [PackageReportController::class, 'preview'])
-            ->middleware('permission:package-reports.preview')
-            ->name('preview');
-
-        Route::post('/download', [PackageReportController::class, 'download'])
-            ->middleware('permission:package-reports.download')
-            ->name('download');
+    Route::prefix('reports/packages')->name('package-reports.')->middleware('permission:manage reports')->group(function () {
+        Route::get('/',        [PackageReportController::class, 'index'])->name('index');
+        Route::post('/preview',[PackageReportController::class, 'preview'])->name('preview');
+        Route::post('/download',[PackageReportController::class, 'download'])->name('download');
     });
 
-    // Help
+    // Help -> "helps" (as you created)
     Route::get('/help', [HelpController::class, 'index'])
-        ->middleware('permission:help.index')
+        ->middleware('permission:helps')
         ->name('help.index');
 });
 
