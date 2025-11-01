@@ -7,7 +7,6 @@ use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\Pool;
-use Illuminate\Support\Str;
 
 class UtilityController extends Controller
 {
@@ -18,6 +17,8 @@ class UtilityController extends Controller
         $page      = max(1, (int) $request->get('page', 1));
 
         // --- Sorting map (DB columns) ---
+        // Note: "Status" (online/offline) is computed at runtime per current page,
+        // so we do NOT provide DB-level sorting for it to avoid confusing results.
         $map = [
             'box_id'        => 'inventories.box_id',
             'box_model'     => 'inventories.box_model',
@@ -53,7 +54,7 @@ class UtilityController extends Controller
         // Apply sorting
         $baseQuery->orderBy($sortColumn, $direction);
 
-        // Paginate
+        // Paginate (drives which rows we ping)
         $inventories = $baseQuery->paginate($perPage, ['*'], 'page', $page)->appends($request->query());
 
         // Current page items
@@ -127,127 +128,15 @@ class UtilityController extends Controller
                 ?: Inventory::with('client')->find((int) $request->get('inventory_id'));
         }
 
-        // (Optional) pre-fill active channel if a single row is selected (we won't block/slow page render)
-        $selectedActiveChannel = null;
-        if ($selectedInventory) {
-            try {
-                $selectedActiveChannel = $this->discoverActiveChannel($selectedInventory);
-            } catch (\Throwable $e) {
-                // ignore – right panel will stay empty and user can click Play to fetch on-demand
-            }
-        }
-
         $clients = Client::all();
 
         return view('utility.index', [
-            'inventories'           => $inventories,
-            'selectedInventory'     => $selectedInventory,
-            'clients'               => $clients,
-            'search'                => $search,
-            'sort'                  => $sort,
-            'direction'             => $direction,
-            'selectedActiveChannel' => $selectedActiveChannel, // new
+            'inventories'       => $inventories,
+            'selectedInventory' => $selectedInventory,
+            'clients'           => $clients,
+            'search'            => $search,
+            'sort'              => $sort,
+            'direction'         => $direction,
         ]);
-    }
-
-    /**
-     * NEW: JSON endpoint to get the currently active channel URL for an inventory.
-     */
-    public function activeChannel(Request $request, Inventory $inventory)
-    {
-        try {
-            $url = $this->discoverActiveChannel($inventory);
-
-            if (!$url) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Active channel not found for this device.',
-                ], 404);
-            }
-
-            // (Optional) basic sanitation: allow only http(s), udp, rtp, rtsp
-            if (!preg_match('#^(https?|udp|rtp|rtsp)://#i', $url)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'The device returned an unsupported URL scheme.',
-                ], 422);
-            }
-
-            return response()->json([
-                'success' => true,
-                'url'     => $url,
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to discover active channel.',
-                'error'   => app()->isProduction() ? null : $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Try to discover the active channel URL from the device mgmt API.
-     * Adjust endpoints as per your device firmware:
-     *   - /system/active-channel
-     *   - /system/channel
-     *   - /current-channel
-     * Or fall back to $inventory->stream_url if you store it in DB.
-     */
-    protected function discoverActiveChannel(Inventory $inventory): ?string
-    {
-        // If you already store a channel URL on the inventory record:
-        if (!empty($inventory->stream_url)) {
-            return $inventory->stream_url;
-        }
-
-        if (empty($inventory->mgmt_url)) {
-            return null;
-        }
-
-        $base = rtrim($inventory->mgmt_url, '/');
-
-        // Common candidates to try
-        $paths = [
-            '/system/active-channel',
-            '/system/channel',
-            '/current-channel',
-            '/api/v1/channel/active',
-        ];
-
-        foreach ($paths as $p) {
-            try {
-                $req = Http::timeout(3)->withoutVerifying();
-                if (!empty($inventory->mgmt_token)) {
-                    $req = $req->withToken($inventory->mgmt_token);
-                }
-                $resp = $req->get($base . $p);
-
-                if ($resp->successful()) {
-                    // Accept either plain string or JSON {url: "..."} or {stream_url: "..."}
-                    $json = null;
-                    $body = trim((string) $resp->body());
-
-                    // JSON?
-                    if (Str::startsWith($body, '{') || Str::startsWith($body, '[')) {
-                        $json = $resp->json();
-                        if (is_array($json)) {
-                            if (!empty($json['url']))        return (string) $json['url'];
-                            if (!empty($json['stream_url'])) return (string) $json['stream_url'];
-                            if (!empty($json['channel']))    return (string) $json['channel'];
-                        }
-                    } else {
-                        // Plain text URL
-                        if (preg_match('#^(https?|udp|rtp|rtsp)://.+#i', $body)) {
-                            return $body;
-                        }
-                    }
-                }
-            } catch (\Throwable $e) {
-                // try next
-            }
-        }
-
-        return null;
     }
 }

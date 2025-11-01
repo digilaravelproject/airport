@@ -11,8 +11,8 @@ class PackageReportController extends Controller
 {
     public function index()
     {
-        // Load all packages (no filters); adjust ordering/columns as needed
-        $packages = Package::orderBy('name')->get();
+        // Add pagination (kept ordering and columns unchanged)
+        $packages = Package::orderBy('name')->paginate(15);
 
         return view('reports.packages.index', compact('packages'));
     }
@@ -20,23 +20,31 @@ class PackageReportController extends Controller
     public function preview(Request $request)
     {
         [$packages, $title] = $this->collectSelected($request);
+
         $pdf = PDF::loadView('reports.packages.pdf', compact('packages', 'title'))
                   ->setPaper('a4', 'portrait');
+
+        // Opened in a new tab by the view's JS; no loader runs on the original page
         return $pdf->stream('packages_selected.pdf');
     }
 
     public function download(Request $request)
     {
         [$packages, $title] = $this->collectSelected($request);
+
         $pdf = PDF::loadView('reports.packages.pdf', compact('packages', 'title'))
                   ->setPaper('a4', 'portrait');
+
+        // Opened in a new tab by the view's JS; no loader runs on the original page
         return $pdf->download('packages_selected.pdf');
     }
 
     private function collectSelected(Request $request): array
     {
         $ids = collect($request->input('selected_ids', []))
-            ->map(fn($v) => (int)$v)->filter()->unique();
+            ->map(fn($v) => (int) $v)
+            ->filter()
+            ->unique();
 
         if ($ids->isEmpty()) {
             throw ValidationException::withMessages([

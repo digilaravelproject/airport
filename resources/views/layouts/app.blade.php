@@ -128,10 +128,10 @@
                         </a>
                         <ul class="collapse list-unstyled ps-3 {{ request()->routeIs('live-reports.*') || request()->routeIs('channel-reports.*') || request()->routeIs('package-reports.*') || request()->routeIs('installed-reports.*') ? 'show' : '' }}" id="reportSubmenu">
                             <li>
-                                <a class="nav-link {{ request()->routeIs('live-reports.index') ? 'active' : '' }}" href="{{ route('live-reports.index') }}">Live Boxes</a>
+                                <a class="nav-link {{ request()->routeIs('installed-reports.index') ? 'active' : '' }}" href="{{ route('installed-reports.index') }}">Installed Boxes</a>
                             </li>
                             <li>
-                                <a class="nav-link {{ request()->routeIs('installed-reports.index') ? 'active' : '' }}" href="{{ route('installed-reports.index') }}">Installed Boxes</a>
+                                <a class="nav-link {{ request()->routeIs('live-reports.index') ? 'active' : '' }}" href="{{ route('live-reports.index') }}">Live Boxes</a>
                             </li>
                             <li>
                                 <a class="nav-link {{ request()->routeIs('channel-reports.index') ? 'active' : '' }}" href="{{ route('channel-reports.index') }}">Channels</a>

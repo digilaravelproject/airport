@@ -20,7 +20,6 @@
     <table>
         <thead>
             <tr>
-                <th>#</th>
                 <th>ID</th>
                 <th>Name</th>
             </tr>
@@ -28,7 +27,6 @@
         <tbody>
             @foreach($packages as $i => $pkg)
             <tr>
-                <td>{{ $i + 1 }}</td>
                 <td><span class="badge">{{ $pkg->id }}</span></td>
                 <td>{{ $pkg->name }}</td>
             </tr>

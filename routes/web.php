@@ -126,6 +126,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/utility/online', [UtilityController::class, 'index'])
         ->middleware('permission:manage utilities')
         ->name('utility.online');
+    // NEW: resolve active channel for one inventory
+    Route::get('/utility/active-channel/{inventory}', [UtilityController::class, 'activeChannel'])
+    ->name('utility.activeChannel');
+
 
     // Reports (all) -> manage reports
     Route::get('/reports',           [ReportController::class, 'index'])

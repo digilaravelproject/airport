@@ -36,7 +36,7 @@
                 <div class="mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="selectAll">
-                        <label class="form-check-label fw-semibold" for="selectAll">Select All Records</label>
+                        <label class="form-check-label fw-semibold" for="selectAll">Select All Records (this page)</label>
                     </div>
                 </div>
 
@@ -45,7 +45,6 @@
                         <thead class="table-light">
                             <tr>
                                 <th style="width:40px;"></th>
-                                <th>#</th>
                                 <th>ID</th>
                                 <th>Name</th>
                             </tr>
@@ -56,32 +55,36 @@
                                     <td>
                                         <input type="checkbox" class="row-check" name="selected_ids[]" value="{{ $pkg->id }}">
                                     </td>
-                                    <td>{{ $i + 1 }}</td>
                                     <td><span class="badge bg-secondary">{{ $pkg->id }}</span></td>
                                     <td>{{ $pkg->name }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">No packages found.</td>
+                                    <td colspan="3" class="text-center text-muted">No packages found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
 
+                {{-- Pagination (keeps your layout/design) --}}
+                <div class="mt-3">
+                    {{ $packages->links() }}
+                </div>
+
                 <div class="mt-3 d-flex gap-2">
-                    <button type="submit"
-                            class="btn btn-outline-secondary"
-                            formaction="{{ route('package-reports.preview') }}"
-                            formmethod="POST"
-                            formtarget="_blank">
+                    {{-- These buttons are intercepted by JS to submit to a new tab without triggering any loader on this page --}}
+                    <button type="button"
+                            class="btn btn-outline-secondary js-open-in-newtab"
+                            data-action="{{ route('package-reports.preview') }}"
+                            data-method="POST">
                         View Selected
                     </button>
 
-                    <button type="submit"
-                            class="btn btn-dark"
-                            formaction="{{ route('package-reports.download') }}"
-                            formmethod="POST">
+                    <button type="button"
+                            class="btn btn-dark js-open-in-newtab"
+                            data-action="{{ route('package-reports.download') }}"
+                            data-method="POST">
                         Download Selected
                     </button>
 
@@ -118,6 +121,53 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     refreshMasterState();
+
+    /**
+     * Submit to a NEW TAB without submitting the original form.
+     * This prevents any page-level submit handlers/loader from running on the current page.
+     * We create a temporary form with only the needed fields and POST it to target="_blank".
+     */
+    function submitToNewTab(actionUrl, method) {
+        const temp = document.createElement('form');
+        temp.style.display = 'none';
+        temp.method = method || 'POST';
+        temp.action = actionUrl;
+        temp.target = '_blank';
+
+        // CSRF token
+        const csrf = form.querySelector('input[name="_token"]');
+        if (csrf) {
+            const t = document.createElement('input');
+            t.type = 'hidden';
+            t.name = '_token';
+            t.value = csrf.value;
+            temp.appendChild(t);
+        }
+
+        // Selected IDs
+        form.querySelectorAll('input.row-check:checked').forEach(cb => {
+            const h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = 'selected_ids[]';
+            h.value = cb.value;
+            temp.appendChild(h);
+        });
+
+        document.body.appendChild(temp);
+        temp.submit();
+        setTimeout(() => temp.remove(), 1000);
+    }
+
+    // Intercept the two action buttons
+    document.querySelectorAll('.js-open-in-newtab').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const action = this.getAttribute('data-action');
+            const method = this.getAttribute('data-method') || 'POST';
+
+            // If nothing selected, let backend show the same validation error in the new tab.
+            submitToNewTab(action, method);
+        });
+    });
 });
 </script>
 @endsection
