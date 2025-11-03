@@ -176,6 +176,7 @@
                         <div class="mb-3">
                             <label class="form-label">Name <span class="text-danger">*</span></label>
                             <input type="text" name="name" class="form-control" value="{{ old('name', $selectedClient->name ?? '') }}" readonly>
+                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Type</label>
@@ -183,40 +184,49 @@
                                 <option value="Paid" {{ old('type', $selectedClient->type ?? '')=='Paid' ? 'selected' : '' }}>Paid</option>
                                 <option value="Free" {{ old('type', $selectedClient->type ?? '')=='Free' ? 'selected' : '' }}>Free</option>
                             </select>
+                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Contact Person</label>
                             <input type="text" name="contact_person" class="form-control" value="{{ old('contact_person', $selectedClient->contact_person ?? '') }}" readonly>
+                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Mobile</label>
                             <input type="text" name="contact_no" class="form-control" value="{{ old('contact_no', $selectedClient->contact_no ?? '') }}" readonly>
+                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email</label>
                             <input type="email" name="email" class="form-control" value="{{ old('email', $selectedClient->email ?? '') }}" readonly>
+                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Billing Address</label>
                             <textarea name="address" class="form-control" rows="2" readonly>{{ old('address', $selectedClient->address ?? '') }}</textarea>
+                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">City</label>
                             <input type="text" name="city" class="form-control" value="{{ old('city', $selectedClient->city ?? '') }}" readonly>
+                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">PIN</label>
                                 <input type="text" name="pin" class="form-control" value="{{ old('pin', $selectedClient->pin ?? '') }}" readonly>
+                                <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">GST No</label>
                                 <input type="text" name="gst_no" class="form-control" value="{{ old('gst_no', $selectedClient->gst_no ?? '') }}" readonly>
+                                <div class="invalid-feedback"></div>
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">State</label>
                             <input type="text" name="state" class="form-control" value="{{ old('state', $selectedClient->state ?? '') }}" readonly>
+                            <div class="invalid-feedback"></div>
                         </div>
 
                         <hr>
@@ -291,13 +301,34 @@
     .inventory-table thead i { line-height: 1; }
     /* Keep header links subtle */
     .table thead a { font-weight:600; }
+
+    /* Safety: when body gets .no-loader, force-hide common overlays (doesn't affect valid flow) */
+    body.no-loader #loader,
+    body.no-loader #global-loader,
+    body.no-loader .page-loader,
+    body.no-loader .loading-overlay,
+    body.no-loader .preloader,
+    body.no-loader .ajax-loader,
+    body.no-loader .blockUI,
+    body.no-loader .blockOverlay,
+    body.no-loader .blockMsg { display:none !important; opacity:0 !important; visibility:hidden !important; }
 </style>
+
+{{-- jQuery + jQuery Validate (uses public CDNs; remove if already loaded globally) --}}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3.../Y=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js" integrity="sha384-2e..." crossorigin="anonymous"></script>
 
 <script>
 function enableForm(mode) {
     let form = document.getElementById('clientForm');
     let inputs = form.querySelectorAll('input, select, textarea');
     let saveBtn = document.getElementById('saveBtn');
+
+    // Reset validation UI when switching modes
+    if (window.clientValidator) {
+        window.clientValidator.resetForm();
+    }
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
 
     if (mode === 'add') {
         inputs.forEach(el => {
@@ -377,5 +408,127 @@ function enableForm(mode) {
         });
     });
 })();
+
+/* -------- Utilities to ensure loader does NOT show on invalid submit -------- */
+function haltLoaderOnInvalid() {
+    // Hide common global loader APIs if present
+    if (typeof window.hideLoader === 'function') { try { window.hideLoader(); } catch(e){} }
+    if (typeof window.hideGlobalLoader === 'function') { try { window.hideGlobalLoader(); } catch(e){} }
+    if (typeof window.App !== 'undefined' && typeof window.App.hideLoader === 'function') { try { window.App.hideLoader(); } catch(e){} }
+    if (typeof window.$ !== 'undefined' && typeof $.unblockUI === 'function') { try { $.unblockUI(); } catch(e){} }
+
+    // Force-hide typical DOM loaders
+    document.body.classList.add('no-loader');
+    document.body.classList.remove('loading','is-loading');
+
+    ['#loader','#global-loader'].forEach(sel => { const n = document.querySelector(sel); if (n) n.style.display='none'; });
+    const overlays = document.querySelectorAll('.page-loader, .loading-overlay, .preloader, .ajax-loader, .blockUI, .blockOverlay, .blockMsg');
+    overlays.forEach(el => el.style.display='none');
+}
+
+/* -------- jQuery Validation for clientForm (Bootstrap-friendly) -------- */
+(function($){
+    // Custom validators
+    $.validator.addMethod("indianMobile", function(value, element) {
+        if (this.optional(element)) return true;
+        const cleaned = value.replace(/\D/g,'');
+        return /^[6-9]\d{9}$/.test(cleaned);
+    }, "Enter a valid 10-digit mobile starting with 6-9.");
+
+    $.validator.addMethod("pincodeIN", function(value, element) {
+        if (this.optional(element)) return true;
+        const cleaned = value.replace(/\D/g,'');
+        return /^\d{6}$/.test(cleaned);
+    }, "Enter a valid 6-digit PIN code.");
+
+    $.validator.addMethod("gstin", function(value, element) {
+        if (this.optional(element)) return true;
+        return /^[0-9]{2}[A-Z0-9]{10}[0-9A-Z]{3}$/i.test(value.trim());
+    }, "Enter a valid GSTIN (15 characters).");
+
+    $(function(){
+        const form = $("#clientForm");
+
+        // 1) Intercept Save button click first—if invalid, stop and kill loader.
+        document.getElementById('saveBtn')?.addEventListener('click', function(e){
+            if (!window.clientValidator) return;
+            if (!form.valid()) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                haltLoaderOnInvalid();
+                return false;
+            }
+        }, true); // capture phase beats any global loader show
+
+        // 2) Guard form submit as well (fallback)
+        form.on('submit', function(e){
+            if (!window.clientValidator) return;
+            if (!form.valid()) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                haltLoaderOnInvalid();
+                return false;
+            }
+        });
+
+        window.clientValidator = form.validate({
+            ignore: ":hidden, [disabled], [readonly]",
+            errorClass: "is-invalid",
+            validClass: "is-valid",
+            errorElement: "div",
+            errorPlacement: function(error, element) {
+                let fb = element.closest('.mb-3, .col-md-6').find('.invalid-feedback').first();
+                if (fb.length) {
+                    fb.empty().append(error);
+                } else {
+                    error.addClass('invalid-feedback');
+                    element.after(error);
+                }
+            },
+            highlight: function(element) {
+                $(element).addClass('is-invalid').removeClass('is-valid');
+            },
+            unhighlight: function(element) {
+                $(element).removeClass('is-invalid').addClass('is-valid');
+                let fb = $(element).closest('.mb-3, .col-md-6').find('.invalid-feedback').first();
+                if (fb.length) fb.text('');
+            },
+
+            rules: {
+                name: { required: true, minlength: 2, maxlength: 150 },
+                type: { required: true },
+                contact_no: { required: true, indianMobile: true },
+                email: { email: true, maxlength: 190 },
+                pin: { required: true, pincodeIN: true },
+            },
+
+            messages: {
+                name: { required: "Please enter the name." },
+                type: { required: "Please select a subscription type." },
+                contact_no: { required: "Please enter the mobile number." },
+                email: { email: "Please enter a valid email address." },
+                pin: { required: "Please enter the PIN code." }
+            },
+
+            // 3) When invalid, hide any loader that might have been triggered globally
+            invalidHandler: function(event, validator) {
+                if (!validator.numberOfInvalids()) return;
+                haltLoaderOnInvalid();
+                const first = $(validator.errorList[0].element);
+                $('html, body').animate({ scrollTop: first.offset().top - 120 }, 300);
+            }
+        });
+
+        // Validate on interaction for enabled fields
+        form.on('change blur keyup', 'input, select, textarea', function(){
+            if (!this.disabled && !this.readOnly) {
+                $(this).valid();
+            }
+        });
+
+        // Safety: if the page renders with errors, ensure no loader is visible
+        haltLoaderOnInvalid();
+    });
+})(jQuery);
 </script>
 @endsection

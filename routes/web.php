@@ -144,10 +144,16 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:manage reports')
         ->name('reports.download');
 
-    Route::prefix('reports/live')->name('live-reports.')->middleware('permission:manage reports')->group(function () {
-        Route::get('/',        [LiveReportController::class, 'index'])->name('index');
-        Route::get('/preview', [LiveReportController::class, 'preview'])->name('preview');
-        Route::get('/download',[LiveReportController::class, 'download'])->name('download');
+    Route::prefix('reports/live')
+    ->name('live-reports.')
+    ->middleware('permission:manage reports')
+    ->group(function () {
+        // List page (search/sort/paginate)
+        Route::get('/', [LiveReportController::class, 'index'])->name('index');
+
+        // PDF actions (note: buttons submit via POST with CSRF)
+        Route::post('/preview',  [LiveReportController::class, 'preview'])->name('preview');
+        Route::post('/download', [LiveReportController::class, 'download'])->name('download');
     });
 
     Route::prefix('reports/installed')->name('installed-reports.')->middleware('permission:manage reports')->group(function () {

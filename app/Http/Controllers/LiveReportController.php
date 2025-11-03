@@ -4,103 +4,148 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\Inventory;
-use App\Models\Package;
 use App\Services\InventoryOnlineService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use PDF;
 
 class LiveReportController extends Controller
 {
-    public function __construct(private InventoryOnlineService $onlineService)
-    {
-    }
+    public function __construct(private InventoryOnlineService $onlineService) {}
 
     /**
-     * Filters + paginated HTML table for currently-live boxes (with channel packages)
+     * Online/Offline listing (ADB-based), with search/sort/pagination.
      */
     public function index(Request $request)
     {
-        $clients  = Client::orderBy('name')->get();
-        $packages = Package::orderBy('name')->get();
+        $search    = trim((string) $request->get('search', ''));
+        $perPage   = (int) ($request->get('per_page', 10) ?: 10);
+        $page      = max(1, (int) $request->get('page', 1));
 
-        // Base query with relationships
-        $baseQuery = $this->baseQuery($request);
+        // Sorting map (DB columns)
+        $map = [
+            'box_id'        => 'inventories.box_id',
+            'box_model'     => 'inventories.box_model',
+            'box_serial_no' => 'inventories.box_serial_no',
+            'box_mac'       => 'inventories.box_mac',
+            'box_fw'        => 'inventories.box_fw',
+            'client_name'   => 'clients.name',
+            'id'            => 'inventories.id',
+        ];
+        $sort      = $request->get('sort', 'id');
+        $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $sortCol   = $map[$sort] ?? $map['id'];
 
-        // We must first fetch candidates (without pagination), detect who is online,
-        // then paginate only the "online" set.
-        $candidates = $baseQuery->get(['id', 'mgmt_url', 'mgmt_token', 'box_ip']);
-        $onlineIds  = $this->onlineService->detectOnline($candidates);
+        // Base query (+search)
+        $baseQuery = Inventory::query()
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('box_model', 'like', "%{$search}%")
+                      ->orWhere('box_serial_no', 'like', "%{$search}%")
+                      ->orWhere('box_mac', 'like', "%{$search}%")
+                      ->orWhere('box_fw', 'like', "%{$search}%")
+                      ->orWhere('box_id', 'like', "%{$search}%");
+                });
+            })
+            ->with('client');
 
-        $inventories = Inventory::with(['client', 'packages'])
-            ->whereIn('id', $onlineIds)
-            ->orderByDesc('id')
-            ->paginate(15)
-            ->withQueryString();
+        if ($sort === 'client_name') {
+            $baseQuery->leftJoin('clients', 'clients.id', '=', 'inventories.client_id')
+                      ->select('inventories.*');
+        }
 
-        return view('reports.live.index', compact('clients', 'packages', 'inventories'));
+        $baseQuery->orderBy($sortCol, $direction);
+
+        // Paginate
+        $inventories = $baseQuery
+            ->paginate($perPage, ['*'], 'page', $page)
+            ->appends($request->query());
+
+        // ADB online status for current page only
+        $currentPage = collect($inventories->items());
+
+        $onlineIds = $this->onlineService->detectOnline(
+            $currentPage->map(fn ($inv) => (object) [
+                'id'       => $inv->id,
+                'box_ip'   => $inv->box_ip,
+                'adb_port' => $inv->adb_port ?? null,
+            ])
+        );
+
+        foreach ($currentPage as $inv) {
+            $inv->is_online = in_array($inv->id, $onlineIds, true);
+        }
+
+        // For completeness, though not used in this view
+        $clients = Client::orderBy('name')->get();
+
+        return view('reports.live.index', [
+            'inventories' => $inventories,
+            'clients'     => $clients,
+            'search'      => $search,
+            'sort'        => $sort,
+            'direction'   => $direction,
+        ]);
     }
 
     /**
-     * Inline PDF preview of currently-live boxes
+     * Stream PDF for selected rows (includes ADB Online/Offline).
      */
     public function preview(Request $request)
     {
-        [$inventories, $title] = $this->collectLiveForPdf($request);
+        [$inventories, $title] = $this->collectSelectedForPdf($request);
         $pdf = PDF::loadView('reports.live.pdf', compact('inventories', 'title'))
-            ->setPaper('a4', 'landscape');
-        return $pdf->stream('live_boxes_report.pdf');
+                 ->setPaper('a4', 'landscape');
+
+        return $pdf->stream('online_boxes_selected.pdf');
     }
 
     /**
-     * PDF download of currently-live boxes
+     * Download PDF for selected rows (includes ADB Online/Offline).
      */
     public function download(Request $request)
     {
-        [$inventories, $title] = $this->collectLiveForPdf($request);
+        [$inventories, $title] = $this->collectSelectedForPdf($request);
         $pdf = PDF::loadView('reports.live.pdf', compact('inventories', 'title'))
-            ->setPaper('a4', 'landscape');
-        return $pdf->download('live_boxes_report.pdf');
-    }
+                 ->setPaper('a4', 'landscape');
 
-    // ----------------- helpers -----------------
-
-    private function baseQuery(Request $request)
-    {
-        $q = Inventory::with(['client', 'packages'])->orderByDesc('id');
-
-        // Optional filters
-        if ($request->filled('status')) {
-            $q->where('status', $request->string('status')->toString());
-        }
-        if ($request->filled('client_id')) {
-            $q->where('client_id', $request->integer('client_id'));
-        }
-        if ($request->filled('package_id')) {
-            $pkgId = (int)$request->get('package_id');
-            $q->whereHas('packages', fn ($qq) => $qq->where('packages.id', $pkgId));
-        }
-        if ($request->filled('warranty_before')) {
-            $q->whereDate('warranty_date', '<=', $request->get('warranty_before'));
-        }
-
-        return $q;
+        return $pdf->download('online_boxes_selected.pdf');
     }
 
     /**
-     * Returns [Collection $inventories, string $title] for PDF use.
+     * Helper: collect selected IDs, annotate ADB online status, return data for PDF.
      */
-    private function collectLiveForPdf(Request $request): array
+    private function collectSelectedForPdf(Request $request): array
     {
-        $baseQuery  = $this->baseQuery($request);
-        $candidates = $baseQuery->get(['id', 'mgmt_url', 'mgmt_token', 'box_ip']);
-        $onlineIds  = $this->onlineService->detectOnline($candidates);
+        $selected = collect($request->input('selected_ids', []))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique();
+
+        if ($selected->isEmpty()) {
+            throw ValidationException::withMessages([
+                'selected_ids' => 'Please select at least one record before viewing or downloading.',
+            ]);
+        }
 
         $inventories = Inventory::with(['client', 'packages'])
-            ->whereIn('id', $onlineIds)
+            ->whereIn('id', $selected)
             ->orderByDesc('id')
             ->get();
 
-        $title = 'Currently Live Boxes (with Channel Packages)';
+        $onlineIds = $this->onlineService->detectOnline(
+            $inventories->map(fn ($inv) => (object) [
+                'id'       => $inv->id,
+                'box_ip'   => $inv->box_ip,
+                'adb_port' => $inv->adb_port ?? null,
+            ])
+        );
+
+        $inventories->each(function ($inv) use ($onlineIds) {
+            $inv->is_online = in_array($inv->id, $onlineIds, true);
+        });
+
+        $title = 'Inventories (Online Status via ADB)';
 
         return [$inventories, $title];
     }
