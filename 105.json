@@ -2,8 +2,8 @@
     "DTV": [
         {
             "name": "1",
-            "desc": "CNN INTL",
-            "url": "udp://239.15.0.13:1234",
+            "desc": "CNBC Prime HD",
+            "url": "udp://239.15.0.11:1234",
             "starting": true
         },
         {

@@ -2,102 +2,144 @@
 
 namespace App\Services;
 
-use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Http;
 
 class InventoryOnlineService
 {
     /**
-     * Accepts a collection of Inventory models (with mgmt_url, mgmt_token, box_ip).
-     * Returns an array of "online" inventory IDs.
+     * Where adb + keys live on your server.
+     * Adjust if your paths differ.
+     */
+    private string $adbPath = '/usr/bin/adb';
+    private string $homeDir = '/var/www';
+    private string $keyDir  = '/var/www/.android';
+    private int    $defaultAdbPort = 5555;
+
+    /**
+     * Public API kept for backward compatibility with your controller.
+     * Returns ONLY the list of online inventory IDs.
      */
     public function detectOnline(Collection $inventories): array
     {
-        // Normalize /system endpoints
-        $httpTargets = [];
-        foreach ($inventories as $inv) {
-            if (!empty($inv->mgmt_url)) {
-                $httpTargets[$inv->id] = rtrim($inv->mgmt_url, '/') . '/system';
-            }
-        }
-
-        $httpResults = []; // id => true/false
-
-        // Phase 1: concurrent GET to /system
-        if (!empty($httpTargets)) {
-            $responses = Http::timeout(3)
-                ->withoutVerifying()
-                ->pool(function (Pool $pool) use ($inventories, $httpTargets) {
-                    $reqs = [];
-                    foreach ($inventories as $inv) {
-                        if (!isset($httpTargets[$inv->id])) {
-                            continue;
-                        }
-                        $req = $pool->as((string)$inv->id);
-                        if (!empty($inv->mgmt_token)) {
-                            $req = $req->withToken($inv->mgmt_token);
-                        }
-                        $reqs[] = $req->get($httpTargets[$inv->id]);
-                    }
-                    return $reqs;
-                });
-
-            foreach ($responses as $alias => $resp) {
-                $id = (int)$alias;
-                $httpResults[$id] = (method_exists($resp, 'successful') && $resp->successful());
-            }
-        }
-
-        // Phase 2: retry /system/health for failures
-        if (!empty($httpTargets)) {
-            foreach ($inventories as $inv) {
-                if (!isset($httpTargets[$inv->id])) {
-                    continue;
-                }
-                if (!isset($httpResults[$inv->id]) || $httpResults[$inv->id] === false) {
-                    $healthUrl = rtrim($inv->mgmt_url, '/') . '/system/health';
-                    $req = Http::timeout(2)->withoutVerifying();
-                    if (!empty($inv->mgmt_token)) {
-                        $req = $req->withToken($inv->mgmt_token);
-                    }
-                    try {
-                        $resp = $req->get($healthUrl);
-                        if ($resp->successful()) {
-                            $httpResults[$inv->id] = true;
-                        }
-                    } catch (\Throwable $e) {
-                        // ignore, will try ICMP
-                    }
-                }
-            }
-        }
-
-        // Phase 3: ICMP fallback per box_ip
-        $isWindows = (strtoupper(PHP_OS_FAMILY) === 'WINDOWS');
-        foreach ($inventories as $inv) {
-            $knownHttp = array_key_exists($inv->id, $httpResults);
-            $isOnline  = $knownHttp ? ($httpResults[$inv->id] === true) : false;
-
-            if (!$isOnline && !empty($inv->box_ip)) {
-                $cmd = $isWindows
-                    ? 'ping -n 1 -w 1000 ' . escapeshellarg($inv->box_ip)
-                    : 'ping -c 1 -W 1 '    . escapeshellarg($inv->box_ip);
-                $out = [];
-                $status = 1;
-                @exec($cmd, $out, $status);
-                $isOnline = ($status === 0);
-            }
-
-            $httpResults[$inv->id] = $isOnline;
-        }
-
-        // Return IDs that are online
-        return collect($httpResults)
-            ->filter(fn ($ok) => $ok === true)
+        $map = $this->detectOnlineWithMessages($inventories);
+        return collect($map)
+            ->filter(fn ($v) => ($v['online'] ?? false) === true)
             ->keys()
             ->map(fn ($k) => (int)$k)
             ->values()
             ->all();
+    }
+
+    /**
+     * Extended version that also returns per-device logs you can show in the view.
+     * Return shape: [ id => ['online' => bool, 'messages' => string[]] ].
+     */
+    public function detectOnlineWithMessages(Collection $inventories): array
+    {
+        $result = [];
+
+        // Basic sanity checks once
+        if (!file_exists($this->adbPath)) {
+            foreach ($inventories as $inv) {
+                $result[$inv->id] = [
+                    'online'   => false,
+                    'messages' => ["❌ ADB binary not found at: {$this->adbPath}"],
+                ];
+            }
+            return $result;
+        }
+        if (!is_dir($this->keyDir)) {
+            foreach ($inventories as $inv) {
+                $result[$inv->id] = [
+                    'online'   => false,
+                    'messages' => ["❌ ADB key directory not found at: {$this->keyDir}"],
+                ];
+            }
+            return $result;
+        }
+
+        $env = [
+            'HOME'            => $this->homeDir,
+            'ADB_VENDOR_KEYS' => $this->keyDir,
+            'PATH'            => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+        ];
+
+        $run = function (string $cmd) use ($env): array {
+            $proc = proc_open($cmd . ' 2>&1', [
+                1 => ['pipe', 'w'], // stdout+stderr (merged)
+                2 => ['pipe', 'w'],
+            ], $pipes, null, $env);
+
+            if (!is_resource($proc)) {
+                return [1, ['Failed to start process']];
+            }
+            $out = stream_get_contents($pipes[1]) ?: '';
+            // close pipes
+            foreach ($pipes as $p) { if (is_resource($p)) fclose($p); }
+            $status = proc_close($proc);
+            return [$status, preg_split('/\R/', trim($out)) ?: []];
+        };
+
+        $adb = escapeshellarg($this->adbPath);
+        $isWindows = (strtoupper(PHP_OS_FAMILY) === 'WINDOWS');
+
+        foreach ($inventories as $inv) {
+            $id        = (int) $inv->id;
+            $ip        = (string) ($inv->box_ip ?? '');
+            $port      = (int)   ($inv->adb_port ?? $this->defaultAdbPort);
+            $serial    = escapeshellarg("{$ip}:{$port}");
+            $messages  = [];
+            $online    = false;
+
+            if (empty($ip)) {
+                $result[$id] = ['online' => false, 'messages' => ['⚠️ Missing box_ip']];
+                continue;
+            }
+
+            // 1) Soft ICMP ping (optional but quick)
+            $messages[] = "🔍 Pinging $ip ...";
+            $pingCmd = $isWindows
+                ? "ping -n 1 -w 1000 " . escapeshellarg($ip)
+                : "/usr/bin/ping -c 1 " . escapeshellarg($ip);
+            [$pStat, $pOut] = $run($pingCmd);
+            if ($pStat !== 0) {
+                $messages[] = "⚠️ Ping failed (continuing with ADB)";
+            } else {
+                $messages[] = "✅ Ping responded";
+            }
+            if (!empty($pOut)) { $messages = array_merge($messages, $pOut); }
+
+            // 2) ADB connect
+            $messages[] = "🔗 ADB connect to {$ip}:{$port} ...";
+            $run("$adb disconnect $serial"); // ignore result
+            [$cStat, $cOut] = $run("$adb connect $serial");
+            if ($cStat !== 0) {
+                $messages[] = "❌ ADB connect failed";
+                if (!empty($cOut)) { $messages = array_merge($messages, $cOut); }
+                // still continue to try get-state (sometimes connect returns nonzero but connects)
+            } else {
+                $messages[] = "✅ ADB connect attempted";
+                if (!empty($cOut)) { $messages = array_merge($messages, $cOut); }
+            }
+
+            // 3) ADB get-state (reliable check)
+            $messages[] = "📟 Checking ADB state ...";
+            [$sStat, $sOut] = $run("$adb -s $serial get-state");
+            $state = strtolower(trim(implode("\n", $sOut)));
+            if ($sStat === 0 && str_contains($state, 'device')) {
+                $online = true;
+                $messages[] = "✅ ADB state: device";
+            } else {
+                $messages[] = "❌ ADB state check failed";
+                if (!empty($sOut)) { $messages = array_merge($messages, $sOut); }
+            }
+
+            $result[$id] = [
+                'online'   => $online,
+                'messages' => $messages,
+            ];
+        }
+
+        return $result;
     }
 }

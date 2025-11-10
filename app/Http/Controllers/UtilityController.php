@@ -11,7 +11,178 @@ use Illuminate\Support\Str;
 
 class UtilityController extends Controller
 {
+    
     public function index(Request $request)
+    {
+        $search    = trim((string) $request->get('search', ''));
+        $perPage   = (int) ($request->get('per_page', 10) ?: 10);
+        $page      = max(1, (int) $request->get('page', 1));
+
+        // --- Sorting map (DB columns) ---
+        $map = [
+            'box_id'        => 'inventories.box_id',
+            'box_model'     => 'inventories.box_model',
+            'box_serial_no' => 'inventories.box_serial_no',
+            'box_mac'       => 'inventories.box_mac',
+            'box_fw'        => 'inventories.box_fw',
+            'client_name'   => 'clients.name',
+            'id'            => 'inventories.id', // fallback
+        ];
+        $sort = $request->get('sort', 'id');
+        $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $sortColumn = $map[$sort] ?? $map['id'];
+
+        // Base query (+search)
+        $baseQuery = Inventory::query()
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('box_model', 'like', "%{$search}%")
+                        ->orWhere('box_serial_no', 'like', "%{$search}%")
+                        ->orWhere('box_mac', 'like', "%{$search}%")
+                        ->orWhere('box_fw', 'like', "%{$search}%")
+                        ->orWhere('box_id', 'like', "%{$search}%");
+                });
+            })
+            ->with('client');
+
+        // If sorting by client_name, LEFT JOIN clients for ordering
+        if ($sort === 'client_name') {
+            $baseQuery->leftJoin('clients', 'clients.id', '=', 'inventories.client_id')
+                      ->select('inventories.*');
+        }
+
+        // Apply sorting
+        $baseQuery->orderBy($sortColumn, $direction);
+
+        // Paginate
+        $inventories = $baseQuery->paginate($perPage, ['*'], 'page', $page)->appends($request->query());
+
+        // Current page items
+        $currentPageItems = collect($inventories->items());
+
+        /**
+         * -------- ADB CONFIG & HELPERS (no curl/guzzle) --------
+         */
+        $adbPath = '/usr/bin/adb';
+        $homeDir = '/var/www';
+        $keyDir  = '/var/www/.android';
+        $port    = 5555;
+
+        // Build a clean env for the child processes
+        $env = [
+            'HOME'            => $homeDir,
+            'ADB_VENDOR_KEYS' => $keyDir,
+            'PATH'            => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+        ];
+
+        // Minimal runner that captures stdout+stderr
+        $run = function (string $cmd) use ($env): array {
+            $descriptorspec = [
+                1 => ['pipe', 'w'], // stdout
+                2 => ['pipe', 'w'], // stderr
+            ];
+            $process = @proc_open($cmd . ' 2>&1', $descriptorspec, $pipes, null, $env);
+            if (!is_resource($process)) {
+                return [1, ['Failed to start process']];
+            }
+            $output = stream_get_contents($pipes[1]);
+            fclose($pipes[1]);
+            $status = proc_close($process);
+            return [$status, explode("\n", trim((string) $output))];
+        };
+
+        $adbAvailable = file_exists($adbPath) && is_executable($adbPath);
+        $keysOk       = is_dir($keyDir);
+
+        // Helper: check if a device is online via ADB (no file writes)
+        $adbCheckOnline = function (?string $ip) use ($adbPath, $port, $run): bool {
+            if (empty($ip)) {
+                return false;
+            }
+            $adb    = escapeshellarg($adbPath);
+            $serial = escapeshellarg("{$ip}:{$port}");
+
+            // clean connect
+            $run("$adb disconnect $serial");
+            [$cStatus, $cOut] = $run("$adb connect $serial");
+            $joined = strtolower(implode("\n", $cOut));
+            if ($cStatus !== 0 || str_contains($joined, 'unable') || str_contains($joined, 'failed')) {
+                return false;
+            }
+
+            // quick lightweight shell check
+            // 1) getprop sys.boot_completed (returns 1 when boot finished)
+            [$sStatus, $sOut] = $run("$adb -s $serial shell getprop sys.boot_completed");
+            if ($sStatus === 0 && trim(implode("\n", $sOut)) !== '') {
+                $val = trim($sOut[0] ?? '');
+                if ($val === '1' || $val === 'true' || $val === '1\r' || $val === '1\n') {
+                    return true;
+                }
+            }
+            // 2) fallback tiny echo
+            [$eStatus, $eOut] = $run("$adb -s $serial shell echo ok");
+            return ($eStatus === 0 && str_contains(strtolower(implode("\n", $eOut)), 'ok'));
+        };
+
+        /**
+         * Mark is_online using ONLY ADB (no HTTP pool, no cURL/Guzzle).
+         * If ADB binary or keys are missing, everything will be false (safe).
+         */
+        foreach ($currentPageItems as $inv) {
+            $isOnline = false;
+
+            if ($adbAvailable && $keysOk) {
+                // Prefer explicit box_ip; if not present, try to derive from mgmt_url host
+                $ip = null;
+                if (!empty($inv->box_ip)) {
+                    $ip = $inv->box_ip;
+                } elseif (!empty($inv->mgmt_url)) {
+                    $host = parse_url($inv->mgmt_url, PHP_URL_HOST);
+                    if (filter_var($host, FILTER_VALIDATE_IP)) {
+                        $ip = $host;
+                    }
+                }
+
+                try {
+                    $isOnline = $adbCheckOnline($ip);
+                } catch (\Throwable $e) {
+                    $isOnline = false; // swallow, don't break the page
+                }
+            }
+
+            $inv->is_online = (bool) $isOnline;
+        }
+
+        // Selected inventory (unchanged)
+        $selectedInventory = null;
+        if ($request->filled('inventory_id')) {
+            $selectedInventory = $currentPageItems->firstWhere('id', (int) $request->get('inventory_id'))
+                ?: Inventory::with('client')->find((int) $request->get('inventory_id'));
+        }
+
+        // (Optional) pre-fill active channel if a single row is selected (unchanged)
+        $selectedActiveChannel = null;
+        if ($selectedInventory) {
+            try {
+                $selectedActiveChannel = $this->discoverActiveChannel($selectedInventory);
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        }
+
+        $clients = Client::all();
+
+        return view('utility.index', [
+            'inventories'           => $inventories,
+            'selectedInventory'     => $selectedInventory,
+            'clients'               => $clients,
+            'search'                => $search,
+            'sort'                  => $sort,
+            'direction'             => $direction,
+            'selectedActiveChannel' => $selectedActiveChannel,
+        ]);
+    }
+    public function index_old(Request $request)
     {
         $search    = trim((string) $request->get('search', ''));
         $perPage   = (int) ($request->get('per_page', 10) ?: 10);

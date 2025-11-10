@@ -423,34 +423,65 @@
         nextMsg();
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-        const form = document.getElementById("inventoryPackageForm");
-        if (!form) return;
+    
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("inventoryPackageForm");
+  if (!form) return;
 
-        form.addEventListener("submit", function (e) {
-            e.preventDefault();
-            const formData = new FormData(form);
-            const action = form.action;
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
 
-            fetch(action, {
-                method: "POST",
-                body: formData,
-                headers: { "X-CSRF-TOKEN": formData.get("_token") },
-            })
-                .then((res) => res.json())
-                .then((data) => {
-                    hideAnyLoader();
-                    if (data.success) {
-                        showAdbProgress(data.messages || ["Process completed"]);
-                    } else {
-                        alert("Failed to assign packages.");
-                    }
-                })
-                .catch((err) => {
-                    hideAnyLoader();
-                    alert("Error: " + err.message);
-                });
-        });
-    });
+    const formData = new FormData(form);
+    const action = form.action;
+
+    fetch(action, {
+      method: "POST",
+      body: formData,
+      headers: {
+        "Accept": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRF-TOKEN": formData.get("_token") || "",
+      },
+      credentials: "same-origin",
+    })
+      .then(async (res) => {
+        const contentType = res.headers.get("content-type") || "";
+        const raw = await res.text(); // read once
+
+        if (!res.ok) {
+          // Send back server message (still JSON-safe in our catch below)
+          throw new Error(`HTTP ${res.status}: ${raw.slice(0, 800)}`);
+        }
+
+        if (!raw.trim()) {
+          throw new Error("Empty response (expected JSON).");
+        }
+
+        if (contentType.includes("application/json") || /^[\[{]/.test(raw.trim())) {
+          try {
+            return JSON.parse(raw);
+          } catch (e) {
+            throw new Error("JSON parse failed: " + raw.slice(0, 800));
+          }
+        } else {
+          throw new Error("Expected JSON, got: " + raw.slice(0, 800));
+        }
+      })
+      .then((data) => {
+        hideAnyLoader?.();
+        if (data.success) {
+          showAdbProgress?.(data.messages || ["Process completed"]);
+        } else {
+          alert(data.message || "Failed to assign packages.");
+        }
+      })
+      .catch((err) => {
+        hideAnyLoader?.();
+        alert("Error: " + err.message);
+      });
+  });
+});
 </script>
 @endsection

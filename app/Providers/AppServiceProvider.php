@@ -23,10 +23,10 @@ class AppServiceProvider extends ServiceProvider
         $allowedYear = env('SUBSCRIPTION_YEAR');
         $currentYear = Carbon::now()->year;
 
-        if ($currentYear > $allowedYear) {
+        //if ($currentYear > $allowedYear) {
             // Stop execution and show subscription page
-            echo view('subscription.expired');
-            exit; // prevent rest of app from running
-        }
+            //echo view('subscription.expired');
+           // exit; // prevent rest of app from running
+       // }
     }
 }

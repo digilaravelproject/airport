@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 27, 2025 at 06:48 AM
+-- Generation Time: Nov 03, 2025 at 09:58 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -38,7 +38,7 @@ CREATE TABLE `cache` (
 --
 
 INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
-('laravel-cache-spatie.permission.cache', 'a:3:{s:5:\"alias\";a:4:{s:1:\"a\";s:2:\"id\";s:1:\"b\";s:4:\"name\";s:1:\"c\";s:10:\"guard_name\";s:1:\"r\";s:5:\"roles\";}s:11:\"permissions\";a:69:{i:0;a:4:{s:1:\"a\";i:1;s:1:\"b\";s:12:\"view reports\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:1;a:4:{s:1:\"a\";i:2;s:1:\"b\";s:16:\"manage inventory\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:2;a:4:{s:1:\"a\";i:3;s:1:\"b\";s:15:\"manage channels\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:3;a:4:{s:1:\"a\";i:4;s:1:\"b\";s:15:\"manage packages\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:4;a:4:{s:1:\"a\";i:5;s:1:\"b\";s:18:\"manage allocations\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:5;a:4:{s:1:\"a\";i:6;s:1:\"b\";s:18:\"manage subscribers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:6;a:4:{s:1:\"a\";i:7;s:1:\"b\";s:17:\"permissions.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:7;a:4:{s:1:\"a\";i:8;s:1:\"b\";s:18:\"permissions.update\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:8;a:4:{s:1:\"a\";i:9;s:1:\"b\";s:11:\"roles.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:9;a:4:{s:1:\"a\";i:10;s:1:\"b\";s:12:\"roles.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:10;a:4:{s:1:\"a\";i:11;s:1:\"b\";s:11:\"roles.store\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:11;a:4:{s:1:\"a\";i:12;s:1:\"b\";s:13:\"roles.destroy\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:12;a:4:{s:1:\"a\";i:13;s:1:\"b\";s:13:\"clients.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:13;a:4:{s:1:\"a\";i:14;s:1:\"b\";s:14:\"clients.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:14;a:4:{s:1:\"a\";i:15;s:1:\"b\";s:13:\"clients.store\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:15;a:4:{s:1:\"a\";i:16;s:1:\"b\";s:12:\"clients.show\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:16;a:4:{s:1:\"a\";i:17;s:1:\"b\";s:12:\"clients.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:17;a:4:{s:1:\"a\";i:18;s:1:\"b\";s:14:\"clients.update\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:18;a:4:{s:1:\"a\";i:19;s:1:\"b\";s:15:\"clients.destroy\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:19;a:4:{s:1:\"a\";i:20;s:1:\"b\";s:15:\"locations.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:20;a:4:{s:1:\"a\";i:21;s:1:\"b\";s:16:\"locations.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:21;a:4:{s:1:\"a\";i:22;s:1:\"b\";s:15:\"locations.store\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:22;a:4:{s:1:\"a\";i:23;s:1:\"b\";s:14:\"locations.show\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:23;a:4:{s:1:\"a\";i:24;s:1:\"b\";s:14:\"locations.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:24;a:4:{s:1:\"a\";i:25;s:1:\"b\";s:16:\"locations.update\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:25;a:4:{s:1:\"a\";i:26;s:1:\"b\";s:17:\"locations.destroy\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:26;a:4:{s:1:\"a\";i:27;s:1:\"b\";s:14:\"channels.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:27;a:4:{s:1:\"a\";i:28;s:1:\"b\";s:15:\"channels.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:28;a:4:{s:1:\"a\";i:29;s:1:\"b\";s:14:\"channels.store\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:29;a:4:{s:1:\"a\";i:30;s:1:\"b\";s:13:\"channels.show\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:30;a:4:{s:1:\"a\";i:31;s:1:\"b\";s:13:\"channels.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:31;a:4:{s:1:\"a\";i:32;s:1:\"b\";s:15:\"channels.update\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:32;a:4:{s:1:\"a\";i:33;s:1:\"b\";s:16:\"channels.destroy\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:33;a:4:{s:1:\"a\";i:34;s:1:\"b\";s:17:\"inventories.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:34;a:4:{s:1:\"a\";i:35;s:1:\"b\";s:18:\"inventories.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:35;a:4:{s:1:\"a\";i:36;s:1:\"b\";s:17:\"inventories.store\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:36;a:4:{s:1:\"a\";i:37;s:1:\"b\";s:16:\"inventories.show\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:37;a:4:{s:1:\"a\";i:38;s:1:\"b\";s:16:\"inventories.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:38;a:4:{s:1:\"a\";i:39;s:1:\"b\";s:18:\"inventories.update\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:39;a:4:{s:1:\"a\";i:40;s:1:\"b\";s:19:\"inventories.destroy\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:40;a:4:{s:1:\"a\";i:41;s:1:\"b\";s:16:\"inventories.ping\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:41;a:4:{s:1:\"a\";i:42;s:1:\"b\";s:18:\"inventories.reboot\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:42;a:4:{s:1:\"a\";i:43;s:1:\"b\";s:14:\"packages.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:43;a:4:{s:1:\"a\";i:44;s:1:\"b\";s:15:\"packages.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:44;a:4:{s:1:\"a\";i:45;s:1:\"b\";s:14:\"packages.store\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:45;a:4:{s:1:\"a\";i:46;s:1:\"b\";s:13:\"packages.show\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:46;a:4:{s:1:\"a\";i:47;s:1:\"b\";s:13:\"packages.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:47;a:4:{s:1:\"a\";i:48;s:1:\"b\";s:15:\"packages.update\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:48;a:4:{s:1:\"a\";i:49;s:1:\"b\";s:16:\"packages.destroy\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:49;a:4:{s:1:\"a\";i:50;s:1:\"b\";s:24:\"inventory-packages.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:50;a:4:{s:1:\"a\";i:51;s:1:\"b\";s:25:\"inventory-packages.assign\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:51;a:4:{s:1:\"a\";i:52;s:1:\"b\";s:14:\"utility.online\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:52;a:4:{s:1:\"a\";i:53;s:1:\"b\";s:13:\"reports.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}}i:53;a:4:{s:1:\"a\";i:54;s:1:\"b\";s:15:\"reports.preview\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}}i:54;a:4:{s:1:\"a\";i:55;s:1:\"b\";s:16:\"reports.download\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}}i:55;a:4:{s:1:\"a\";i:56;s:1:\"b\";s:10:\"help.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}}i:56;a:4:{s:1:\"a\";i:57;s:1:\"b\";s:17:\"permissions.store\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:57;a:4:{s:1:\"a\";i:58;s:1:\"b\";s:18:\"live-reports.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:58;a:4:{s:1:\"a\";i:59;s:1:\"b\";s:20:\"live-reports.preview\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:59;a:4:{s:1:\"a\";i:60;s:1:\"b\";s:21:\"live-reports.download\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:60;a:4:{s:1:\"a\";i:61;s:1:\"b\";s:23:\"installed-reports.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:61;a:4:{s:1:\"a\";i:62;s:1:\"b\";s:25:\"installed-reports.preview\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:62;a:4:{s:1:\"a\";i:63;s:1:\"b\";s:26:\"installed-reports.download\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:63;a:4:{s:1:\"a\";i:64;s:1:\"b\";s:21:\"channel-reports.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:64;a:4:{s:1:\"a\";i:65;s:1:\"b\";s:23:\"channel-reports.preview\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:65;a:4:{s:1:\"a\";i:66;s:1:\"b\";s:24:\"channel-reports.download\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:66;a:4:{s:1:\"a\";i:67;s:1:\"b\";s:21:\"package-reports.index\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:67;a:4:{s:1:\"a\";i:68;s:1:\"b\";s:23:\"package-reports.preview\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:68;a:4:{s:1:\"a\";i:69;s:1:\"b\";s:24:\"package-reports.download\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}}s:5:\"roles\";a:3:{i:0;a:3:{s:1:\"a\";i:1;s:1:\"b\";s:5:\"Admin\";s:1:\"c\";s:3:\"web\";}i:1;a:3:{s:1:\"a\";i:2;s:1:\"b\";s:7:\"Manager\";s:1:\"c\";s:3:\"web\";}i:2;a:3:{s:1:\"a\";i:3;s:1:\"b\";s:6:\"Client\";s:1:\"c\";s:3:\"web\";}}}', 1761549872);
+('laravel-cache-spatie.permission.cache', 'a:3:{s:5:\"alias\";a:4:{s:1:\"a\";s:2:\"id\";s:1:\"b\";s:4:\"name\";s:1:\"c\";s:10:\"guard_name\";s:1:\"r\";s:5:\"roles\";}s:11:\"permissions\";a:10:{i:0;a:4:{s:1:\"a\";i:1;s:1:\"b\";s:17:\"manage subscriber\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:1;a:4:{s:1:\"a\";i:2;s:1:\"b\";s:16:\"manage inventory\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:2;a:4:{s:1:\"a\";i:3;s:1:\"b\";s:15:\"manage channels\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}}i:3;a:4:{s:1:\"a\";i:4;s:1:\"b\";s:14:\"manage package\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:4;a:4:{s:1:\"a\";i:5;s:1:\"b\";s:18:\"manage allocations\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:5;a:4:{s:1:\"a\";i:6;s:1:\"b\";s:16:\"manage utilities\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:6;a:4:{s:1:\"a\";i:7;s:1:\"b\";s:14:\"manage reports\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:7;a:4:{s:1:\"a\";i:8;s:1:\"b\";s:12:\"manage users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:8;a:4:{s:1:\"a\";i:9;s:1:\"b\";s:17:\"manage permission\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:9;a:4:{s:1:\"a\";i:10;s:1:\"b\";s:5:\"helps\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}}}s:5:\"roles\";a:3:{i:0;a:3:{s:1:\"a\";i:1;s:1:\"b\";s:5:\"Admin\";s:1:\"c\";s:3:\"web\";}i:1;a:3:{s:1:\"a\";i:2;s:1:\"b\";s:7:\"Manager\";s:1:\"c\";s:3:\"web\";}i:2;a:3:{s:1:\"a\";i:3;s:1:\"b\";s:6:\"Client\";s:1:\"c\";s:3:\"web\";}}}', 1762234616);
 
 -- --------------------------------------------------------
 
@@ -311,7 +311,7 @@ INSERT INTO `clients` (`id`, `name`, `address`, `contact_no`, `email`, `contact_
 (1, 'John Marker2', 'Pune', '89874875758', 'john@gmail.com', 'mike', 'Free', 'Pune', 'MH', '411060', 'GST-232', '2025-09-20 02:55:45', '2025-09-22 00:29:19'),
 (2, 'Mark Datson', 'New York, NY, USA', '8986756575', 'darshankondekar01@gmail.com', 'Dev', 'Paid', 'New York', 'NY', '411060', NULL, '2025-09-20 04:28:54', '2025-09-20 04:28:54'),
 (3, 'Mark Datson', 'New York, NY, USA', '8986756575', 'darshankondekar01@gmail.com', 'Dev', 'Paid', 'New York', 'NY', '411060', NULL, '2025-09-20 04:30:10', '2025-09-20 04:30:10'),
-(4, 'Mark Zaa', 'Mumbai', '8975647565', 'jay@gmail.com', 'Jay', 'Paid', 'Mumbai', 'Maharashtra', '411060', 'GST-232', '2025-09-26 07:37:55', '2025-09-26 07:37:55');
+(4, 'Mark Zaa', 'Mumbai', '8975647560', 'jay@gmail.com', 'Jay', 'Paid', 'Mumbai', 'Maharashtra', '411060', 'GST-232', '2025-09-26 07:37:55', '2025-11-01 00:01:38');
 
 -- --------------------------------------------------------
 
@@ -426,7 +426,7 @@ INSERT INTO `inventories` (`id`, `box_id`, `box_model`, `box_serial_no`, `box_ma
 (58, '158', 'H200', '107-10877573', '5C:0F:FB:1A:C8:0A', '', '', '', '', '', '', NULL, NULL, NULL, NULL, NULL, NULL, '192.168.1.201', NULL, NULL, 0, NULL, '2025-10-24 03:52:12'),
 (59, '159', 'H200', '107-10878513', '5C:0F:FB:1A:CF:62', '', '', '', '', '', '', NULL, NULL, NULL, NULL, NULL, NULL, '192.168.1.202', NULL, NULL, 0, NULL, '2025-10-24 03:52:12'),
 (60, '160', 'H200', '107-10877720', '5C:0F:FB:1A:C9:30', '', '', '', '', '', '', NULL, NULL, NULL, NULL, NULL, NULL, '192.168.1.203', NULL, NULL, 0, NULL, '2025-10-24 03:52:12'),
-(61, '161', 'H200', '107-10877309', '5C:0F:FB:1A:C5:FA', '', '', '', '', '', '', NULL, NULL, NULL, NULL, NULL, NULL, '192.168.1.204', NULL, NULL, 0, NULL, '2025-10-24 03:52:12');
+(61, '162', 'H202', '107-10884062', '5C:0F:FB:1A:56:F87', '', '', '', '', '25.6.2520.6R', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '192.168.1.204', NULL, NULL, 0, NULL, '2025-10-29 02:40:43');
 
 -- --------------------------------------------------------
 
@@ -452,7 +452,9 @@ INSERT INTO `inventory_package` (`id`, `inventory_id`, `package_id`, `created_at
 (32, 1, 3, NULL, NULL),
 (34, 2, 4, NULL, NULL),
 (35, 6, 4, NULL, NULL),
-(36, 5, 3, NULL, NULL);
+(39, 7, 6, NULL, NULL),
+(40, 8, 6, NULL, NULL),
+(41, 5, 4, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -623,13 +625,6 @@ CREATE TABLE `password_reset_tokens` (
   `created_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `password_reset_tokens`
---
-
-INSERT INTO `password_reset_tokens` (`email`, `token`, `created_at`) VALUES
-('darshankondekar01@gmail.com', '$2y$12$k8qFGY0rlA4q2j/NIJlyV.nULkGUcgCLuZC059CiBX1SQCrx6PC4O', '2025-09-19 07:26:17');
-
 -- --------------------------------------------------------
 
 --
@@ -649,75 +644,16 @@ CREATE TABLE `permissions` (
 --
 
 INSERT INTO `permissions` (`id`, `name`, `guard_name`, `created_at`, `updated_at`) VALUES
-(1, 'view reports', 'web', '2025-09-19 05:47:19', '2025-09-19 05:47:19'),
-(2, 'manage inventory', 'web', '2025-09-19 05:47:19', '2025-09-19 05:47:19'),
-(3, 'manage channels', 'web', '2025-09-19 05:47:19', '2025-09-19 05:47:19'),
-(4, 'manage packages', 'web', '2025-09-19 05:47:19', '2025-09-19 05:47:19'),
-(5, 'manage allocations', 'web', '2025-09-19 05:47:19', '2025-09-19 05:47:19'),
-(6, 'manage subscribers', 'web', '2025-09-19 05:47:19', '2025-09-19 05:47:19'),
-(7, 'permissions.index', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(8, 'permissions.update', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(9, 'roles.index', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(10, 'roles.create', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(11, 'roles.store', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(12, 'roles.destroy', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(13, 'clients.index', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(14, 'clients.create', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(15, 'clients.store', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(16, 'clients.show', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(17, 'clients.edit', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(18, 'clients.update', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(19, 'clients.destroy', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(20, 'locations.index', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(21, 'locations.create', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(22, 'locations.store', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(23, 'locations.show', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(24, 'locations.edit', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(25, 'locations.update', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(26, 'locations.destroy', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(27, 'channels.index', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(28, 'channels.create', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(29, 'channels.store', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(30, 'channels.show', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(31, 'channels.edit', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(32, 'channels.update', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(33, 'channels.destroy', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(34, 'inventories.index', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(35, 'inventories.create', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(36, 'inventories.store', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(37, 'inventories.show', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(38, 'inventories.edit', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(39, 'inventories.update', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(40, 'inventories.destroy', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(41, 'inventories.ping', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(42, 'inventories.reboot', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(43, 'packages.index', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(44, 'packages.create', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(45, 'packages.store', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(46, 'packages.show', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(47, 'packages.edit', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(48, 'packages.update', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(49, 'packages.destroy', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(50, 'inventory-packages.index', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(51, 'inventory-packages.assign', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(52, 'utility.online', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(53, 'reports.index', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(54, 'reports.preview', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(55, 'reports.download', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(56, 'help.index', 'web', '2025-10-01 04:49:55', '2025-10-01 04:49:55'),
-(57, 'permissions.store', 'web', '2025-10-01 05:33:34', '2025-10-01 05:33:34'),
-(58, 'live-reports.index', 'web', '2025-10-13 07:01:13', '2025-10-13 07:01:13'),
-(59, 'live-reports.preview', 'web', '2025-10-13 07:01:32', '2025-10-13 07:01:32'),
-(60, 'live-reports.download', 'web', '2025-10-13 07:01:42', '2025-10-13 07:01:42'),
-(61, 'installed-reports.index', 'web', '2025-10-13 07:02:02', '2025-10-13 07:02:02'),
-(62, 'installed-reports.preview', 'web', '2025-10-13 07:02:10', '2025-10-13 07:02:10'),
-(63, 'installed-reports.download', 'web', '2025-10-13 07:02:17', '2025-10-13 07:02:17'),
-(64, 'channel-reports.index', 'web', '2025-10-13 07:02:27', '2025-10-13 07:02:27'),
-(65, 'channel-reports.preview', 'web', '2025-10-13 07:02:35', '2025-10-13 07:02:35'),
-(66, 'channel-reports.download', 'web', '2025-10-13 07:02:41', '2025-10-13 07:02:41'),
-(67, 'package-reports.index', 'web', '2025-10-13 07:02:50', '2025-10-13 07:02:50'),
-(68, 'package-reports.preview', 'web', '2025-10-13 07:02:58', '2025-10-13 07:02:58'),
-(69, 'package-reports.download', 'web', '2025-10-13 07:03:05', '2025-10-13 07:03:05');
+(1, 'manage subscriber', 'web', '2025-10-30 02:36:27', '2025-10-30 02:36:27'),
+(2, 'manage inventory', 'web', '2025-10-30 02:36:27', '2025-10-30 02:36:27'),
+(3, 'manage channels', 'web', '2025-10-30 02:36:27', '2025-10-30 02:36:27'),
+(4, 'manage package', 'web', '2025-10-30 02:36:27', '2025-10-30 02:36:27'),
+(5, 'manage allocations', 'web', '2025-10-30 02:36:27', '2025-10-30 02:36:27'),
+(6, 'manage utilities', 'web', '2025-10-30 02:36:27', '2025-10-30 02:36:27'),
+(7, 'manage reports', 'web', '2025-10-30 02:36:27', '2025-10-30 02:36:27'),
+(8, 'manage users', 'web', '2025-10-30 02:36:27', '2025-10-30 02:36:27'),
+(9, 'manage permission', 'web', '2025-10-30 02:36:27', '2025-10-30 02:36:27'),
+(10, 'helps', 'web', '2025-10-30 02:36:27', '2025-10-30 02:36:27');
 
 -- --------------------------------------------------------
 
@@ -763,97 +699,17 @@ INSERT INTO `role_has_permissions` (`permission_id`, `role_id`) VALUES
 (2, 1),
 (2, 2),
 (3, 1),
+(3, 2),
+(3, 3),
 (4, 1),
 (5, 1),
 (6, 1),
-(6, 2),
 (7, 1),
 (8, 1),
 (9, 1),
 (10, 1),
-(11, 1),
-(12, 1),
-(13, 1),
-(13, 2),
-(14, 1),
-(14, 2),
-(15, 1),
-(15, 2),
-(16, 1),
-(16, 2),
-(17, 1),
-(17, 2),
-(18, 1),
-(18, 2),
-(19, 1),
-(19, 2),
-(20, 1),
-(21, 1),
-(22, 1),
-(23, 1),
-(24, 1),
-(25, 1),
-(26, 1),
-(27, 1),
-(28, 1),
-(29, 1),
-(30, 1),
-(31, 1),
-(32, 1),
-(33, 1),
-(34, 1),
-(34, 2),
-(35, 1),
-(35, 2),
-(36, 1),
-(36, 2),
-(37, 1),
-(37, 2),
-(38, 1),
-(38, 2),
-(39, 1),
-(39, 2),
-(40, 1),
-(40, 2),
-(41, 1),
-(41, 2),
-(42, 1),
-(42, 2),
-(43, 1),
-(44, 1),
-(45, 1),
-(46, 1),
-(47, 1),
-(48, 1),
-(49, 1),
-(50, 1),
-(51, 1),
-(52, 1),
-(53, 1),
-(53, 2),
-(53, 3),
-(54, 1),
-(54, 2),
-(54, 3),
-(55, 1),
-(55, 2),
-(55, 3),
-(56, 1),
-(56, 2),
-(56, 3),
-(57, 1),
-(58, 1),
-(59, 1),
-(60, 1),
-(61, 1),
-(62, 1),
-(63, 1),
-(64, 1),
-(65, 1),
-(66, 1),
-(67, 1),
-(68, 1),
-(69, 1);
+(10, 2),
+(10, 3);
 
 -- --------------------------------------------------------
 
@@ -876,9 +732,8 @@ CREATE TABLE `sessions` (
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
 ('fOzMGHvpIAIaesiiKQQQ52OYgfSzSLv4iEHnTml0', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiWkpScWJtWHNyb21IZTduaHZJNUdkNTZzRk1XOHRrZTNMNmJDUjl5eiI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6MzM6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9sb2dpbi9waG9uZSI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjE7fQ==', 1760424348),
-('kE53bJTzx6nbRaooVcKqOTl6eU0MZPKkGztWzz2y', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoieGtqTGRURnU4d3JoMjVsY0ZBeHpCQjltVG02bDJoZDRIME5yNHNtSCI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjk6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9jbGllbnRzIjt9czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTt9', 1760440976),
-('uA34YkMWdeFVqQWmzRnD1Jz7BZuiIsAwCW4cFvaB', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiWnVYeFp2S0lXMjNXTmN1U1I5b1lZQUFmZ2Z4UnhZcnZuaWxCbkFjOCI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjk6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9jbGllbnRzIjt9czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTt9', 1761543993),
-('vyhXSKuPT1gewrhhPnqpY6No8YcoGJKGprDiTLKr', 2, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiUW9LNmRLREJZNWx0QzRxWlBBclJPWWY1R0dxNnRWRVE0aFIzNllyeCI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6MzM6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9pbnZlbnRvcmllcyI7fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjI7fQ==', 1759317119);
+('FZX9GBh6jiI5fLpBbi8MepPvGF0JzwGXXRJ7ZWXU', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiZEMwR1NncktFTnVaRHNiVkV0eU1SYzhqRXEzUHpKOTlIem02UkoxbCI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjk6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9jbGllbnRzIjt9czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTt9', 1762154645),
+('kE53bJTzx6nbRaooVcKqOTl6eU0MZPKkGztWzz2y', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoieGtqTGRURnU4d3JoMjVsY0ZBeHpCQjltVG02bDJoZDRIME5yNHNtSCI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjk6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9jbGllbnRzIjt9czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTt9', 1760440976);
 
 -- --------------------------------------------------------
 
@@ -902,9 +757,9 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`) VALUES
-(1, 'Admin', 'admin01@gmail.com', NULL, '$2y$12$WfChrlkOXOObEVmz01HgQOKOMTVnsrebGKG/VHiX01ZFaRE.ICHye', 'Ddf0ElP3boRBbqYKA60UmBXj9kzgF3Vl9AEuefOcFdrFS1XuKeLpjJEFaq5p', '2025-09-19 05:49:53', '2025-09-19 06:49:37'),
-(2, 'Saurabh Patel', 'saurabh@gmail.com', NULL, '$2y$12$4cI79qWkNsjFz0N2KhS4wuoI..Am3sM2U9FAkRnxyhQK6dWMAysUu', 'vwo5RbYnNsBiwAWvXO6dc6cZDwDptafMtOipkV7d5wiXyK2Rg0SpYlBOtAKX', '2025-09-22 00:15:36', '2025-09-22 00:15:36'),
-(3, 'Rush Tambe', 'rush@gmail.com', NULL, '$2y$12$emvIDkbxlcVmd9UTrrYPXe9.O9Wy03C1P5Jn6nHXIybzZIdz8cx6.', NULL, '2025-10-01 05:44:27', '2025-10-01 05:44:27');
+(1, 'Admin', 'admin01@gmail.com', NULL, '$2y$12$WfChrlkOXOObEVmz01HgQOKOMTVnsrebGKG/VHiX01ZFaRE.ICHye', 'fcwWaKwk6a5uZiRZtpIx67iBYGviFw7ppuCTkmOJFYRuTQak0DMFEnBhnjMl', '2025-09-19 05:49:53', '2025-09-19 06:49:37'),
+(2, 'Saurabh Patel', 'saurabh@gmail.com', NULL, '$2y$12$4cI79qWkNsjFz0N2KhS4wuoI..Am3sM2U9FAkRnxyhQK6dWMAysUu', 'kK8fU0TDZcfOZuLMHeETVBw0bUmVD8w7f8dNUGQJgIiAUCRVwozpTcC8525g', '2025-09-22 00:15:36', '2025-09-22 00:15:36'),
+(3, 'Rush Tambe', 'darshankondekar01@gmail.com', NULL, '$2y$12$yhCJyGD6CWMiJFPEqERr/uCxRGxV0j1d0zM2xwxzlLfj/xUuRkZgm', 'Sa7Z543eJ2YOb67Kc521mRihT3QI0A9uSa2hxRSq7y3jPo405dSGffyg75oV', '2025-10-01 05:44:27', '2025-10-31 08:03:06');
 
 --
 -- Indexes for dumped tables
@@ -1105,7 +960,7 @@ ALTER TABLE `inventories`
 -- AUTO_INCREMENT for table `inventory_package`
 --
 ALTER TABLE `inventory_package`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT for table `jobs`
@@ -1135,19 +990,19 @@ ALTER TABLE `packages`
 -- AUTO_INCREMENT for table `permissions`
 --
 ALTER TABLE `permissions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `roles`
 --
 ALTER TABLE `roles`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- Constraints for dumped tables
