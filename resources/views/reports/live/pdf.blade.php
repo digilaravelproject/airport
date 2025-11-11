@@ -24,6 +24,7 @@
                 <th>Model</th>
                 <th>Serial</th>
                 <th>MAC</th>
+                <th>Box IP</th>
                 <th>Client</th>
                 <th>Packages</th>
                 <th>Status</th>
@@ -38,6 +39,7 @@
                 <td>{{ $inv->box_model }}</td>
                 <td>{{ $inv->box_serial_no }}</td>
                 <td>{{ $inv->box_mac }}</td>
+                <td>{{ $inv->box_ip }}</td>
                 <td>{{ $inv->client?->name }}</td>
                 <td>{{ $inv->packages->pluck('name')->join(', ') }}</td>
                 <td>

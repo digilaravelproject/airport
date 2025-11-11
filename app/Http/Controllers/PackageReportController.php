@@ -3,16 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Models\Package;
+use App\Models\Client;
+use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use PDF;
 
 class PackageReportController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Add pagination (kept ordering and columns unchanged)
-        $packages = Package::orderBy('name')->paginate(15);
+        // Sorting (only allow known columns)
+        $map = [
+            'id'   => 'id',
+            'name' => 'name',
+        ];
+        $sort      = $request->get('sort', 'id');
+        $direction = strtolower($request->get('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $sortCol   = $map[$sort] ?? 'id';
+
+        // Paginate 15 per your original; keep everything else unchanged
+        $packages = Package::query()
+            ->orderBy($sortCol, $direction)
+            ->paginate(15)
+            ->appends($request->query());
 
         return view('reports.packages.index', compact('packages'));
     }

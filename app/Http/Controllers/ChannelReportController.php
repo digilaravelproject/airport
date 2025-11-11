@@ -21,6 +21,19 @@ class ChannelReportController extends Controller
         // Optional genre filter
         $genre = $request->get('channel_genre');
 
+        // ---- Sorting (added) ----
+        // Default behavior in original code was orderBy('id') i.e. ASC.
+        $sortMap = [
+            'id'            => 'id',
+            'channel_name'  => 'channel_name',
+            'broadcast'     => 'broadcast',
+            'channel_genre' => 'channel_genre',
+        ];
+        $sortKey   = (string) $request->get('sort', 'id');
+        $direction = strtolower((string) $request->get('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $sortCol   = $sortMap[$sortKey] ?? 'id';
+        // -------------------------
+
         // Distinct genres for dropdown
         $genres = Channel::whereNotNull('channel_genre')
             ->where('channel_genre', '!=', '')
@@ -29,10 +42,10 @@ class ChannelReportController extends Controller
             ->pluck('channel_genre')
             ->toArray();
 
-        // Listing with optional genre filter + pagination
+        // Listing with optional genre filter + pagination + sorting
         $channels = Channel::select('id', 'channel_name', 'broadcast', 'channel_genre')
             ->when($genre, fn($q) => $q->where('channel_genre', $genre))
-            ->orderBy('id')
+            ->orderBy($sortCol, $direction) // (changed: supports sort arrows)
             ->paginate($perPage)
             ->appends($request->query());
 

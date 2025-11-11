@@ -11,7 +11,6 @@ use Illuminate\Support\Str;
 
 class UtilityController extends Controller
 {
-    
     public function index(Request $request)
     {
         $search    = trim((string) $request->get('search', ''));

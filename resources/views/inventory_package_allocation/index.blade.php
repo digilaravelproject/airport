@@ -97,6 +97,11 @@
                                         </a>
                                     </th>
                                     <th>
+                                        <a href="{{ sortUrlIPA('box_ip') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Box IP <i class="{{ sortIconIPA('box_ip') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
                                         <a href="{{ sortUrlIPA('client_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                             Client ID <i class="{{ sortIconIPA('client_id') }}"></i>
                                         </a>
@@ -128,6 +133,7 @@
                                         <td>{{ $inventory->box_model }}</td>
                                         <td>{{ $inventory->box_serial_no }}</td>
                                         <td>{{ $inventory->box_mac }}</td>
+                                        <td>{{ $inventory->box_ip }}</td>
                                         <td>
                                             @if($inventory->client)
                                                 <span class="badge bg-info">{{ $inventory->client->id }}</span>
@@ -176,7 +182,7 @@
     </div>
 </div>
 
-{{-- Modal + scripts below remain unchanged from your version --}}
+{{-- Modal + scripts below remain unchanged in structure --}}
 <!-- Inventory Package Modal -->
 <div class="modal fade" id="inventoryPackageModal" tabindex="-1" aria-labelledby="inventoryPackageModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -198,6 +204,10 @@
                     <div class="mb-3">
                         <label class="form-label">Box ID</label>
                         <input type="text" id="box_id" class="form-control" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Box IP</label>
+                        <input type="text" id="box_ip" class="form-control" readonly />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Box Model</label>
@@ -312,6 +322,7 @@
         form.reset();
         document.getElementById("inventory_id").value = "";
         document.getElementById("box_id").value = "";
+        document.getElementById("box_ip").value = "";
         document.getElementById("inventory_box_model").value = "";
         document.getElementById("inventory_serial").value = "";
         document.getElementById("inventory_client").value = "";
@@ -340,6 +351,7 @@
 
             document.getElementById("inventory_id").value = data.id;
             document.getElementById("box_id").value = data.box_id;
+            document.getElementById("box_ip").value = data.box_ip;
             document.getElementById("inventory_box_model").value = data.box_model;
             document.getElementById("inventory_serial").value = data.box_serial_no;
             document.getElementById("inventory_client").value = data.client ? data.client.id + " - " + data.client.name : "No client";
@@ -360,6 +372,7 @@
             modalTitle.innerText = "View Inventory Packages";
             document.getElementById("inventory_id").value = data.id;
             document.getElementById("box_id").value = data.box_id;
+            document.getElementById("box_ip").value = data.box_ip;
             document.getElementById("inventory_box_model").value = data.box_model;
             document.getElementById("inventory_serial").value = data.box_serial_no;
             document.getElementById("inventory_client").value = data.client ? data.client.id + " - " + data.client.name : "No client";
@@ -423,7 +436,25 @@
         nextMsg();
     }
 
-    
+    /* === NEW: wrapper that shows success/error popup and reloads after sequence === */
+    function showAdbResult(messages, isSuccess) {
+        const list = (Array.isArray(messages) && messages.length) ? messages : [isSuccess ? "Process completed" : "Process failed"];
+        showAdbProgress(list);
+
+        // after all lines are printed (~800ms per line), append final status and reload
+        const total = list.length * 800 + 200;
+        setTimeout(() => {
+            const msgBox = document.getElementById("adbMessages");
+            const final = document.createElement("div");
+            final.textContent = isSuccess ? "✅ Completed." : "❌ Failed.";
+            msgBox.appendChild(final);
+            msgBox.scrollTop = msgBox.scrollHeight;
+        }, total);
+
+        setTimeout(() => {
+            window.location.reload();
+        }, total + 800);
+    }
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -451,7 +482,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const raw = await res.text(); // read once
 
         if (!res.ok) {
-          // Send back server message (still JSON-safe in our catch below)
+          // Propagate server message
           throw new Error(`HTTP ${res.status}: ${raw.slice(0, 800)}`);
         }
 
@@ -472,14 +503,22 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((data) => {
         hideAnyLoader?.();
         if (data.success) {
-          showAdbProgress?.(data.messages || ["Process completed"]);
+          // SUCCESS POPUP + AUTO RELOAD
+          const msgs = Array.isArray(data.messages) ? data.messages : ["Process completed"];
+          showAdbResult(msgs, true);
         } else {
-          alert(data.message || "Failed to assign packages.");
+          // ERROR POPUP + AUTO RELOAD
+          const msgs = [];
+          if (data.messages && Array.isArray(data.messages)) msgs.push(...data.messages);
+          if (data.message) msgs.push(String(data.message));
+          if (!msgs.length) msgs.push("Failed to assign packages.");
+          showAdbResult(msgs, false);
         }
       })
       .catch((err) => {
         hideAnyLoader?.();
-        alert("Error: " + err.message);
+        // NETWORK/UNEXPECTED ERROR POPUP + AUTO RELOAD
+        showAdbResult([ "Error: " + (err.message || "Unknown error") ], false);
       });
   });
 });

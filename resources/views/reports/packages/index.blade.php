@@ -3,6 +3,31 @@
 @section('content')
 <div class="container-fluid">
     <?php $page_title = "Packages"; $sub_title = "Reports"; ?>
+
+    @php
+        /**
+         * Sorting helpers (mirror the style you used in the Live view)
+         */
+        function nextDirPkg($col) {
+            $currentSort = request('sort','id');
+            $currentDir  = request('direction','asc'); // default asc for a natural first click
+            if ($currentSort === $col) return $currentDir === 'asc' ? 'desc' : 'asc';
+            return 'asc';
+        }
+        function sortIconPkg($col) {
+            $currentSort = request('sort','id');
+            $currentDir  = request('direction','asc');
+            if ($currentSort !== $col) return 'fas fa-sort text-muted';
+            return $currentDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+        }
+        function sortUrlPkg($col) {
+            $params = request()->all();
+            $params['sort'] = $col;
+            $params['direction'] = nextDirPkg($col);
+            return request()->fullUrlWithQuery($params);
+        }
+    @endphp
+
     <div class="row">
         <div class="col-sm-12">
             <div class="page-title-box">
@@ -45,8 +70,16 @@
                         <thead class="table-light">
                             <tr>
                                 <th style="width:40px;"></th>
-                                <th>ID</th>
-                                <th>Name</th>
+                                <th style="white-space:nowrap;">
+                                    <a href="{{ sortUrlPkg('id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        ID <i class="{{ sortIconPkg('id') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlPkg('name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Name <i class="{{ sortIconPkg('name') }}"></i>
+                                    </a>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -69,7 +102,7 @@
 
                 {{-- Pagination (keeps your layout/design) --}}
                 <div class="mt-3">
-                    {{ $packages->links() }}
+                    {{ $packages->appends(request()->except('page'))->links() }}
                 </div>
 
                 <div class="mt-3 d-flex gap-2">

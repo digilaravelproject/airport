@@ -111,6 +111,11 @@
                                                 MAC <i class="{{ sortIconUti('box_mac') }}"></i>
                                             </a>
                                         </th>
+                                        <th>
+                                            <a href="{{ sortUrlUti('box_ip') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                                Box IP <i class="{{ sortIconUti('box_ip') }}"></i>
+                                            </a>
+                                        </th>
                                         <th>Status</th>
                                         <th>
                                             <a href="{{ sortUrlUti('box_fw') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
@@ -136,6 +141,7 @@
                                         <td>{{ $inventory->box_model }}</td>
                                         <td>{{ $inventory->box_serial_no }}</td>
                                         <td>{{ $inventory->box_mac }}</td>
+                                        <td>{{ $inventory->box_ip }}</td>
                                         <td>
                                             <span class="badge {{ $isOnline ? 'bg-success' : 'bg-secondary' }}">
                                                 {{ $isOnline ? 'Online' : 'Offline' }}

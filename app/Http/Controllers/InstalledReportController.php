@@ -14,20 +14,56 @@ class InstalledReportController extends Controller
      * Show all installed boxes (status = 1) with selection checkboxes.
      * Adds optional filtering by client_id (GET param).
      */
+    /**
+     * Show all installed boxes (status = 1) with selection checkboxes.
+     * Optional filtering by client_id (GET param).
+     * Added safe sorting (asc/desc) with arrows in the view—kept logic/design intact.
+     */
     public function index(Request $request)
     {
-        $clientId = $request->query('client_id');
+        $clientId  = $request->query('client_id');
 
-        $inventories = Inventory::with(['client', 'packages'])
+        // --- sorting (whitelist columns) ---
+        $map = [
+            'id'            => 'inventories.id',
+            'box_id'        => 'inventories.box_id',
+            'box_model'     => 'inventories.box_model',
+            'box_serial_no' => 'inventories.box_serial_no',
+            'box_mac'       => 'inventories.box_mac',
+            'warranty_date' => 'inventories.warranty_date',
+            'client_name'   => 'clients.name', // requires join
+        ];
+
+        $sortInput = (string) $request->get('sort', 'id');
+        $direction = strtolower((string) $request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $sortCol   = $map[$sortInput] ?? $map['id'];
+
+        // base query
+        $query = Inventory::query()
             ->where('status', 1)
-            ->when($clientId, fn($q) => $q->where('client_id', $clientId))
-            ->orderByDesc('id')
-            ->get(); // Load all (keeps Select All behavior for the current view)
+            ->when($clientId, fn ($q) => $q->where('client_id', $clientId))
+            ->with(['client', 'packages']);
+
+        // join only when sorting by client_name
+        if ($sortInput === 'client_name') {
+            $query->leftJoin('clients', 'clients.id', '=', 'inventories.client_id')
+                  ->select('inventories.*');
+        }
+
+        $query->orderBy($sortCol, $direction);
+
+        // get all (keeps existing "Select All" behavior for the current view)
+        $inventories = $query->get();
 
         // For dropdown
         $clients = Client::orderBy('name')->get();
 
-        return view('reports.installed.index', compact('inventories', 'clients'));
+        return view('reports.installed.index', [
+            'inventories' => $inventories,
+            'clients'     => $clients,
+            'sort'        => $sortInput,
+            'direction'   => $direction,
+        ]);
     }
 
     /**

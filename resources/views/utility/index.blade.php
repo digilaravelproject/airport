@@ -96,6 +96,12 @@
                                             MAC <i class="{{ sortIconUti('box_mac') }}"></i>
                                         </a>
                                     </th>
+                                    <!-- NEW: Box IP (sortable) -->
+                                    <th>
+                                        <a href="{{ sortUrlUti('box_ip') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Box IP <i class="{{ sortIconUti('box_ip') }}"></i>
+                                        </a>
+                                    </th>
                                     <th>Status</th>
                                     <th>
                                         <a href="{{ sortUrlUti('box_fw') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
@@ -107,7 +113,7 @@
                                             Client <i class="{{ sortIconUti('client_name') }}"></i>
                                         </a>
                                     </th>
-                                    {{-- NEW: Active Channel (play) --}}
+                                    {{-- Active Channel (play) --}}
                                     <th>Active Channel</th>
                                 </tr>
                             </thead>
@@ -120,6 +126,8 @@
                                     <td>{{ $inventory->box_model }}</td>
                                     <td>{{ $inventory->box_serial_no }}</td>
                                     <td>{{ $inventory->box_mac }}</td>
+                                    <!-- NEW: Box IP value -->
+                                    <td>{{ $inventory->box_ip }}</td> {{-- ← if your attribute name differs, update here --}}
                                     <td>
                                         <span class="badge {{ $isOnline ? 'bg-success' : 'bg-secondary' }}">
                                             {{ $isOnline ? 'Online' : 'Offline' }}
@@ -127,7 +135,7 @@
                                     </td>
                                     <td>{{ $inventory->box_fw }}</td>
                                     <td>{{ $inventory->client?->name }}</td>
-                                    {{-- NEW: Active channel play button (does not steal row click) --}}
+                                    {{-- Active channel play button (does not steal row click) --}}
                                     <td onclick="event.stopPropagation();">
                                         <button
                                             class="btn btn-sm btn-outline-primary"
@@ -138,7 +146,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="9" class="text-center text-muted">No boxes found.</td></tr>
+                                <tr><td colspan="10" class="text-center text-muted">No boxes found.</td></tr>
                             @endforelse
                             </tbody>
                         </table>
@@ -179,6 +187,11 @@
                             <label class="form-label">MAC</label>
                             <input type="text" class="form-control" value="{{ $selectedInventory->box_mac }}" readonly>
                         </div>
+                        <!-- NEW: Box IP in details -->
+                        <div class="mb-3">
+                            <label class="form-label">Box IP</label>
+                            <input type="text" class="form-control" value="{{ $selectedInventory->box_ip }}" readonly> {{-- ← update attribute if needed --}}
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Serial No</label>
                             <input type="text" class="form-control" value="{{ $selectedInventory->box_serial_no }}" readonly>
@@ -214,7 +227,7 @@
                             </div>
                         </div>
 
-                        {{-- NEW: Active Channel (readonly) --}}
+                        {{-- Active Channel (readonly) --}}
                         <div class="mb-3">
                             <label class="form-label">Active Channel URL</label>
                             <input type="text" id="activeChannelField" class="form-control"
@@ -231,7 +244,7 @@
     </div>
 </div>
 
-{{-- NEW: JS – discover active channel then call local Python VLC helper --}}
+{{-- JS – discover active channel then call local Python VLC helper --}}
 <script>
 const PY_HELPER_BASE = 'http://127.0.0.1:5000'; // The Python helper must run on the CLIENT computer
 

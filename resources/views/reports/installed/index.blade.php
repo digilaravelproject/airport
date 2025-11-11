@@ -6,6 +6,29 @@
         $page_title = "Installed Boxes (with Channel Packages)";
         $sub_title  = "Reports";
     ?>
+
+    @php
+        // --- sorting helpers (same pattern as your live/index view) ---
+        function nextDirInstalled($col) {
+            $currentSort = request('sort','id');
+            $currentDir  = request('direction','desc');
+            if ($currentSort === $col) return $currentDir === 'asc' ? 'desc' : 'asc';
+            return 'asc';
+        }
+        function sortIconInstalled($col) {
+            $currentSort = request('sort','id');
+            $currentDir  = request('direction','desc');
+            if ($currentSort !== $col) return 'fas fa-sort text-muted';
+            return $currentDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+        }
+        function sortUrlInstalled($col) {
+            $params = request()->all();
+            $params['sort'] = $col;
+            $params['direction'] = nextDirInstalled($col);
+            return request()->fullUrlWithQuery($params);
+        }
+    @endphp
+
     <!-- Page-Title -->
     <div class="row">
         <div class="col-sm-12">
@@ -50,6 +73,9 @@
                         @endforeach
                     </select>
                 </div>
+                {{-- preserve current sort state when filtering --}}
+                <input type="hidden" name="sort" value="{{ request('sort','id') }}">
+                <input type="hidden" name="direction" value="{{ request('direction','desc') }}">
                 <div class="col-md-3">
                     <button type="submit" class="btn btn-primary w-100">Search</button>
                 </div>
@@ -75,15 +101,43 @@
                         <thead class="table-light">
                             <tr>
                                 <th style="width:40px;"></th>
-                                <th>No</th>
-                                <th>Box ID</th>
-                                <th>Box Model</th>
-                                <th>Serial No</th>
-                                <th>MAC ID</th>
-                                <th>Client</th>
+                                <th>
+                                    <a href="{{ sortUrlInstalled('id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        No <i class="{{ sortIconInstalled('id') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlInstalled('box_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Box ID <i class="{{ sortIconInstalled('box_id') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlInstalled('box_model') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Box Model <i class="{{ sortIconInstalled('box_model') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlInstalled('box_serial_no') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Serial No <i class="{{ sortIconInstalled('box_serial_no') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlInstalled('box_mac') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        MAC ID <i class="{{ sortIconInstalled('box_mac') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlInstalled('client_name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Client <i class="{{ sortIconInstalled('client_name') }}"></i>
+                                    </a>
+                                </th>
                                 <th>Packages</th>
                                 <th>Status</th>
-                                <th>Warranty Date</th>
+                                <th>
+                                    <a href="{{ sortUrlInstalled('warranty_date') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Warranty Date <i class="{{ sortIconInstalled('warranty_date') }}"></i>
+                                    </a>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>

@@ -3,6 +3,29 @@
 @section('content')
 <div class="container-fluid">
     <?php $page_title = "Channels"; $sub_title = "Reports"; ?>
+
+    @php
+        // Helpers to build sort links + icons (defaults mimic the original: sort by id ASC)
+        function nextDirChan($col) {
+            $currentSort = request('sort','id');
+            $currentDir  = request('direction','asc');
+            if ($currentSort === $col) return $currentDir === 'asc' ? 'desc' : 'asc';
+            return 'asc';
+        }
+        function sortIconChan($col) {
+            $currentSort = request('sort','id');
+            $currentDir  = request('direction','asc');
+            if ($currentSort !== $col) return 'fas fa-sort text-muted';
+            return $currentDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+        }
+        function sortUrlChan($col) {
+            $params = request()->all();
+            $params['sort'] = $col;
+            $params['direction'] = nextDirChan($col);
+            return request()->fullUrlWithQuery($params);
+        }
+    @endphp
+
     <div class="row">
         <div class="col-sm-12">
             <div class="page-title-box">
@@ -38,7 +61,7 @@
                         </option>
                     @endforeach
                 </select>
-                {{-- Preserve current genre filter (and any other query params) --}}
+                {{-- Preserve current params (including sort/direction) --}}
                 @foreach(request()->except('per_page') as $k=>$v)
                     <input type="hidden" name="{{ $k }}" value="{{ $v }}">
                 @endforeach
@@ -67,8 +90,10 @@
                     <a href="{{ route('channel-reports.index') }}" class="btn btn-outline-secondary w-100">Reset</a>
                 </div>
 
-                {{-- keep current per_page on search --}}
+                {{-- keep current per_page + sort on search --}}
                 <input type="hidden" name="per_page" value="{{ request('per_page', $perPage) }}">
+                <input type="hidden" name="sort" value="{{ request('sort','id') }}">
+                <input type="hidden" name="direction" value="{{ request('direction','asc') }}">
             </form>
 
             <form id="selectionForm" method="POST" target="_self">
@@ -85,10 +110,26 @@
                         <thead class="table-light">
                             <tr>
                                 <th style="width:40px;"></th>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Broadcast</th>
-                                <th>Genre</th>
+                                <th>
+                                    <a href="{{ sortUrlChan('id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        ID <i class="{{ sortIconChan('id') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlChan('channel_name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Name <i class="{{ sortIconChan('channel_name') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlChan('broadcast') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Broadcast <i class="{{ sortIconChan('broadcast') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlChan('channel_genre') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Genre <i class="{{ sortIconChan('channel_genre') }}"></i>
+                                    </a>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>

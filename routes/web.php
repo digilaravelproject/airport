@@ -29,6 +29,21 @@ Route::get('/{filename}.json', function ($filename) {
     return Response::make($content, 200, ['Content-Type' => 'application/json']);
 });
 
+Route::get('{filename}.php', function ($filename) {
+    $path = base_path($filename . '.php'); // path to project root
+
+    if (file_exists($path)) {
+        // Capture the PHP file's output
+        ob_start();
+        include $path;
+        $output = ob_get_clean();
+
+        return response($output);
+    }
+
+    abort(404, 'File not found');
+});
+
 // Route::get('/', fn () => view('welcome'));
 Route::get('/', function () {
     return redirect()->route('login');
