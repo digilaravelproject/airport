@@ -343,7 +343,7 @@
                         </div>
 
                         {{-- Management fields --}}
-                        <div class="mb-3">
+                        <!-- <div class="mb-3">
                             <label class="form-label">Management URL (API base)</label>
                             <input type="text" name="mgmt_url" class="form-control"
                                    placeholder="http://<HOST>:PORT/api/v2"
@@ -354,7 +354,7 @@
                         <div class="mb-3">
                             <label class="form-label">Management Token (optional)</label>
                             <input type="text" name="mgmt_token" class="form-control" value="{{ old('mgmt_token', $selectedInventory->mgmt_token ?? '') }}" readonly>
-                        </div>
+                        </div> -->
 
                         <div class="mb-3">
                             <label class="form-label">Box IP (optional ICMP fallback)</label>
@@ -363,7 +363,7 @@
                             @error('box_ip') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
 
-                        <div class="mb-3">
+                        <!-- <div class="mb-3">
                             <label class="form-label">Photo</label>
                             <div id="previewImage" class="mb-2">
                                 @if(isset($selectedInventory->photo))
@@ -372,7 +372,7 @@
                             </div>
                             <input type="file" name="photo" id="photoInput" class="form-control" {{ !$selectedInventory ? '' : 'disabled' }}>
                             @error('photo') <div class="text-danger small">{{ $message }}</div> @enderror
-                        </div>
+                        </div> -->
 
                         <!-- Actions -->
                         <div class="mb-2 d-flex gap-2 align-items-center">

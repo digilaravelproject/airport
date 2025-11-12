@@ -169,7 +169,10 @@ Route::middleware('auth')->group(function () {
         // PDF actions (note: buttons submit via POST with CSRF)
         Route::post('/preview',  [LiveReportController::class, 'preview'])->name('preview');
         Route::post('/download', [LiveReportController::class, 'download'])->name('download');
+        Route::get('/{inventory}/active-channel', [LiveReportController::class, 'activeChannel'])
+            ->name('activeChannel');
     });
+
 
     Route::prefix('reports/installed')->name('installed-reports.')->middleware('permission:manage reports')->group(function () {
         Route::get('/',        [InstalledReportController::class, 'index'])->name('index');
