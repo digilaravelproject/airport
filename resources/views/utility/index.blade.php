@@ -1,29 +1,17 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid">
-    <?php $page_title = "Inventories (Online Only)"; $sub_title = "Setup Boxes"; ?>
 
-    @php
-        function nextDirUti($col) {
-            $currentSort = request('sort','id');
-            $currentDir  = request('direction','desc');
-            if ($currentSort === $col) return $currentDir === 'asc' ? 'desc' : 'asc';
-            return 'asc';
-        }
-        function sortIconUti($col) {
-            $currentSort = request('sort','id');
-            $currentDir  = request('direction','desc');
-            if ($currentSort !== $col) return 'fas fa-sort text-muted';
-            return $currentDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
-        }
-        function sortUrlUti($col) {
-            $params = request()->all();
-            $params['sort'] = $col;
-            $params['direction'] = nextDirUti($col);
-            return request()->fullUrlWithQuery($params);
-        }
-    @endphp
+<style>
+    .import-header { background-color: #0f172a !important; }
+    .summary-card { cursor:pointer; transition: transform .05s ease-in; }
+    .summary-card:hover { transform: translateY(-1px); }
+    .summary-active { border-color:#0d6efd !important; box-shadow: 0 0 0 .1rem rgba(13,110,253,.15); }
+    .table thead a { font-weight:600; }
+</style>
+
+<div class="container-fluid">
+    <?php $page_title = "Utilities"; $sub_title = "Setop Boxes"; ?>
 
     <div class="row">
         <div class="col-sm-12">
@@ -40,7 +28,7 @@
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show mt-3 mb-0">
+        <div class="alert alert-success alert-dismissible fade show mt-3 mb-2">
             <i class="fas fa-check-circle me-1"></i>
             {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -48,190 +36,90 @@
     @endif
 
     @if(session('error'))
-        <div class="alert alert-danger mt-3 mb-0 alert-dismissible fade show">
+        <div class="alert alert-danger mt-3 mb-2 alert-dismissible fade show">
             <i class="fas fa-exclamation-circle me-1"></i>
             {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
 
-    <div class="row">
-        <!-- Left: Inventories Table -->
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Online Inventories</h5>
-                    <form method="GET" action="{{ route('utility.online') }}" class="d-flex">
-                        <input type="text" name="search" value="{{ $search ?? '' }}"
-                               class="form-control form-control-sm me-2" placeholder="Search">
-
-                        <!-- search-field dropdown -->
-                        <select name="field" class="form-select form-select-sm me-2" style="width:160px;">
-                            @php $sf = request('field','all'); @endphp
-                            <option value="all" {{ $sf==='all' ? 'selected' : '' }}>All Fields</option>
-                            <option value="box_id" {{ $sf==='box_id' ? 'selected' : '' }}>Box ID</option>
-                            <option value="box_model" {{ $sf==='box_model' ? 'selected' : '' }}>Model</option>
-                            <option value="box_serial_no" {{ $sf==='box_serial_no' ? 'selected' : '' }}>Serial No</option>
-                            <option value="box_mac" {{ $sf==='box_mac' ? 'selected' : '' }}>MAC</option>
-                            <option value="box_ip" {{ $sf==='box_ip' ? 'selected' : '' }}>Box IP</option>
-                            <option value="box_fw" {{ $sf==='box_fw' ? 'selected' : '' }}>Firmware</option>
-                            <option value="client_name" {{ $sf==='client_name' ? 'selected' : '' }}>Client</option>
-                        </select>
-
-                        <input type="hidden" name="sort" value="{{ request('sort','id') }}">
-                        <input type="hidden" name="direction" value="{{ request('direction','desc') }}">
-                        <button type="submit" class="btn btn-sm btn-primary me-2">Search</button>
-                        <a href="{{ route('utility.online') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
-                    </form>
+    <!-- Start Inventory Import Section -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header import-header text-white d-flex justify-content-between align-items-center">
+                    <h6 class="text-light">
+                        <i class="fas fa-file-import me-2"></i>Import Inventory Data
+                    </h6>
+                    <small class="text-light">Upload Excel (.xlsx, .xls, .csv)</small>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>No</th>
-                                    <th>
-                                        <a href="{{ sortUrlUti('box_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Box ID <i class="{{ sortIconUti('box_id') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlUti('box_model') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Model <i class="{{ sortIconUti('box_model') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlUti('box_serial_no') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Serial No <i class="{{ sortIconUti('box_serial_no') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlUti('box_mac') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            MAC <i class="{{ sortIconUti('box_mac') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlUti('box_ip') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Box IP <i class="{{ sortIconUti('box_ip') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>Status</th>
-                                    <th>
-                                        <a href="{{ sortUrlUti('box_fw') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Firmware <i class="{{ sortIconUti('box_fw') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlUti('client_name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Client <i class="{{ sortIconUti('client_name') }}"></i>
-                                        </a>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            @forelse ($inventories as $key => $inventory)
-                                @php $isOnline = $inventory->is_online ?? false; @endphp
-                                <tr onclick="window.location='?inventory_id={{ $inventory->id }}&page={{ request('page',1) }}&search={{ urlencode($search ?? '') }}&field={{ urlencode(request('field','all')) }}&sort={{ request('sort','id') }}&direction={{ request('direction','desc') }}'" style="cursor:pointer;">
-                                    <td>{{ ($inventories->firstItem() ?? 0) + $key }}</td>
-                                    <td><span class="badge bg-success">{{ $inventory->box_id }}</span></td>
-                                    <td>{{ $inventory->box_model }}</td>
-                                    <td>{{ $inventory->box_serial_no }}</td>
-                                    <td>{{ $inventory->box_mac }}</td>
-                                    <td>{{ $inventory->box_ip }}</td>
-                                    <td>
-                                        <span class="badge {{ $isOnline ? 'bg-success' : 'bg-secondary' }}">
-                                            {{ $isOnline ? 'Online' : 'Offline' }}
-                                        </span>
-                                    </td>
-                                    <td>{{ $inventory->box_fw }}</td>
-                                    <td>{{ $inventory->client?->name }}</td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="9" class="text-center text-muted">No boxes found.</td></tr>
-                            @endforelse
-                            </tbody>
-                        </table>
-
-                        <div class="mt-3 d-flex justify-content-between align-items-center">
-                            <div class="small text-muted">
-                                @if($inventories->total())
-                                    Showing {{ $inventories->firstItem() }}–{{ $inventories->lastItem() }} of {{ $inventories->total() }}
-                                @endif
+                    <form method="POST" action="{{ route('inventories.import') }}" enctype="multipart/form-data" id="importForm">
+                        @csrf
+                        <div class="row align-items-end g-3">
+                            <div class="col-md-6">
+                                <label for="file" class="form-label fw-semibold">Select File</label>
+                                <input type="file" name="file" id="file" accept=".xlsx,.xls,.csv" class="form-control" required>
                             </div>
-                            <div>
-                                {{ $inventories->appends(request()->except('page'))->links('pagination::bootstrap-5') }}
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-upload me-1"></i> Import
+                                </button>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <a href="{{ asset('sample/Inventory_Import_Format.xlsx') }}"
+                                   class="btn btn-outline-secondary w-100" download>
+                                    <i class="fas fa-download me-1"></i> Sample File
+                                </a>
                             </div>
                         </div>
-
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
+    </div>
+    <!-- End Inventory Import Section -->
 
-        <!-- Right: Selected Box Details (without Active Channel field) -->
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Box Details</h6>
+    <!-- Start Channel Import Section -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color:#0f172a;">
+                    <h6 class="text-light mb-0">
+                        <i class="fas fa-file-import me-2"></i>Import Channel Data
+                    </h6>
+                    <small class="text-light">Upload Excel (.xlsx, .xls, .csv)</small>
                 </div>
                 <div class="card-body">
-                    @if($selectedInventory)
-                        <div class="mb-3">
-                            <label class="form-label">Box ID</label>
-                            <input type="text" class="form-control" value="{{ $selectedInventory->box_id }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Model</label>
-                            <input type="text" class="form-control" value="{{ $selectedInventory->box_model }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">MAC</label>
-                            <input type="text" class="form-control" value="{{ $selectedInventory->box_mac }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Box IP</label>
-                            <input type="text" class="form-control" value="{{ $selectedInventory->box_ip }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Serial No</label>
-                            <input type="text" class="form-control" value="{{ $selectedInventory->box_serial_no }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Firmware</label>
-                            <input type="text" class="form-control" value="{{ $selectedInventory->box_fw }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">RCU Model</label>
-                            <input type="text" class="form-control" value="{{ $selectedInventory->box_remote_model }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Warranty Date</label>
-                            <input type="text" class="form-control" value="{{ $selectedInventory->warranty_date?->format('Y-m-d') }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Client</label>
-                            <input type="text" class="form-control" value="{{ $selectedInventory->client?->name }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Location</label>
-                            <input type="text" class="form-control" value="{{ $selectedInventory->location }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Photo</label>
-                            <div>
-                                @if($selectedInventory->photo)
-                                    <img src="{{ asset('storage/'.$selectedInventory->photo) }}" class="img-thumbnail" width="120">
-                                @else
-                                    <span class="text-muted">No photo</span>
-                                @endif
+                    <form method="POST" action="{{ route('channels.import') }}" enctype="multipart/form-data" id="channelImportForm">
+                        @csrf
+                        <div class="row align-items-end g-3">
+                            <div class="col-md-6">
+                                <label for="file" class="form-label fw-semibold">Select File</label>
+                                <input type="file" name="file" id="file" accept=".xlsx,.xls,.csv" class="form-control" required>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-upload me-1"></i> Import
+                                </button>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <a href="{{ asset('sample/Channel_Import_Format.xlsx') }}"
+                                   class="btn btn-outline-secondary w-100" download>
+                                    <i class="fas fa-download me-1"></i> Sample File
+                                </a>
                             </div>
                         </div>
-                    @else
-                        <div class="text-muted">Click a row to view details.</div>
+                    </form>
+
+                    @if ($errors->has('file'))
+                        <div class="text-danger small mt-2">{{ $errors->first('file') }}</div>
                     @endif
                 </div>
             </div>
         </div>
     </div>
+    <!-- End Channel Import Section -->
+
 </div>
 @endsection

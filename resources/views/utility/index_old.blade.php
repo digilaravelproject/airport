@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container-fluid">
-    <?php $page_title = "Inventories (Online Only)"; $sub_title = "Setup Boxes"; ?>
+    <?php $page_title = "Inventories (Online Only)"; $sub_title = "Setop Boxes"; ?>
 
     <div class="row">
         <div class="col-sm-12">

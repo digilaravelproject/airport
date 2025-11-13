@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('package_id')->constrained()->onDelete('cascade');
             $table->foreignId('channel_id')->constrained()->onDelete('cascade');
+            $table->unsignedInteger('sort_order')->nullable()->default(0);
             $table->timestamps();
         });
     }

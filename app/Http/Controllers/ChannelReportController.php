@@ -24,10 +24,16 @@ class ChannelReportController extends Controller
         // ---- Sorting (added) ----
         // Default behavior in original code was orderBy('id') i.e. ASC.
         $sortMap = [
-            'id'            => 'id',
-            'channel_name'  => 'channel_name',
-            'broadcast'     => 'broadcast',
-            'channel_genre' => 'channel_genre',
+            'id'                    => 'id',
+            'channel_name'          => 'channel_name',
+            'broadcast'             => 'broadcast',
+            'channel_genre'         => 'channel_genre',
+            'channel_resolution'    => 'channel_resolution',
+            'channel_type'          => 'channel_type',
+            'channel_source_in'     => 'channel_source_in',
+            'channel_source_details'=> 'channel_source_details',
+            'language'              => 'language',
+            'active'                => 'active',
         ];
         $sortKey   = (string) $request->get('sort', 'id');
         $direction = strtolower((string) $request->get('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
@@ -43,7 +49,18 @@ class ChannelReportController extends Controller
             ->toArray();
 
         // Listing with optional genre filter + pagination + sorting
-        $channels = Channel::select('id', 'channel_name', 'broadcast', 'channel_genre')
+        $channels = Channel::select(
+                'id',
+                'channel_name',
+                'broadcast',
+                'channel_genre',
+                'channel_resolution',
+                'channel_type',
+                'channel_source_in',
+                'channel_source_details',
+                'language',
+                'active'
+            )
             ->when($genre, fn($q) => $q->where('channel_genre', $genre))
             ->orderBy($sortCol, $direction) // (changed: supports sort arrows)
             ->paginate($perPage)
@@ -83,10 +100,21 @@ class ChannelReportController extends Controller
             ]);
         }
 
-        // Include broadcast & channel_genre for PDF as well.
+        // Include all fields required in the PDF
         $channels = Channel::whereIn('id', $ids)
             ->orderBy('id')
-            ->select('id', 'channel_name', 'broadcast', 'channel_genre')
+            ->select(
+                'id',
+                'channel_name',
+                'broadcast',
+                'channel_genre',
+                'channel_resolution',
+                'channel_type',
+                'channel_source_in',
+                'channel_source_details',
+                'language',
+                'active'
+            )
             ->get();
 
         return [$channels, 'Channels (Selected)'];

@@ -10,6 +10,7 @@ return new class extends Migration {
         Schema::create('packages', function (Blueprint $table) {
             $table->id(); // Package Id
             $table->string('name'); // Package Name
+            $table->text('description')->nullable();
             $table->enum('active', ['Yes', 'No'])->default('Yes'); // Active column
 
             $table->timestamps();

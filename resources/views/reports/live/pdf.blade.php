@@ -19,7 +19,6 @@
     <table>
         <thead>
             <tr>
-                <th>#</th>
                 <th>Box ID</th>
                 <th>Model</th>
                 <th>Serial</th>
@@ -34,7 +33,6 @@
         <tbody>
             @foreach($inventories as $i => $inv)
             <tr>
-                <td>{{ $i+1 }}</td>
                 <td>{{ $inv->box_id }}</td>
                 <td>{{ $inv->box_model }}</td>
                 <td>{{ $inv->box_serial_no }}</td>

@@ -33,7 +33,7 @@ class ClientController extends Controller
         // Sorting (server-side for Clients table)
         $allowedSorts = ['id','name','contact_person','contact_no','city','email','created_at'];
         $sort = $request->get('sort', 'id');
-        $direction = $request->get('direction', 'desc');
+        $direction = $request->get('direction', 'asc');
 
         if (!in_array($sort, $allowedSorts)) {
             $sort = 'id';

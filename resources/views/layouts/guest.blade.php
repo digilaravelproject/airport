@@ -8,7 +8,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('assets/images/logo_new.jpg') }}">
 
-    <title>{{ config('app.name', 'Setup Box Management') }}</title>
+    <title>{{ config('app.name', 'Setop Box Management') }}</title>
 
     <!-- Bootstrap CSS -->
     <link href="{{ asset('assets/css/bootstrap.min.css') }}" rel="stylesheet">

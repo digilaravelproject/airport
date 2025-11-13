@@ -11,6 +11,7 @@
         th { background: #f4f4f4; text-align: left; }
         .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; background: #666; color:#fff; font-size: 11px; }
         .muted { color:#777; }
+        .small { font-size: 11px; }
     </style>
 </head>
 <body>
@@ -20,10 +21,16 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
+                <th style="width:48px;">ID</th>
                 <th>Name</th>
                 <th>Broadcast</th>
                 <th>Genre</th>
+                <th>Resolution</th>
+                <th>Type</th>
+                <th>Source In</th>
+                <th>Source Details</th>
+                <th>Language</th>
+                <th>Active</th>
             </tr>
         </thead>
         <tbody>
@@ -33,6 +40,12 @@
                 <td>{{ $ch->channel_name }}</td>
                 <td>{{ $ch->broadcast }}</td>
                 <td>{{ $ch->channel_genre }}</td>
+                <td>{{ $ch->channel_resolution ?? '-' }}</td>
+                <td>{{ $ch->channel_type ?? '-' }}</td>
+                <td>{{ $ch->channel_source_in ?? '-' }}</td>
+                <td>{{ $ch->channel_source_details ?? '-' }}</td>
+                <td>{{ $ch->language ?? '-' }}</td>
+                <td>{{ $ch->active ? 'Yes' : 'No' }}</td>
             </tr>
             @endforeach
         </tbody>

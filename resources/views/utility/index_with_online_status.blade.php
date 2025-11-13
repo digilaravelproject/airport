@@ -5,7 +5,6 @@
     <?php $page_title = "Inventories (Online Only)"; $sub_title = "Setop Boxes"; ?>
 
     @php
-        // Sort helpers (DataTables-like arrows)
         function nextDirUti($col) {
             $currentSort = request('sort','id');
             $currentDir  = request('direction','desc');
@@ -66,10 +65,21 @@
                         <input type="text" name="search" value="{{ $search ?? '' }}"
                                class="form-control form-control-sm me-2" placeholder="Search">
 
-                        {{-- Preserve current sort across searches --}}
+                        <!-- search-field dropdown -->
+                        <select name="field" class="form-select form-select-sm me-2" style="width:160px;">
+                            @php $sf = request('field','all'); @endphp
+                            <option value="all" {{ $sf==='all' ? 'selected' : '' }}>All Fields</option>
+                            <option value="box_id" {{ $sf==='box_id' ? 'selected' : '' }}>Box ID</option>
+                            <option value="box_model" {{ $sf==='box_model' ? 'selected' : '' }}>Model</option>
+                            <option value="box_serial_no" {{ $sf==='box_serial_no' ? 'selected' : '' }}>Serial No</option>
+                            <option value="box_mac" {{ $sf==='box_mac' ? 'selected' : '' }}>MAC</option>
+                            <option value="box_ip" {{ $sf==='box_ip' ? 'selected' : '' }}>Box IP</option>
+                            <option value="box_fw" {{ $sf==='box_fw' ? 'selected' : '' }}>Firmware</option>
+                            <option value="client_name" {{ $sf==='client_name' ? 'selected' : '' }}>Client</option>
+                        </select>
+
                         <input type="hidden" name="sort" value="{{ request('sort','id') }}">
                         <input type="hidden" name="direction" value="{{ request('direction','desc') }}">
-
                         <button type="submit" class="btn btn-sm btn-primary me-2">Search</button>
                         <a href="{{ route('utility.online') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
                     </form>
@@ -100,7 +110,12 @@
                                             MAC <i class="{{ sortIconUti('box_mac') }}"></i>
                                         </a>
                                     </th>
-									<th>Status</th>
+                                    <th>
+                                        <a href="{{ sortUrlUti('box_ip') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Box IP <i class="{{ sortIconUti('box_ip') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>Status</th>
                                     <th>
                                         <a href="{{ sortUrlUti('box_fw') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                             Firmware <i class="{{ sortIconUti('box_fw') }}"></i>
@@ -116,13 +131,14 @@
                             <tbody>
                             @forelse ($inventories as $key => $inventory)
                                 @php $isOnline = $inventory->is_online ?? false; @endphp
-                                <tr onclick="window.location='?inventory_id={{ $inventory->id }}&page={{ request('page',1) }}&search={{ urlencode($search ?? '') }}&sort={{ request('sort','id') }}&direction={{ request('direction','desc') }}'" style="cursor:pointer;">
+                                <tr onclick="window.location='?inventory_id={{ $inventory->id }}&page={{ request('page',1) }}&search={{ urlencode($search ?? '') }}&field={{ urlencode(request('field','all')) }}&sort={{ request('sort','id') }}&direction={{ request('direction','desc') }}'" style="cursor:pointer;">
                                     <td>{{ ($inventories->firstItem() ?? 0) + $key }}</td>
                                     <td><span class="badge bg-success">{{ $inventory->box_id }}</span></td>
                                     <td>{{ $inventory->box_model }}</td>
                                     <td>{{ $inventory->box_serial_no }}</td>
                                     <td>{{ $inventory->box_mac }}</td>
-									<td>
+                                    <td>{{ $inventory->box_ip }}</td>
+                                    <td>
                                         <span class="badge {{ $isOnline ? 'bg-success' : 'bg-secondary' }}">
                                             {{ $isOnline ? 'Online' : 'Offline' }}
                                         </span>
@@ -131,12 +147,11 @@
                                     <td>{{ $inventory->client?->name }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="8" class="text-center text-muted">No boxes found.</td></tr>
+                                <tr><td colspan="9" class="text-center text-muted">No boxes found.</td></tr>
                             @endforelse
                             </tbody>
                         </table>
 
-                        {{-- Pagination (Bootstrap-5) + range text --}}
                         <div class="mt-3 d-flex justify-content-between align-items-center">
                             <div class="small text-muted">
                                 @if($inventories->total())
@@ -153,7 +168,7 @@
             </div>
         </div>
 
-        <!-- Right: Selected Box Details -->
+        <!-- Right: Selected Box Details (without Active Channel field) -->
         <div class="col-md-4">
             <div class="card">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -172,6 +187,10 @@
                         <div class="mb-3">
                             <label class="form-label">MAC</label>
                             <input type="text" class="form-control" value="{{ $selectedInventory->box_mac }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Box IP</label>
+                            <input type="text" class="form-control" value="{{ $selectedInventory->box_ip }}" readonly>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Serial No</label>

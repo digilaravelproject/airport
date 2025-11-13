@@ -28,8 +28,14 @@ class InventoryPackageController extends Controller
             'created_at'    => 'inventories.created_at',
         ];
 
-        $sort = $request->get('sort', 'id');
-        $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        if ($request->has('sort')) {
+            $sort = $request->get('sort', 'id');
+            $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        } else {
+            $sort = 'box_id';
+            $direction = 'asc';
+        }
+
         $sortColumn = $map[$sort] ?? $map['id'];
 
         // Join clients only if needed for sorting by client columns
@@ -47,91 +53,6 @@ class InventoryPackageController extends Controller
         return view('inventory_package_allocation.index', compact('inventories', 'packages', 'sort', 'direction'));
     }
 
- public function assign(Request $request, Inventory $inventory)
-{
-    try {
-        // Validation (same logic)
-        $request->validate([
-            'package_ids'   => 'required|array',
-            'package_ids.*' => 'exists:packages,id',
-        ]);
-
-        // Sync packages (same)
-        $inventory->packages()->sync($request->package_ids);
-        $packages = $inventory->packages()->with('channels')->get();
-
-        // Build JSON data (same)
-        $data = [];
-        foreach ($packages as $package) {
-            $channels = [];
-            $counter  = 1;
-            foreach ($package->channels as $k => $channel) {
-                $item = [
-                    "name" => (string) ($k + 1),
-                    "desc" => $channel->channel_name,
-                    "url"  => (str_starts_with($channel->channel_source_in, 'udp://'))
-                        ? $channel->channel_source_in
-                        : 'udp://' . $channel->channel_source_in,
-                ];
-                if ($counter === 1) {
-                    $item["starting"] = true;
-                }
-                $channels[] = $item;
-                $counter++;
-            }
-            $data['DTV'] = $channels;
-        }
-
-        // Write file (same path/behavior, but no PHP warnings leak)
-        $filename = $inventory->box_id . ".json";
-        $path = base_path($filename);
-        $dir  = dirname($path);
-
-        if (!is_dir($dir)) {
-            if (!@mkdir($dir, 0777, true) && !is_dir($dir)) {
-                throw new \RuntimeException("Failed to create directory: {$dir}");
-            }
-        }
-
-        if (file_exists($path) && !@unlink($path)) {
-            throw new \RuntimeException("Failed to remove existing file: {$path}");
-        }
-
-        $bytes = @file_put_contents(
-            $path,
-            json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-        );
-
-        if ($bytes === false) {
-            throw new \RuntimeException("Failed to write file: {$path}");
-        }
-
-        // ADB reboot (same)
-        $ip = $inventory->box_ip ?? null;
-        if ($ip) {
-            $messages = $this->rebootViaAdb($ip);
-            return response()->json(['success' => true, 'messages' => $messages]);
-        }
-
-        return response()->json([
-            'success'  => true,
-            'messages' => ['Packages assigned, reboot skipped (no device IP).'],
-        ]);
-    } catch (ValidationException $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Validation failed',
-            'errors'  => $e->errors(),
-        ], 422);
-    } catch (\Throwable $e) {
-        // Always JSON; never emit PHP warnings/notices that break JSON
-        return response()->json([
-            'success' => false,
-            'message' => 'Server error',
-            'detail'  => $e->getMessage(), // or null in production if you prefer
-        ], 500);
-    }
-}
     public function assign_old(Request $request, Inventory $inventory)
     {
         $request->validate([
@@ -182,7 +103,79 @@ class InventoryPackageController extends Controller
         return response()->json(['success' => true, 'messages' => ['Packages assigned, reboot skipped (no device IP).']]);
     }
 
-private function rebootViaAdb(string $deviceIP): array
+    public function assign(Request $request, Inventory $inventory)
+    {
+        $request->validate([
+            'package_ids'   => 'required|array',
+            'package_ids.*' => 'exists:packages,id',
+        ]);
+
+        // keep your existing sync behavior
+        $inventory->packages()->sync($request->package_ids);
+
+        // Fetch packages (no eager channels here; we'll load channels per-package in saved order)
+        $packages = $inventory->packages()->get();
+
+        $data = [];
+        foreach ($packages as $package) {
+            // get the BelongsToMany relation instance to inspect pivot table
+            $relation   = $package->channels();        // BelongsToMany query builder
+            $pivotTable = $relation->getTable();       // actual pivot table name (e.g. channel_package)
+            $orderCol   = null;
+
+            // check for known ordering columns on pivot
+            if (\Illuminate\Support\Facades\Schema::hasColumn($pivotTable, 'sort_order')) {
+                $orderCol = 'sort_order';
+            } elseif (\Illuminate\Support\Facades\Schema::hasColumn($pivotTable, 'position')) {
+                $orderCol = 'position';
+            }
+
+            // fetch channels in stored order when possible
+            $channelsOrdered = $orderCol
+                ? $relation->orderBy($pivotTable . '.' . $orderCol, 'asc')->get()
+                : $relation->orderBy('channels.id', 'asc')->get();
+
+            $channels = [];
+            $counter  = 1;
+            foreach ($channelsOrdered as $k => $channel) {
+                $item = [
+                    "name" => (string) ($k + 1),
+                    "desc" => $channel->channel_name,
+                    "url"  => (str_starts_with($channel->channel_source_in, 'udp://'))
+                        ? $channel->channel_source_in
+                        : 'udp://' . $channel->channel_source_in,
+                ];
+                if ($counter === 1) {
+                    $item["starting"] = true;
+                }
+                $channels[] = $item;
+                $counter++;
+            }
+
+            // keep existing shape — last package will overwrite DTV if multiple packages provided
+            $data['DTV'] = $channels;
+        }
+
+        $filename = $inventory->box_id . ".json";
+        $path = base_path($filename);
+        if (!file_exists(dirname($path))) {
+            mkdir(dirname($path), 0777, true);
+        }
+        if (file_exists($path)) {
+            unlink($path);
+        }
+        file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        $ip = $inventory->box_ip ?? null;
+        if ($ip) {
+            $messages = $this->rebootViaAdb($ip);
+            return response()->json(['success' => true, 'messages' => $messages]);
+        }
+
+        return response()->json(['success' => true, 'messages' => ['Packages assigned, reboot skipped (no device IP).']]);
+    }
+    
+    private function rebootViaAdb(string $deviceIP): array
     {
         $port     = 5555;
         $messages = [];
@@ -272,6 +265,7 @@ private function rebootViaAdb(string $deviceIP): array
 
         return $messages;
     }
+
     private function rebootViaAdb_old(string $deviceIP): array
     {
         $port = 5555;

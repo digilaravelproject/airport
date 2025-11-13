@@ -75,8 +75,14 @@ class InventoryController extends Controller
             'created_at'    => 'inventories.created_at',
         ];
 
-        $sort = $request->get('sort', 'id');
-        $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        if ($request->has('sort')) {
+            $sort = $request->get('sort', 'id');
+            $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        } else {
+            $sort = 'box_id';
+            $direction = 'asc';
+        }
+
         $sortColumn = $map[$sort] ?? $map['id'];
 
         // Only join clients if needed (sorting by client name)

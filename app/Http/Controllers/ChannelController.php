@@ -25,12 +25,14 @@ class ChannelController extends Controller
                       ->orWhere('channel_genre', 'like', "%{$search}%")
                       ->orWhere('channel_resolution', 'like', "%{$search}%")
                       ->orWhere('channel_type', 'like', "%{$search}%")
+                      ->orWhere('channel_source_in', 'like', "%{$search}%")
+                      ->orWhere('channel_source_details', 'like', "%{$search}%")
                       ->orWhere('language', 'like', "%{$search}%")
                       ->orWhere('active', $this->matchActive($search));
                 } elseif ($field === 'active') {
                     $q->where('active', $this->matchActive($search));
                 } else {
-                    $allowed = ['id','channel_name','channel_genre','channel_resolution','channel_type','language','broadcast'];
+                    $allowed = ['id','channel_name','channel_genre','channel_resolution','channel_type','language','channel_source_in','channel_source_details','broadcast'];
                     if (in_array($field, $allowed, true)) {
                         $q->where($field, 'like', "%{$search}%");
                     }
@@ -40,19 +42,27 @@ class ChannelController extends Controller
 
         // Sorting (server-side, arrow UI in blade)
         $map = [
-            'id'                 => 'id',
-            'channel_name'       => 'channel_name',
-            'broadcast'          => 'broadcast',
-            'channel_genre'      => 'channel_genre',
-            'channel_resolution' => 'channel_resolution',
-            'channel_type'       => 'channel_type',
-            'language'           => 'language',
-            'active'             => 'active',
-            'created_at'         => 'created_at',
+            'id'                        => 'id',
+            'channel_name'              => 'channel_name',
+            'broadcast'                 => 'broadcast',
+            'channel_genre'             => 'channel_genre',
+            'channel_resolution'        => 'channel_resolution',
+            'channel_type'              => 'channel_type',
+            'channel_source_details'    => 'channel_source_details',
+            'channel_source_in'         => 'channel_source_in',
+            'language'                  => 'language',
+            'active'                    => 'active',
+            'created_at'                => 'created_at',
         ];
 
-        $sort = $request->get('sort', 'id');
-        $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        if ($request->has('sort')) {
+            $sort = $request->get('sort', 'id');
+            $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        } else {
+            $sort = 'id';
+            $direction = 'asc';
+        }
+
         $sortColumn = $map[$sort] ?? 'id';
 
         // Paginate 10 per page and keep current query string (search, field, channel_id, sort, direction, etc.)

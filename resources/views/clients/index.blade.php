@@ -57,7 +57,7 @@
 
     <div class="row">
         <!-- Left: Clients Table -->
-        <div class="col-md-8">
+        <div class="col-md-9">
             <div class="card">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Clients List</h5>
@@ -88,7 +88,6 @@
                         <table class="table table-bordered table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>No</th>
                                     <th>
                                         <a href="{{ sortUrl('id') }}" class="text-decoration-none text-reset d-inline-flex align-items-center gap-1">
                                             Client ID
@@ -130,7 +129,6 @@
                             <tbody>
                                 @foreach ($clients as $key => $client)
                                     <tr onclick="window.location='?{{ http_build_query(array_merge(request()->except('client_id'), ['client_id' => $client->id])) }}'" style="cursor: pointer;">
-                                        <td>{{ $key+1 }}</td>
                                         <td><span class="badge bg-secondary">{{ $client->id }}</span></td>
                                         <td>{{ $client->name }}</td>
                                         <td>{{ $client->contact_person }}</td>
@@ -152,7 +150,7 @@
         </div>
 
         <!-- Right: Subscriber Details -->
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Subscriber Details</h6>
@@ -243,10 +241,10 @@
                                                 <button type="button" class="btn btn-link p-0 sort-inv" data-col="1">IP <i class="fas fa-sort text-muted"></i></button>
                                             </th>
                                             <th>
-                                                <button type="button" class="btn btn-link p-0 sort-inv" data-col="2">MAC <i class="fas fa-sort text-muted"></i></button>
+                                                <button type="button" class="btn btn-link p-0 sort-inv" data-col="3">LOCATION <i class="fas fa-sort text-muted"></i></button>
                                             </th>
                                             <th>
-                                                <button type="button" class="btn btn-link p-0 sort-inv" data-col="3">LOCATION <i class="fas fa-sort text-muted"></i></button>
+                                                <button type="button" class="btn btn-link p-0 sort-inv" data-col="2">MAC <i class="fas fa-sort text-muted"></i></button>
                                             </th>
                                             <th>
                                                 <button type="button" class="btn btn-link p-0 sort-inv" data-col="4">PACKAGE <i class="fas fa-sort text-muted"></i></button>
@@ -255,14 +253,17 @@
                                     </thead>
                                     <tbody>
                                         @php
-                                            $inventories = $selectedClient ? $selectedClient->inventories : collect();
+                                            $inventories = $selectedClient
+                                                ? $selectedClient->inventories()->orderBy('box_id', 'asc')->get()
+                                                : collect();
                                         @endphp
+
                                         @forelse($inventories as $inv)
                                             <tr onclick="window.location='{{ route('inventories.show', $inv->id) }}'" style="cursor:pointer;">
                                                 <td>{{ $inv->box_id }}</td>
                                                 <td class="text-monospace">{{ $inv->box_ip }}</td>
-                                                <td class="text-monospace">{{ $inv->box_mac }}</td>
                                                 <td>{{ $inv->location ?? '-' }}</td>
+                                                <td class="text-monospace">{{ $inv->box_mac }}</td>
                                                 <td>
                                                     @if($inv->relationLoaded('packages') && $inv->packages->count())
                                                         {{ $inv->packages->pluck('name')->join(', ') }}

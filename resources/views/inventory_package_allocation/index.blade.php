@@ -75,7 +75,6 @@
                         <table class="table table-bordered table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>No</th>
                                     <th>
                                         <a href="{{ sortUrlIPA('box_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                             Box ID <i class="{{ sortIconIPA('box_id') }}"></i>
@@ -102,8 +101,8 @@
                                         </a>
                                     </th>
                                     <th>
-                                        <a href="{{ sortUrlIPA('client_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Client ID <i class="{{ sortIconIPA('client_id') }}"></i>
+                                        <a href="{{ sortUrlIPA('location') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Location <i class="{{ sortIconIPA('location') }}"></i>
                                         </a>
                                     </th>
                                     <th>
@@ -128,19 +127,12 @@
                                         $invPayload['json_url'] = $jsonUrl;
                                     @endphp
                                     <tr>
-                                        <td>{{ ($inventories->firstItem() ?? 1) + $key }}</td>
                                         <td><span class="badge bg-secondary">{{ $inventory->box_id }}</span></td>
                                         <td>{{ $inventory->box_model }}</td>
                                         <td>{{ $inventory->box_serial_no }}</td>
                                         <td>{{ $inventory->box_mac }}</td>
                                         <td>{{ $inventory->box_ip }}</td>
-                                        <td>
-                                            @if($inventory->client)
-                                                <span class="badge bg-info">{{ $inventory->client->id }}</span>
-                                            @else
-                                                <span class="text-muted">No client</span>
-                                            @endif
-                                        </td>
+                                        <td>{{ $inventory->location ?? '-' }}</td>
                                         <td>{{ $inventory->client->name ?? '-' }}</td>
                                         <td>
                                             @if($inventory->packages->count())

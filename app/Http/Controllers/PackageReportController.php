@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Package;
-use App\Models\Client;
-use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use PDF;
@@ -13,7 +11,6 @@ class PackageReportController extends Controller
 {
     public function index(Request $request)
     {
-        // Sorting (only allow known columns)
         $map = [
             'id'   => 'id',
             'name' => 'name',
@@ -22,8 +19,7 @@ class PackageReportController extends Controller
         $direction = strtolower($request->get('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
         $sortCol   = $map[$sort] ?? 'id';
 
-        // Paginate 15 per your original; keep everything else unchanged
-        $packages = Package::query()
+        $packages = Package::with('channels')
             ->orderBy($sortCol, $direction)
             ->paginate(15)
             ->appends($request->query());
@@ -35,10 +31,18 @@ class PackageReportController extends Controller
     {
         [$packages, $title] = $this->collectSelected($request);
 
+        // debug mode: return HTML so you can inspect the rows in browser (useful for local testing)
+        if ($request->query('debug') == 1) {
+            // return the same HTML used by the PDF blade so you can visually confirm dataset
+            return view('reports.packages.pdf', compact('packages', 'title'))->with('debug', true);
+        }
+
+        // ensure related channels are loaded for PDF
+        $packages->load('channels');
+
         $pdf = PDF::loadView('reports.packages.pdf', compact('packages', 'title'))
                   ->setPaper('a4', 'portrait');
 
-        // Opened in a new tab by the view's JS; no loader runs on the original page
         return $pdf->stream('packages_selected.pdf');
     }
 
@@ -46,10 +50,11 @@ class PackageReportController extends Controller
     {
         [$packages, $title] = $this->collectSelected($request);
 
+        $packages->load('channels');
+
         $pdf = PDF::loadView('reports.packages.pdf', compact('packages', 'title'))
                   ->setPaper('a4', 'portrait');
 
-        // Opened in a new tab by the view's JS; no loader runs on the original page
         return $pdf->download('packages_selected.pdf');
     }
 
@@ -61,12 +66,14 @@ class PackageReportController extends Controller
             ->unique();
 
         if ($ids->isEmpty()) {
+            // throw a validation error so the user sees a friendly message in the new tab
             throw ValidationException::withMessages([
                 'selected_ids' => 'Please select at least one package.',
             ]);
         }
 
-        $packages = Package::whereIn('id', $ids)
+        $packages = Package::with('channels')
+            ->whereIn('id', $ids->all())
             ->orderBy('name')
             ->get();
 

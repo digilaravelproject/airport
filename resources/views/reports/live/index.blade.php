@@ -90,10 +90,29 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width:40px;"></th>
-                                        <th>No</th>
                                         <th>
                                             <a href="{{ sortUrlUti('box_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                                 Box ID <i class="{{ sortIconUti('box_id') }}"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            <a href="{{ sortUrlUti('box_ip') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                                Box IP <i class="{{ sortIconUti('box_ip') }}"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            <a href="{{ sortUrlUti('box_mac') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                                MAC <i class="{{ sortIconUti('box_mac') }}"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            <a href="{{ sortUrlUti('client_name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                                Client <i class="{{ sortIconUti('client_name') }}"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            <a href="{{ sortUrlUti('location') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                                Establishment <i class="{{ sortIconUti('location') }}"></i>
                                             </a>
                                         </th>
                                         <th>
@@ -106,25 +125,10 @@
                                                 Serial No <i class="{{ sortIconUti('box_serial_no') }}"></i>
                                             </a>
                                         </th>
-                                        <th>
-                                            <a href="{{ sortUrlUti('box_mac') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                                MAC <i class="{{ sortIconUti('box_mac') }}"></i>
-                                            </a>
-                                        </th>
-                                        <th>
-                                            <a href="{{ sortUrlUti('box_ip') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                                Box IP <i class="{{ sortIconUti('box_ip') }}"></i>
-                                            </a>
-                                        </th>
                                         <th>Status</th>
                                         <th>
                                             <a href="{{ sortUrlUti('box_fw') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                                 Firmware <i class="{{ sortIconUti('box_fw') }}"></i>
-                                            </a>
-                                        </th>
-                                        <th>
-                                            <a href="{{ sortUrlUti('client_name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                                Client <i class="{{ sortIconUti('client_name') }}"></i>
                                             </a>
                                         </th>
                                         {{-- NEW: Active Channel action column --}}
@@ -138,19 +142,19 @@
                                         <td onclick="event.stopPropagation();">
                                             <input type="checkbox" class="row-check" name="selected_ids[]" value="{{ $inventory->id }}">
                                         </td>
-                                        <td>{{ ($inventories->firstItem() ?? 0) + $key }}</td>
                                         <td><span class="badge bg-success">{{ $inventory->box_id }}</span></td>
+                                        <td>{{ $inventory->box_ip }}</td>
+                                        <td>{{ $inventory->box_mac }}</td>
+                                        <td>{{ $inventory->client?->name }}</td>
+                                        <td>{{ $inventory->location }}</td>
                                         <td>{{ $inventory->box_model }}</td>
                                         <td>{{ $inventory->box_serial_no }}</td>
-                                        <td>{{ $inventory->box_mac }}</td>
-                                        <td>{{ $inventory->box_ip }}</td>
                                         <td>
                                             <span class="badge {{ $isOnline ? 'bg-success' : 'bg-secondary' }}">
                                                 {{ $isOnline ? 'Online' : 'Offline' }}
                                             </span>
                                         </td>
                                         <td>{{ $inventory->box_fw }}</td>
-                                        <td>{{ $inventory->client?->name }}</td>
                                         <td onclick="event.stopPropagation();">
                                             <button
                                                 type="button"

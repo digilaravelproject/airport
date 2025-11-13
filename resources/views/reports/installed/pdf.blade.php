@@ -17,47 +17,69 @@
     <div class="title">{{ $title ?? 'Installed Boxes (Selected)' }}</div>
     <div style="margin-bottom:10px;">Generated: {{ now()->format('Y-m-d H:i:s') }}</div>
 
-    <table>
-        <thead>
+    <table class="table table-bordered table-hover mb-0 align-middle">
+    <thead class="table-light">
+        <tr>
+            <th style="width:40px;"></th> {{-- checkbox column --}}
+            <th>Box ID</th>
+            <th>Box IP</th>
+            <th>MAC ID</th>
+            <th>Client</th>
+            <th>Establishment</th>
+            <th>Box Model</th>
+            <th>Serial No</th>
+            <th>Packages</th>
+            <th>Status</th>
+            <th>Warranty</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($inventories as $i => $inv)
             <tr>
-                <th>#</th>
-                <th>Box ID</th>
-                <th>Box Model</th>
-                <th>Serial No</th>
-                <th>MAC ID</th>
-                <th>Client</th>
-                <th>Packages</th>
-                <th>Status</th>
-                <th>Warranty</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($inventories as $i => $inv)
-            <tr>
-                <td>{{ $i + 1 }}</td>
-                <td><span class="badge">{{ $inv->box_id }}</span></td>
-                <td>{{ $inv->box_model }}</td>
-                <td>{{ $inv->box_serial_no }}</td>
-                <td>{{ $inv->box_mac }}</td>
+                <td>
+                    <input type="checkbox" class="row-check" name="selected_ids[]" value="{{ $inv->id }}">
+                </td>
+
+                <td>
+                    <span class="badge bg-secondary">{{ $inv->box_id }}</span>
+                </td>
+
+                <td>{{ $inv->box_ip ?? '-' }}</td>
+
+                <td>{{ $inv->box_mac ?? '-' }}</td>
+
                 <td>
                     @if($inv->client)
                         {{ $inv->client->id }} - {{ $inv->client->name }}
                     @else
-                        <span class="muted">No client</span>
+                        <span class="text-muted">No client</span>
                     @endif
                 </td>
+
+                <td>{{ $inv->location ?? '-' }}</td>
+
+                <td>{{ $inv->box_model ?? '-' }}</td>
+
+                <td>{{ $inv->box_serial_no ?? '-' }}</td>
+
                 <td>
                     @if($inv->packages->count())
                         {{ $inv->packages->pluck('name')->join(', ') }}
                     @else
-                        <span class="muted">No packages</span>
+                        <span class="text-muted">No packages</span>
                     @endif
                 </td>
-                <td>Installed</td>
-                <td>{{ $inv->warranty_date ? \Carbon\Carbon::parse($inv->warranty_date)->format('Y-m-d') : '-' }}</td>
+
+                <td>
+                    <span class="badge bg-success">Installed</span>
+                </td>
+
+                <td>
+                    {{ $inv->warranty_date ? \Carbon\Carbon::parse($inv->warranty_date)->format('Y-m-d') : '-' }}
+                </td>
             </tr>
-            @endforeach
-        </tbody>
-    </table>
+        @endforeach
+    </tbody>
+</table>
 </body>
 </html>

@@ -7,6 +7,14 @@
     .summary-card:hover { transform: translateY(-1px); }
     .summary-active { border-color:#0d6efd !important; box-shadow: 0 0 0 .1rem rgba(13,110,253,.15); }
     .table thead a { font-weight:600; }
+
+    /* NEW: keep Channel Name in a single line with ellipsis (no wrap) */
+    .table tbody td:nth-child(2) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 220px; /* adjust if you need a different visible width */
+    }
 </style>
 
 @php
@@ -69,7 +77,7 @@
     @endif
 
     <!-- Channel Import Section -->
-    <div class="row mb-3">
+    <!-- <div class="row mb-3">
         <div class="col-md-12">
             <div class="card shadow-sm border-0">
                 <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color:#0f172a;">
@@ -106,12 +114,12 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
     <!-- /Channel Import Section -->
 
     <div class="row">
         <!-- Left: Channels Table -->
-        <div class="col-md-8">
+        <div class="col-md-9">
             <div class="card">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Channels List</h5>
@@ -129,6 +137,8 @@
                             <option value="channel_resolution" {{ request('field')=='channel_resolution' ? 'selected' : '' }}>Resolution</option>
                             <option value="channel_type" {{ request('field')=='channel_type' ? 'selected' : '' }}>Type</option>
                             <option value="language" {{ request('field')=='language' ? 'selected' : '' }}>Language</option>
+                            <option value="channel_source_in" {{ request('field')=='channel_source_in' ? 'selected' : '' }}>Source In</option>
+                            <option value="channel_source_details" {{ request('field')=='channel_source_details' ? 'selected' : '' }}>Source Details</option>
                             <option value="active" {{ request('field')=='active' ? 'selected' : '' }}>Active</option>
                         </select>
 
@@ -145,7 +155,6 @@
                         <table class="table table-bordered table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>No</th>
                                     <th>
                                         <a href="{{ sortUrlCh('id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                             Channel ID <i class="{{ sortIconCh('id') }}"></i>
@@ -158,7 +167,7 @@
                                     </th>
                                     <th>
                                         <a href="{{ sortUrlCh('broadcast') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Broadcast <i class="{{ sortIconCh('broadcast') }}"></i>
+                                            Broadcaster <i class="{{ sortIconCh('broadcast') }}"></i>
                                         </a>
                                     </th>
                                     <th>
@@ -182,6 +191,16 @@
                                         </a>
                                     </th>
                                     <th>
+                                        <a href="{{ sortUrlCh('channel_source_in') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Source In <i class="{{ sortIconCh('channel_source_in') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ sortUrlCh('channel_source_details') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Source Details <i class="{{ sortIconCh('channel_source_details') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
                                         <a href="{{ sortUrlCh('active') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                             Active <i class="{{ sortIconCh('active') }}"></i>
                                         </a>
@@ -191,13 +210,14 @@
                             <tbody>
                                 @foreach ($channels as $key => $channel)
                                     <tr onclick="window.location='{{ request()->fullUrlWithQuery(['channel_id'=>$channel->id]) }}'" style="cursor: pointer;">
-                                        <td>{{ ($channels->firstItem() ?? 1) + $key }}</td>
                                         <td><span class="badge bg-secondary">{{ $channel->id }}</span></td>
                                         <td>{{ $channel->channel_name }}</td>
                                         <td>{{ $channel->broadcast }}</td>
                                         <td>{{ $channel->channel_genre }}</td>
                                         <td>{{ $channel->channel_resolution }}</td>
                                         <td>{{ $channel->channel_type }}</td>
+                                        <td>{{ $channel->channel_source_in ?? '-' }}</td>
+                                        <td>{{ $channel->channel_source_details ?? '-' }}</td>
                                         <td>{{ $channel->language ?? '-' }}</td>
                                         <td>
                                             <span class="badge {{ $channel->active ? 'bg-success' : 'bg-danger' }}">
@@ -230,7 +250,7 @@
         </div>
 
         <!-- Right: Channel Details -->
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Channel Details</h6>

@@ -66,6 +66,14 @@
                 </div>
 
                 <div class="table-responsive">
+                    <style>
+                        /* keep same preview behaviour as in the live page */
+                        .desc-wrap { display:flex; align-items:center; gap:.5rem; max-width:320px; flex-wrap:nowrap; }
+                        .desc-text { min-width:0; flex:1 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                        @media (max-width:768px){ .desc-wrap { max-width:180px; } }
+                        .badge-status { padding: 4px 8px; border-radius:6px; font-size: .85rem; }
+                    </style>
+
                     <table class="table table-bordered table-hover mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
@@ -80,6 +88,11 @@
                                         Name <i class="{{ sortIconPkg('name') }}"></i>
                                     </a>
                                 </th>
+
+                                <!-- NEW columns -->
+                                <th> Description </th>
+                                <th> Channels </th>
+                                <th> Status </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -90,10 +103,39 @@
                                     </td>
                                     <td><span class="badge bg-secondary">{{ $pkg->id }}</span></td>
                                     <td>{{ $pkg->name }}</td>
+
+                                    <!-- Description column (short preview) -->
+                                    <td>
+                                        <div class="desc-wrap" title="{{ $pkg->description }}">
+                                            @php
+                                                // server-side char limit to keep preview predictable
+                                                $raw = $pkg->description ?? '';
+                                                $preview = \Illuminate\Support\Str::limit($raw, 60, '');
+                                                $preview = rtrim($preview, ". \t\n\r\0\x0B");
+                                            @endphp
+                                            <span class="desc-text">{{ e($preview) }}</span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Channels -->
+                                    <td>
+                                        @if($pkg->relationLoaded('channels') ? $pkg->channels->count() : $pkg->channels()->count())
+                                            {{ ($pkg->relationLoaded('channels') ? $pkg->channels : $pkg->channels()->get())->pluck('channel_name')->join(', ') }}
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td>
+                                        <span class="badge-status {{ $pkg->active == 'Yes' ? 'bg-success text-white' : 'bg-danger text-white' }}">
+                                            {{ $pkg->active == 'Yes' ? 'Active' : 'Inactive' }}
+                                        </span>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="3" class="text-center text-muted">No packages found.</td>
+                                    <td colspan="6" class="text-center text-muted">No packages found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -157,8 +199,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /**
      * Submit to a NEW TAB without submitting the original form.
-     * This prevents any page-level submit handlers/loader from running on the current page.
-     * We create a temporary form with only the needed fields and POST it to target="_blank".
      */
     function submitToNewTab(actionUrl, method) {
         const temp = document.createElement('form');
@@ -196,8 +236,6 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function () {
             const action = this.getAttribute('data-action');
             const method = this.getAttribute('data-method') || 'POST';
-
-            // If nothing selected, let backend show the same validation error in the new tab.
             submitToNewTab(action, method);
         });
     });

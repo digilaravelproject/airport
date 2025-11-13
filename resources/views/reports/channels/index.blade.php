@@ -1,6 +1,15 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    /* NEW: keep Channel Name in a single line with ellipsis (no wrap) */
+    .table tbody td:nth-child(3) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 220px; /* adjust if you need a different visible width */
+    }
+</style>
 <div class="container-fluid">
     <?php $page_title = "Channels"; $sub_title = "Reports"; ?>
 
@@ -122,12 +131,44 @@
                                 </th>
                                 <th>
                                     <a href="{{ sortUrlChan('broadcast') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                        Broadcast <i class="{{ sortIconChan('broadcast') }}"></i>
+                                        Broadcaster <i class="{{ sortIconChan('broadcast') }}"></i>
                                     </a>
                                 </th>
                                 <th>
                                     <a href="{{ sortUrlChan('channel_genre') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                         Genre <i class="{{ sortIconChan('channel_genre') }}"></i>
+                                    </a>
+                                </th>
+
+                                {{-- NEW fields: resolution, type, source in, source details, language, active --}}
+                                <th>
+                                    <a href="{{ sortUrlChan('channel_resolution') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Resolution <i class="{{ sortIconChan('channel_resolution') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlChan('channel_type') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Type <i class="{{ sortIconChan('channel_type') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlChan('channel_source_in') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Source In <i class="{{ sortIconChan('channel_source_in') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlChan('channel_source_details') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Source Details <i class="{{ sortIconChan('channel_source_details') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlChan('language') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Language <i class="{{ sortIconChan('language') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlChan('active') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Active <i class="{{ sortIconChan('active') }}"></i>
                                     </a>
                                 </th>
                             </tr>
@@ -142,10 +183,22 @@
                                     <td>{{ $ch->channel_name }}</td>
                                     <td>{{ $ch->broadcast ?? '-' }}</td>
                                     <td>{{ $ch->channel_genre ?? '-' }}</td>
+
+                                    {{-- New columns --}}
+                                    <td>{{ $ch->channel_resolution ?? '-' }}</td>
+                                    <td>{{ $ch->channel_type ?? '-' }}</td>
+                                    <td>{{ $ch->channel_source_in ?? '-' }}</td>
+                                    <td style="max-width:240px; white-space:normal;">{{ $ch->channel_source_details ?? '-' }}</td>
+                                    <td>{{ $ch->language ?? '-' }}</td>
+                                    <td>
+                                        <span class="badge {{ $ch->active ? 'bg-success' : 'bg-danger' }}">
+                                            {{ $ch->active ? 'Yes' : 'No' }}
+                                        </span>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted">No channels found.</td>
+                                    <td colspan="12" class="text-center text-muted">No channels found.</td>
                                 </tr>
                             @endforelse
                         </tbody>

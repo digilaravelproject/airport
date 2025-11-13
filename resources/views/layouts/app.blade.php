@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>Setup Box Management - Unikit</title>
+    <title>Setop Box Management - Unikit</title>
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
@@ -221,7 +221,7 @@
 
         <footer class="footer text-center text-sm-start">
             &copy; <script>document.write(new Date().getFullYear());</script>
-            Setup Box Management
+            Setop Box Management
             <span class="text-muted d-none d-sm-inline-block float-end">
                 Crafted with <i class="mdi mdi-heart text-danger"></i>
             </span>

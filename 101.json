@@ -1,0 +1,25 @@
+{
+    "DTV": [
+        {
+            "name": "1",
+            "desc": "CNBC Prime HD",
+            "url": "udp://239.15.0.11:1234",
+            "starting": true
+        },
+        {
+            "name": "2",
+            "desc": "CNN INTL",
+            "url": "udp://239.15.0.13:1234"
+        },
+        {
+            "name": "3",
+            "desc": "CNN News 18",
+            "url": "udp://239.15.0.14:1234"
+        },
+        {
+            "name": "4",
+            "desc": "Times Now World HD",
+            "url": "udp://239.15.0.12:1234"
+        }
+    ]
+}

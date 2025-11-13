@@ -32,7 +32,7 @@
 @endphp
 
 <div class="container-fluid">
-    <?php $page_title = "Inventories"; $sub_title = "Setup Boxes"; ?>
+    <?php $page_title = "Inventories"; $sub_title = "Setop Boxes"; ?>
 
     <div class="row">
         <div class="col-sm-12">
@@ -49,7 +49,7 @@
     </div>
 
     <!-- Inventory Import Section -->
-    <div class="row mb-3">
+    <!-- <div class="row mb-3">
         <div class="col-md-12">
             <div class="card shadow-sm border-0">
                 <div class="card-header import-header text-white d-flex justify-content-between align-items-center">
@@ -99,7 +99,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <!-- Summary Tabs -->
     @php $assign = request('assign','all'); @endphp
@@ -150,7 +150,7 @@
 
     <div class="row">
         <!-- Left: Inventories Table -->
-        <div class="col-md-8">
+        <div class="col-md-9">
             <div class="card">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Inventories</h5>
@@ -182,7 +182,6 @@
                         <table class="table table-bordered table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>No</th>
                                     <th>
                                         <a href="{{ sortUrlInv('box_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                             Box ID <i class="{{ sortIconInv('box_id') }}"></i>
@@ -191,11 +190,6 @@
                                     <th>
                                         <a href="{{ sortUrlInv('box_ip') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                             Box IP <i class="{{ sortIconInv('box_ip') }}"></i>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="{{ sortUrlInv('location') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Establishment <i class="{{ sortIconInv('location') }}"></i>
                                         </a>
                                     </th>
                                     <th>
@@ -209,8 +203,8 @@
                                         </a>
                                     </th>
                                     <th>
-                                        <a href="{{ sortUrlInv('box_model') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Model <i class="{{ sortIconInv('box_model') }}"></i>
+                                        <a href="{{ sortUrlInv('location') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Establishment <i class="{{ sortIconInv('location') }}"></i>
                                         </a>
                                     </th>
                                     <th>
@@ -223,20 +217,24 @@
                                             Firmware <i class="{{ sortIconInv('box_fw') }}"></i>
                                         </a>
                                     </th>
+                                    <th>
+                                        <a href="{{ sortUrlInv('box_model') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Model <i class="{{ sortIconInv('box_model') }}"></i>
+                                        </a>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($inventories as $key => $inventory)
                                     <tr onclick="window.location='?{{ http_build_query(array_merge(request()->except('inventory_id'), ['inventory_id' => $inventory->id])) }}'" style="cursor:pointer;">
-                                        <td>{{ ($inventories->firstItem() ?? 1) + $key }}</td>
                                         <td><span class="badge bg-secondary">{{ $inventory->box_id }}</span></td>
                                         <td>{{ $inventory->box_ip }}</td>
-                                        <td>{{ $inventory->location }}</td>
                                         <td>{{ $inventory->box_mac }}</td>
                                         <td>{{ $inventory->client?->name }}</td>
-                                        <td>{{ $inventory->box_model }}</td>
+                                        <td>{{ $inventory->location }}</td>
                                         <td>{{ $inventory->box_serial_no }}</td>
                                         <td>{{ $inventory->box_fw }}</td>
+                                        <td>{{ $inventory->box_model }}</td>
                                     </tr>
                                 @endforeach
                                 @if($inventories->isEmpty())
@@ -257,7 +255,7 @@
         </div>
 
         <!-- Right: Box Details -->
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Box Details</h6>
@@ -363,24 +361,24 @@
                             @error('box_ip') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
 
-                        <!-- <div class="mb-3">
+                        <div class="mb-3">
                             <label class="form-label">Photo</label>
                             <div id="previewImage" class="mb-2">
                                 @if(isset($selectedInventory->photo))
-                                    <img src="{{ asset('storage/'.$selectedInventory->photo) }}" class="img-thumbnail" width="120">
+                                    <img src="{{ asset('storage/'.$selectedInventory->photo) }}" class="img-thumbnail" width="120" style="cursor:pointer;" alt="Box Photo">
                                 @endif
                             </div>
                             <input type="file" name="photo" id="photoInput" class="form-control" {{ !$selectedInventory ? '' : 'disabled' }}>
                             @error('photo') <div class="text-danger small">{{ $message }}</div> @enderror
-                        </div> -->
+                        </div>
 
                         <!-- Actions -->
                         <div class="mb-2 d-flex gap-2 align-items-center">
                             <button type="button" class="btn btn-dark" id="btnPing" {{ !$selectedInventory ? 'disabled' : '' }}>Ping</button>
                             <button type="button" class="btn btn-dark" id="btnReboot" {{ !$selectedInventory ? 'disabled' : '' }}>Reboot</button>
                             <button type="button" class="btn btn-dark" id="btnScreenshot" {{ !$selectedInventory ? 'disabled' : '' }}>Screenshot</button>
-                            <span id="actionStatus" class="ms-2 small text-muted"></span>
                         </div>
+                        <span id="actionStatus" class="ms-2 small text-muted"></span>
                         <div id="screenshotArea" class="mt-2"></div>
 
                         <div class="text-end">
@@ -391,6 +389,20 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Photo Modal (Bootstrap) -->
+<div class="modal fade" id="photoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content">
+      <div class="modal-body p-0">
+        <img id="photoModalImg" src="" alt="Photo" class="img-fluid w-100 rounded">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -439,6 +451,7 @@ document.getElementById('photoInput')?.addEventListener('change', function(event
             img.src = e.target.result;
             img.classList.add('img-thumbnail');
             img.width = 120;
+            img.style.cursor = 'pointer';
             preview.appendChild(img);
         };
         reader.readAsDataURL(file);
@@ -527,6 +540,7 @@ document.getElementById('btnScreenshot')?.addEventListener('click', async () => 
                 img.src = data.path;
                 img.className = 'img-thumbnail';
                 img.width = 120;
+                img.style.cursor = 'pointer';
                 preview.appendChild(img);
             }
             if (below) {
@@ -537,7 +551,7 @@ document.getElementById('btnScreenshot')?.addEventListener('click', async () => 
                                 <i class="fas fa-image me-2"></i>
                                 <strong>Latest Screenshot</strong>
                             </div>
-                            <img src="${data.path}" alt="Screenshot" class="img-fluid rounded">
+                            <img src="${data.path}" alt="Screenshot" class="img-fluid rounded" style="cursor:pointer;">
                         </div>
                     </div>
                 `;
@@ -555,6 +569,39 @@ document.getElementById('btnScreenshot')?.addEventListener('click', async () => 
         actionStatus.className = 'ms-2 small text-danger';
     } finally {
         pingBtn.disabled = false; rebootBtn.disabled = false; shotBtn.disabled = false;
+    }
+});
+
+/* -------------------------
+   Photo modal: open clicked thumbnail (previewImage or screenshotArea)
+   ------------------------- */
+function openPhotoModal(src) {
+    const modalImg = document.getElementById('photoModalImg');
+    if (!modalImg) return;
+    modalImg.src = src;
+    // Use Bootstrap modal if available
+    try {
+        const modalEl = document.getElementById('photoModal');
+        const bsModal = new bootstrap.Modal(modalEl);
+        bsModal.show();
+    } catch (e) {
+        // fallback: simple show (in case bootstrap is not present)
+        const modalEl = document.getElementById('photoModal');
+        if (modalEl) modalEl.style.display = 'block';
+    }
+}
+
+// delegate clicks inside previewImage and screenshotArea
+document.getElementById('previewImage')?.addEventListener('click', function(e) {
+    const target = e.target;
+    if (target && target.tagName === 'IMG' && target.src) {
+        openPhotoModal(target.src);
+    }
+});
+document.getElementById('screenshotArea')?.addEventListener('click', function(e) {
+    const target = e.target;
+    if (target && target.tagName === 'IMG' && target.src) {
+        openPhotoModal(target.src);
     }
 });
 </script>

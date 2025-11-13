@@ -9,7 +9,7 @@ class Package extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'active'];
+    protected $fillable = ['name', 'description', 'active'];
 
     public function channels()
     {

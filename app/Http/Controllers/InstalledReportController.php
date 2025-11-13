@@ -34,8 +34,14 @@ class InstalledReportController extends Controller
             'client_name'   => 'clients.name', // requires join
         ];
 
-        $sortInput = (string) $request->get('sort', 'id');
-        $direction = strtolower((string) $request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        if ($request->has('sort')) {
+            $sortInput = $request->get('sort', 'id');
+            $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        } else {
+            $sortInput = 'box_id';
+            $direction = 'asc';
+        }
+
         $sortCol   = $map[$sortInput] ?? $map['id'];
 
         // base query

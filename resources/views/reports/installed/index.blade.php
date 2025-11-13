@@ -102,23 +102,13 @@
                             <tr>
                                 <th style="width:40px;"></th>
                                 <th>
-                                    <a href="{{ sortUrlInstalled('id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                        No <i class="{{ sortIconInstalled('id') }}"></i>
-                                    </a>
-                                </th>
-                                <th>
                                     <a href="{{ sortUrlInstalled('box_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                         Box ID <i class="{{ sortIconInstalled('box_id') }}"></i>
                                     </a>
                                 </th>
                                 <th>
-                                    <a href="{{ sortUrlInstalled('box_model') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                        Box Model <i class="{{ sortIconInstalled('box_model') }}"></i>
-                                    </a>
-                                </th>
-                                <th>
-                                    <a href="{{ sortUrlInstalled('box_serial_no') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                        Serial No <i class="{{ sortIconInstalled('box_serial_no') }}"></i>
+                                    <a href="{{ sortUrlInstalled('box_ip') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Box IP <i class="{{ sortIconInstalled('box_ip') }}"></i>
                                     </a>
                                 </th>
                                 <th>
@@ -129,6 +119,21 @@
                                 <th>
                                     <a href="{{ sortUrlInstalled('client_name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                         Client <i class="{{ sortIconInstalled('client_name') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlInstalled('location') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Establishment <i class="{{ sortIconInstalled('location') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlInstalled('box_model') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Box Model <i class="{{ sortIconInstalled('box_model') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlInstalled('box_serial_no') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Serial No <i class="{{ sortIconInstalled('box_serial_no') }}"></i>
                                     </a>
                                 </th>
                                 <th>Packages</th>
@@ -146,10 +151,8 @@
                                     <td>
                                         <input type="checkbox" class="row-check" name="selected_ids[]" value="{{ $inv->id }}">
                                     </td>
-                                    <td>{{ $idx + 1 }}</td>
                                     <td><span class="badge bg-secondary">{{ $inv->box_id }}</span></td>
-                                    <td>{{ $inv->box_model }}</td>
-                                    <td>{{ $inv->box_serial_no }}</td>
+                                    <td>{{ $inv->box_ip }}</td>
                                     <td>{{ $inv->box_mac }}</td>
                                     <td>
                                         @if($inv->client)
@@ -158,6 +161,9 @@
                                             <span class="text-muted">No client</span>
                                         @endif
                                     </td>
+                                    <td>{{ $inv->location }}</td>
+                                    <td>{{ $inv->box_model }}</td>
+                                    <td>{{ $inv->box_serial_no }}</td>
                                     <td>
                                         @if($inv->packages->count())
                                             {{ $inv->packages->pluck('name')->join(', ') }}
