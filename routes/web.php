@@ -44,6 +44,21 @@ Route::get('{filename}.php', function ($filename) {
     abort(404, 'File not found');
 });
 
+Route::get('/zapper/{file}', function ($filename) {
+    $path = base_path('zapper/' . $filename); // path to project root
+
+    if (file_exists($path)) {
+        // Capture the PHP file's output
+        ob_start();
+        include $path;
+        $output = ob_get_clean();
+
+        return response($output);
+    }
+
+    abort(404, 'File not found');
+});
+
 // Route::get('/', fn () => view('welcome'));
 Route::get('/', function () {
     return redirect()->route('login');
@@ -171,6 +186,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/download', [LiveReportController::class, 'download'])->name('download');
         Route::get('/{inventory}/active-channel', [LiveReportController::class, 'activeChannel'])
             ->name('activeChannel');
+
     });
 
 
@@ -196,6 +212,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/help', [HelpController::class, 'index'])
         ->middleware('permission:helps')
         ->name('help.index');
+    
+    // Route to stream PDF inline (view-only)
+    Route::get('/help/pdf-view', [HelpController::class, 'viewPdf'])->name('help.view')->middleware('auth'); // Optional auth middleware
 });
 
 require __DIR__.'/auth.php';

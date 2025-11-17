@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Apollo Zapper</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta http-equiv="pragma" content="no-cache">
+    <link rel="shortcut icon" href="#"> <!-- fix icon 404 -->
+
+    <link rel="stylesheet" type="text/css" href="css/zapper.css" />
+    <link rel="stylesheet" type="text/css" href="css/channel_list.css" />
+    <link rel="stylesheet" type="text/css" href="css/track_list.css" />
+    <link rel="stylesheet" type="text/css" href="css/touch_area.css" />
+
+    <script type="text/javascript" src="js/util.js"></script>
+    <script type="text/javascript" src="js/config.js"></script>
+    <script type="text/javascript" src="js/lang.js"></script>
+    <script type="text/javascript" src="js/lineup_checker.js"></script>
+    <script type="text/javascript" src="js/lineup.js"></script>
+    <script type="text/javascript" src="js/UI_dtv.js"></script>
+    <script type="text/javascript" src="js/UI_channel_list.js"></script>
+    <script type="text/javascript" src="js/UI_track_list.js"></script>
+    <script type="text/javascript" src="js/UI_touch_area.js"></script>
+    <script type="text/javascript" src="js/app.js"></script>
+</head>
+
+<body>
+    <div id="digit"></div>
+    <div id="error" style="display: none;">
+      <div class="error-container">
+        <h2 class="error-title"></h2>
+        <p class="error-message"></p>
+        <div class="table-container">
+          <table class="error-table"></table>
+        </div>
+        <div class="notice-button">Dismiss</div>
+      </div>
+    </div>
+    <ul id="ch_list" class="" style="display: none;"></ul>
+    <ul id="track_list" class="" style="display: none;"></ul>
+    <div class="touch-area"></div>
+    <img id="hello-amino-h200" src="image/hello-amino-h200.png" style="display: none;">
+
+    <script>
+        async function init() {
+            document.addEventListener("keydown", keyHandler, true);
+            await SYSTEM_CONFIG.loadLineupFromEelm();
+            const searchParams = new URL(document.location).searchParams;
+            const routeTo = searchParams.get("routeTo");
+
+            if (routeTo !== null && document.getElementById("error").style.display === "") {
+              // going to route to editor and encounter error during import, skip playback
+              return;
+            }
+
+            if (routeTo === "zapperEditor") {
+              await util.openZapperEditor();
+              return;
+            }
+
+            let channelParams = Array.from(searchParams.entries())
+              .filter(entry => entry[0] !== "routeTo")
+              .map(entry => `${entry[0]}=${entry[1]}`)
+              .join("&")
+              .replace("&", "%26");
+            const found = /(channum)|(channame)|(chandesc)/g.test(channelParams);
+
+            if (channelParams === "" || !found) {
+                localStorage.removeItem("channelFromEELM");
+            }
+
+            // 3 cases
+            if (channelParams !== "" && !found) {
+                // 1. channel in json format
+              addNetworkCallback(() => {
+                zap(channelParams);
+                localStorage.setItem("channelFromEELM", channelParams);
+              });
+
+            } else if (SYSTEM_CONFIG.getDTV_Array().length > 0) {
+                // 2. channame or chandesc
+                // 3. no param, normal boot
+                addNetworkCallback(() => {
+                  idx = getChannelIndex();
+                  zapIndex();
+                });
+
+            } else {
+                // channel lineup is not provisioned
+                channelParams = localStorage.getItem("channelFromEELM");
+                if (channelParams !== null) {
+                    // tune back to last channel from EELM
+                    console.debug("Tune back to last channel from EELM.")
+                    addNetworkCallback(() => {
+                      zap(channelParams);
+                    });
+                } else {
+                    console.warn("No channel lineup found.");
+                    await util.openZapperEditor({ state: "noChannels" });
+                }
+            }
+            const touch = new TouchArea(document.querySelector(".touch-area"));
+            touch.addEventListener("longpress", () => {
+              ENABLE.application.emitDeeplink({
+                  "action": "android.intent.action.MAIN",
+                  "activity": "com.aminocom.browser.WelcomeScreenActivity",
+                  "packageName": "com.aminocom.browser",
+                  "package": "com.aminocom.browser"
+              });
+            });
+            ENABLE.system.setEventCallback(systemEventHandler);
+            videoControl.setEventCallback(playerEventHandler);
+        }
+        lineup.import().then(init);
+    </script>
+</body>
+
+</html>

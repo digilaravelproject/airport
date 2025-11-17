@@ -1,3 +1,4 @@
+{{-- resources/views/reports/package/index.blade.php --}}
 @extends('layouts.app')
 
 @section('content')
@@ -72,6 +73,9 @@
                         .desc-text { min-width:0; flex:1 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
                         @media (max-width:768px){ .desc-wrap { max-width:180px; } }
                         .badge-status { padding: 4px 8px; border-radius:6px; font-size: .85rem; }
+
+                        /* small style used for show-all link */
+                        .show-all-link { margin-left:6px; font-weight:600; cursor: pointer; color: #0d6efd; text-decoration: underline; background: none; border: none; padding: 0;}
                     </style>
 
                     <table class="table table-bordered table-hover mb-0 align-middle">
@@ -119,8 +123,30 @@
 
                                     <!-- Channels -->
                                     <td>
-                                        @if($pkg->relationLoaded('channels') ? $pkg->channels->count() : $pkg->channels()->count())
-                                            {{ ($pkg->relationLoaded('channels') ? $pkg->channels : $pkg->channels()->get())->pluck('channel_name')->join(', ') }}
+                                        @php
+                                            // get channels collection (respect relationLoaded if available)
+                                            $channelsCol = $pkg->relationLoaded('channels') ? $pkg->channels : $pkg->channels()->get();
+                                        @endphp
+
+                                        @if($channelsCol->count())
+                                            @php
+                                                $first = $channelsCol->slice(0,4)->pluck('channel_name')->join(', ');
+                                                $totalChannels = $channelsCol->count();
+                                                $channelsJson = $channelsCol->map(function($c){
+                                                    return ['id' => $c->id, 'name' => $c->channel_name];
+                                                });
+                                            @endphp
+
+                                            <span class="text-muted-small">{{ $first }}</span>
+
+                                            @if($totalChannels > 4)
+                                                <button
+                                                    class="show-all-link btn btn-link p-0"
+                                                    type="button"
+                                                    data-channels='@json($channelsJson)'>
+                                                    Show all ({{ $totalChannels }})
+                                                </button>
+                                            @endif
                                         @else
                                             -
                                         @endif
@@ -168,6 +194,36 @@
             </form>
         </div>
     </div>
+</div>
+
+<!-- Channels "Show all" Modal (new) -->
+<div class="modal fade" id="channelsModal" tabindex="-1" aria-labelledby="channelsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="channelsModalLabel">Channels (All)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered mb-0" id="channelsListTable">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:80px">#</th>
+                        <th>Channel Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- rows injected by JS -->
+                </tbody>
+            </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -239,6 +295,49 @@ document.addEventListener('DOMContentLoaded', function () {
             submitToNewTab(action, method);
         });
     });
+
+    /* ---------- New: handle "Show all (N)" clicks and populate channelsModal ---------- */
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.show-all-link');
+        if (!btn) return;
+        e.preventDefault();
+
+        try {
+            // data-channels contains JSON array [{id, name}, ...] in package order
+            const raw = btn.getAttribute('data-channels') || '[]';
+            // parse safely
+            const channels = JSON.parse(raw);
+
+            const tbody = document.querySelector('#channelsListTable tbody');
+            tbody.innerHTML = '';
+
+            channels.forEach(function(ch, index) {
+                const tr = document.createElement('tr');
+
+                // sort order number (1-based)
+                const tdNum = document.createElement('td');
+                tdNum.textContent = (index + 1);
+                tdNum.style.verticalAlign = 'middle';
+                tr.appendChild(tdNum);
+
+                const tdName = document.createElement('td');
+                tdName.textContent = ch.name ?? '';
+                tdName.style.verticalAlign = 'middle';
+                tr.appendChild(tdName);
+
+                tbody.appendChild(tr);
+            });
+
+            // show bootstrap modal
+            const modalEl = document.getElementById('channelsModal');
+            const bootstrapModal = new bootstrap.Modal(modalEl);
+            bootstrapModal.show();
+        } catch (err) {
+            console.error('Failed to open channels modal:', err);
+            alert('Unable to open channel list.');
+        }
+    });
+    /* ----------------------------------------------------------------------------- */
 });
 </script>
 @endsection

@@ -501,8 +501,14 @@ document.getElementById('btnReboot')?.addEventListener('click', async () => {
     const rebootBtn = document.getElementById('btnReboot');
     pingBtn.disabled = true; rebootBtn.disabled = true;
     actionStatus.textContent = 'Rebooting...'; actionStatus.className = 'ms-2 small text-muted';
+    
     try {
         const data = await postJSON("{{ $selectedInventory ? route('inventories.reboot', $selectedInventory->id) : '#' }}");
+        
+        setTimeout(() => {
+            location.reload();
+        }, 3000);
+
         if (data.success) {
             actionStatus.textContent = data.message || 'Reboot command sent.';
             actionStatus.className = 'ms-2 small text-warning';

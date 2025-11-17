@@ -216,6 +216,7 @@
                                         <td>{{ $channel->channel_genre }}</td>
                                         <td>{{ $channel->channel_resolution }}</td>
                                         <td>{{ $channel->channel_type }}</td>
+                                        <td>{{ $channel->language }}</td>
                                         <td>{{ $channel->channel_source_in ?? '-' }}</td>
                                         <td>{{ $channel->channel_source_details ?? '-' }}</td>
                                         <td>{{ $channel->language ?? '-' }}</td>

@@ -132,7 +132,7 @@
                                             </a>
                                         </th>
                                         {{-- NEW: Active Channel action column --}}
-                                        <th style="width:110px;">UDP Stream</th>
+                                        <th style="width:200px;">UDP Stream</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -156,13 +156,21 @@
                                         </td>
                                         <td>{{ $inventory->box_fw }}</td>
                                         <td onclick="event.stopPropagation();">
-                                            <button
-                                                type="button"
-                                                class="btn btn-sm btn-outline-primary"
-                                                onclick="playActiveChannel({{ $inventory->id }})"
-                                                title="Discover and play in VLC">
-                                                <i class="fas fa-play"></i> Play
-                                            </button>
+                                            {{-- If online and we discovered an active channel name — show it as click-able link.
+                                                href uses the inventory->channel_source_in value (as requested).
+                                                Fallbacks:
+                                                  - if active_channel_name not found but channel_source_in exists, show "UDP Stream" clickable.
+                                                  - else show original Play button which will attempt discovery via controller + local helper (same as before).
+                                            --}}
+                                            @if($isOnline && !empty($inventory->active_channel_name))
+                                                <a href="{{ $inventory->channel_source_in ? 'udp://'.$inventory->channel_source_in : '#' }}"
+                                                target="_blank" rel="noopener noreferrer"
+                                                class="btn btn-sm btn-link">
+                                                    {{ $inventory->active_channel_name ? 'udp://'.$inventory->active_channel_name : '—' }}
+                                                </a>
+                                            @else
+                                                ---
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty
@@ -278,51 +286,5 @@ document.addEventListener('DOMContentLoaded', function () {
         openInNewTab(btnDownload.dataset.action, true);
     });
 });
-</script>
-
-{{-- NEW: Active Channel discovery + client VLC helper --}}
-<script>
-const PY_HELPER_BASE = 'http://127.0.0.1:5000'; // Python helper runs on the CLIENT machine
-
-async function playActiveChannel(inventoryId) {
-    const btns = document.querySelectorAll('button[onclick^="playActiveChannel"]');
-    btns.forEach(b => b.disabled = true);
-
-    try {
-        // 1) Ask LiveReportController for the active channel URL
-        const r1 = await fetch(`{{ route('live-reports.activeChannel', ['inventory' => '___ID___']) }}`.replace('___ID___', inventoryId), {
-            headers: { 'Accept': 'application/json' }
-        });
-        const j1 = await r1.json();
-        if (!j1.success) {
-            alert(j1.message || 'Active channel not found.');
-            return;
-        }
-        const url = j1.url;
-
-        // 2) Ask local Python helper to launch VLC
-        const params = new URLSearchParams({ url });
-        const r2 = await fetch(`${PY_HELPER_BASE}/?` + params.toString(), { method: 'GET' });
-
-        if (!r2.ok) {
-            const t = await r2.text();
-            alert('Failed to contact local VLC helper.\nIs it running?\n\nResponse: ' + t);
-            return;
-        }
-
-        const j2 = await r2.json().catch(() => ({}));
-        if (j2 && j2.status) {
-            console.log(j2.status);
-        } else if (j2 && j2.error) {
-            alert('Local helper error: ' + j2.error);
-        } else {
-            console.log('VLC launch requested.');
-        }
-    } catch (e) {
-        alert('Error: ' + (e && e.message ? e.message : e));
-    } finally {
-        btns.forEach(b => b.disabled = false);
-    }
-}
 </script>
 @endsection

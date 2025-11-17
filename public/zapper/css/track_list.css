@@ -1,0 +1,39 @@
+#track_list {
+    position: absolute;
+    right: 0px;
+    min-width: 30%;
+    list-style-type: none;
+    margin: 7.8125vw 0vw;
+    padding: 0px;
+}
+
+#track_list>li {
+    color: #0abab5;
+    background: #111111;
+    opacity: 0.8;
+    margin: 0.4vw 0px;
+    white-space: nowrap;
+}
+
+ul#track_list>li.focus {
+    color: #FFF;
+    background: #00877C;
+    opacity: 1;
+}
+
+#track_list>li>div.name {
+    font-size: 2.8125vw;
+    padding: 0% 4% 0% 1%;
+    display: inline-block;
+    min-width: 10.9375vw;
+}
+
+#track_list>li>div.remark {
+    font-size: 1.5625vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 70%;
+    padding: 0% 0% 0% 3%;
+    display: inline-block;
+}

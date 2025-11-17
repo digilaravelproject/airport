@@ -521,7 +521,7 @@ class InventoryActionController extends Controller
         return $messages;
     }
 
-    public function screenshot(Inventory $inventory): JsonResponse
+    public function screenshot_old(Inventory $inventory): JsonResponse
     {
         // ─────────────────────────────────────────────────────────────
         // CONFIG (adjust paths as needed)
@@ -722,6 +722,1028 @@ class InventoryActionController extends Controller
         ]);
     }
 
+    // Add these imports at top of your controller file if not present:
+    // use Illuminate\Http\JsonResponse;
+    // use Illuminate\Support\Facades\Storage;
+
+    public function screenshot(Inventory $inventory): JsonResponse
+    {
+        // CONFIG
+        $adbPath = '/usr/bin/adb';
+        $homeDir = '/var/www';
+        $keyDir  = '/var/www/.android';
+        $port    = 5555;
+        $tmpDir  = sys_get_temp_dir();
+
+        $deviceIP = $inventory->box_ip;
+        if (!$deviceIP) {
+            return response()->json(['success'=>false,'message'=>'Box IP not found (set box_ip).'], 422);
+        }
+
+        // basic checks
+        if (!file_exists($adbPath)) {
+            return response()->json(['success'=>false,'message'=>"ADB binary not found at: {$adbPath}"], 500);
+        }
+        if (!is_dir($keyDir)) {
+            return response()->json(['success'=>false,'message'=>"ADB key directory not found at: {$keyDir}"], 500);
+        }
+
+        $env = [
+            'HOME'            => $homeDir,
+            'ADB_VENDOR_KEYS' => $keyDir,
+            'PATH'            => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+        ];
+        $adb    = escapeshellarg($adbPath);
+        $serial = escapeshellarg("{$deviceIP}:{$port}");
+
+        // helpers
+        $run = function(string $cmd) use ($env) {
+            $descriptors = [1=>['pipe','w'], 2=>['pipe','w']];
+            $proc = proc_open($cmd . ' 2>&1', $descriptors, $pipes, null, $env);
+            if (!is_resource($proc)) return [1, "Failed to start process: {$cmd}"];
+            $out = stream_get_contents($pipes[1]); fclose($pipes[1]);
+            $exit = proc_close($proc);
+            return [$exit, trim($out)];
+        };
+
+        $runBinary = function(string $cmd) use ($env) {
+            $descriptors = [1=>['pipe','w'], 2=>['pipe','w']];
+            $proc = proc_open($cmd, $descriptors, $pipes, null, $env);
+            if (!is_resource($proc)) return [1, null, 'Failed to start process'];
+            $stdout = stream_get_contents($pipes[1]); $stderr = stream_get_contents($pipes[2]);
+            fclose($pipes[1]); fclose($pipes[2]);
+            $exit = proc_close($proc);
+            return [$exit, $stdout, trim($stderr)];
+        };
+
+        $isMostlyBlack = function (?string $pngBinary, $sampleStep = 10, $threshold = 12) {
+            if (!$pngBinary) return true;
+            $img = @imagecreatefromstring($pngBinary);
+            if (!$img) return true;
+            $w = imagesx($img); $h = imagesy($img);
+            if ($w === 0 || $h === 0) { imagedestroy($img); return true; }
+            $total = 0; $count = 0;
+            for ($x=0; $x<$w; $x += max(1, intval($w/$sampleStep))) {
+                for ($y=0; $y<$h; $y += max(1, intval($h/$sampleStep))) {
+                    $rgb = imagecolorat($img, $x, $y);
+                    $r = ($rgb >> 16) & 0xFF;
+                    $g = ($rgb >> 8) & 0xFF;
+                    $b = $rgb & 0xFF;
+                    // perceived brightness
+                    $lum = (0.299*$r + 0.587*$g + 0.114*$b);
+                    $total += $lum; $count++;
+                }
+            }
+            imagedestroy($img);
+            if ($count===0) return true;
+            $avg = $total / $count;
+            return ($avg < $threshold);
+        };
+
+        $messages = [];
+
+        // 1) quick ping (non-fatal)
+        $messages[] = "Pinging {$deviceIP}…";
+        [$pingStatus, $pingOut] = $run((stripos(PHP_OS, 'WIN')===0) ? "ping -n 1 {$deviceIP}" : "/usr/bin/ping -c 1 {$deviceIP}");
+        if ($pingStatus !== 0) {
+            $messages[] = "Ping failed (continuing): " . ($pingOut ?: '');
+        } else {
+            $messages[] = "Ping OK";
+        }
+
+        // ensure adb disconnected then connect
+        $run("$adb disconnect $serial");
+        [$connStatus, $connOut] = $run("$adb connect $serial");
+        if ($connStatus !== 0 || stripos($connOut, 'unable') !== false) {
+            $messages[] = "ADB connect failed: " . ($connOut ?: '');
+            return response()->json(['success'=>false,'message'=>'ADB connect failed.','messages'=>$messages], 500);
+        }
+        $messages[] = "ADB connected";
+
+        // 2) Try exec-out screencap (fast)
+        $messages[] = "Trying exec-out screencap (screencap -p via exec-out)…";
+        $cmd = "$adb -s $serial exec-out screencap -p";
+        [$capStatus, $png, $capErr] = $runBinary($cmd);
+        // normalize CRLF
+        if ($png !== null) $png = str_replace("\r\n", "\n", $png);
+
+        if ($capStatus === 0 && $png) {
+            $messages[] = "screencap returned " . strlen($png) . " bytes";
+            if (!($isMostlyBlack($png))) {
+                // good screenshot
+                $messages[] = "Screenshot appears valid (not mostly black). Saving…";
+                $dir = 'inventories/screenshots';
+                $filename = $inventory->id . '-' . now()->format('YmdHis') . '.png';
+                $path = $dir . '/' . $filename;
+                try {
+                    Storage::disk('public')->put($path, $png);
+                    $inventory->photo = $path; $inventory->save();
+                    $run("$adb disconnect $serial");
+                    $messages[] = "Saved to storage/{$path}";
+                    return response()->json([
+                        'success'=>true,
+                        'message'=>'Screenshot captured via exec-out screencap.',
+                        'path'=>asset('storage/'.$path),
+                        'method'=>'adb-screencap',
+                        'messages'=>$messages,
+                    ]);
+                } catch (\Throwable $e) {
+                    $messages[] = "Failed saving PNG: " . $e->getMessage();
+                    // continue to fallback
+                }
+            } else {
+                $messages[] = "Captured image looks mostly black — falling back to other methods.";
+            }
+        } else {
+            $messages[] = "exec-out screencap failed: " . ($capErr ?: $capStatus);
+        }
+
+        // 3) Fallback: screenrecord (1s) -> pull MP4 -> extract frame using ffmpeg
+        $messages[] = "Trying screenrecord fallback (record 1s + extract frame with ffmpeg)…";
+        $remoteMp4 = '/sdcard/__tmp_screen.mp4';
+        // remove any previous remote file
+        $run("$adb -s $serial shell rm -f $remoteMp4");
+        [$recStatus, $recOut] = $run("$adb -s $serial shell screenrecord --time-limit 1 {$remoteMp4}");
+        if ($recStatus !== 0) {
+            $messages[] = "screenrecord command failed: " . ($recOut ?: $recStatus);
+        } else {
+            // pull file to local temp
+            $localMp4 = tempnam($tmpDir, 'scr_') . '.mp4';
+            [$pullStatus, $pullOut] = $run("$adb -s $serial pull {$remoteMp4} " . escapeshellarg($localMp4));
+            // clean remote
+            $run("$adb -s $serial shell rm -f {$remoteMp4}");
+            if ($pullStatus !== 0) {
+                $messages[] = "adb pull mp4 failed: " . ($pullOut ?: $pullStatus);
+            } else {
+                $messages[] = "Pulled MP4 to {$localMp4}";
+                // check for ffmpeg
+                [$whichFfmpegStatus, $whichFfmpegOut] = $run("which ffmpeg");
+                if ($whichFfmpegStatus !== 0) {
+                    $messages[] = "ffmpeg not found on server — cannot extract frame from mp4.";
+                } else {
+                    $localPng = tempnam($tmpDir, 'scr_') . '.png';
+                    $ffmpegCmd = "ffmpeg -y -i " . escapeshellarg($localMp4) . " -vframes 1 -f image2 " . escapeshellarg($localPng) . " 2>&1";
+                    [$ffStatus, $ffOut] = $run($ffmpegCmd);
+                    if ($ffStatus !== 0) {
+                        $messages[] = "ffmpeg failed: " . ($ffOut ?: $ffStatus);
+                    } else {
+                        $messages[] = "ffmpeg produced PNG {$localPng}";
+                        $png2 = @file_get_contents($localPng);
+                        @unlink($localMp4);
+                        @unlink($localPng);
+                        if ($png2 && !($isMostlyBlack($png2))) {
+                            // save and return
+                            $dir = 'inventories/screenshots';
+                            $filename = $inventory->id . '-' . now()->format('YmdHis') . '.png';
+                            $path = $dir . '/' . $filename;
+                            try {
+                                Storage::disk('public')->put($path, $png2);
+                                $inventory->photo = $path; $inventory->save();
+                                $run("$adb disconnect $serial");
+                                $messages[] = "Saved to storage/{$path}";
+                                return response()->json([
+                                    'success'=>true,
+                                    'message'=>'Screenshot captured via screenrecord+ffmpeg fallback.',
+                                    'path'=>asset('storage/'.$path),
+                                    'method'=>'screenrecord+ffmpeg',
+                                    'messages'=>$messages,
+                                ]);
+                            } catch (\Throwable $e) {
+                                $messages[] = "Failed to save fallback PNG: " . $e->getMessage();
+                            }
+                        } else {
+                            $messages[] = "Fallback frame is missing or mostly black.";
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4) Minicap fallback (if installed on device)
+        $messages[] = "Trying minicap (if present on device) …";
+        // check if /data/local/tmp/minicap exists
+        [$lsStatus, $lsOut] = $run("$adb -s $serial shell ls /data/local/tmp/minicap");
+        if ($lsStatus === 0) {
+            $messages[] = "minicap binary found on device, attempting to run it.";
+            // query device size
+            [$sizeStatus, $sizeOut] = $run("$adb -s $serial shell wm size");
+            if ($sizeStatus === 0 && preg_match('/Physical size:\s*(\d+)x(\d+)/i', $sizeOut, $m)) {
+                $dw = $m[1]; $dh = $m[2];
+            } else {
+                // fallback to 1280x720
+                $dw = 1280; $dh = 720;
+                $messages[] = "Unable to detect screen size via 'wm size', using {$dw}x{$dh}.";
+            }
+            // run minicap -s (it outputs jpeg stream to stdout). Use -P widthxheight@virtual/rotation
+            $minicapCmd = "$adb -s $serial shell LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/minicap -P {$dw}x{$dh}@{$dw}x{$dh}/0 -s";
+            [$minStatus, $minOut, $minErr] = $runBinary($minicapCmd);
+            if ($minStatus === 0 && $minOut) {
+                // minicap outputs a stream that may contain JPEG frames; try to extract first JPEG from stream
+                $stream = $minOut;
+                // find JPEG start/end
+                $start = strpos($stream, "\xFF\xD8");
+                $end   = $start !== false ? strpos($stream, "\xFF\xD9", $start) : false;
+                if ($start !== false && $end !== false) {
+                    $jpeg = substr($stream, $start, $end - $start + 2);
+                    // convert jpeg to png (optional) or just save jpeg as png path with correct content
+                    $dir = 'inventories/screenshots';
+                    $filename = $inventory->id . '-' . now()->format('YmdHis') . '.jpg';
+                    $path = $dir . '/' . $filename;
+                    try {
+                        Storage::disk('public')->put($path, $jpeg);
+                        // update record and return
+                        $inventory->photo = $path; $inventory->save();
+                        $run("$adb disconnect $serial");
+                        $messages[] = "Saved minicap image to storage/{$path}";
+                        return response()->json([
+                            'success'=>true,
+                            'message'=>'Screenshot captured via minicap.',
+                            'path'=>asset('storage/'.$path),
+                            'method'=>'minicap',
+                            'messages'=>$messages,
+                        ]);
+                    } catch (\Throwable $e) {
+                        $messages[] = "Failed to save minicap jpeg: " . $e->getMessage();
+                    }
+                } else {
+                    $messages[] = "minicap produced output but no JPEG frame found.";
+                }
+            } else {
+                $messages[] = "minicap run failed: " . ($minErr ?: $minOut ?: $minStatus);
+            }
+        } else {
+            $messages[] = "minicap not found on device (ls returned: " . ($lsOut ?: '') . ")";
+        }
+
+        // final: nothing worked
+        $run("$adb disconnect $serial");
+        $messages[] = "All capture methods failed or produced black images.";
+
+        // Add helpful recommendations
+        $messages[] = "Recommendations: 1) Install a small MediaProjection-based service/app on the device to expose a snapshot HTTP endpoint (best reliable approach).";
+        $messages[] = "2) Install the correct minicap binary for the device ABI (openstf/minicap) and try again.";
+        $messages[] = "3) Ensure device isn't using a protected DRM surface (protected video / HDMI) — those cannot be captured without system privileges or a special app.";
+
+        return response()->json([
+            'success'=>false,
+            'message'=>'Screenshot failed (all attempts). See messages for details.',
+            'messages'=>$messages,
+        ], 500);
+    }
+
+    public function screenshot1(Inventory $inventory): JsonResponse
+    {
+        // -------------------------
+        // CONFIG - adjust if needed
+        // -------------------------
+        $adbPath    = '/usr/bin/adb';        // path to adb
+        $ffmpegPath = '/usr/bin/ffmpeg';     // path to ffmpeg (used to extract frame from mp4)
+        $scrcpyPath = '/usr/bin/scrcpy';     // optional (if scrcpy installed)
+        $homeDir    = '/var/www';            // HOME for adb keys
+        $keyDir     = '/var/www/.android';   // ADB keys dir (if needed)
+        $port       = 5555;                  // adb tcp port used by your devices
+        $tmpDir     = sys_get_temp_dir();
+
+        // -------------------------
+        // Resolve device IP
+        // -------------------------
+        $deviceIP = $inventory->box_ip;
+        if (!$deviceIP) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Box IP not found (set box_ip).',
+            ], 422);
+        }
+
+        // -------------------------
+        // Basic binary checks
+        // -------------------------
+        if (!file_exists($adbPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => "ADB binary not found at: {$adbPath}",
+            ], 500);
+        }
+
+        // Build a minimal env for child processes
+        $env = [
+            'HOME'            => $homeDir,
+            'ADB_VENDOR_KEYS' => $keyDir,
+            'PATH'            => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+        ];
+
+        // -------------------------
+        // Helpers to run commands
+        // -------------------------
+        $run = function (string $cmd) use ($env) {
+            $descriptors = [
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ];
+            $proc = proc_open($cmd . ' 2>&1', $descriptors, $pipes, null, $env);
+            if (!is_resource($proc)) {
+                return [1, "Failed to start: {$cmd}"];
+            }
+            $out = stream_get_contents($pipes[1]);
+            fclose($pipes[1]);
+            $exit = proc_close($proc);
+            return [$exit, trim($out)];
+        };
+
+        $runBinary = function (string $cmd) use ($env) {
+            $descriptors = [
+                1 => ['pipe', 'w'], // stdout (binary)
+                2 => ['pipe', 'w'], // stderr
+            ];
+            $proc = proc_open($cmd, $descriptors, $pipes, null, $env);
+            if (!is_resource($proc)) {
+                return [1, null, "Failed to start process: {$cmd}"];
+            }
+            $stdout = stream_get_contents($pipes[1]); // binary
+            $stderr = stream_get_contents($pipes[2]); // text
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            $exit = proc_close($proc);
+            return [$exit, $stdout, trim($stderr)];
+        };
+
+        $adb = escapeshellarg($adbPath);
+        $serial = escapeshellarg("{$deviceIP}:{$port}");
+
+        $messages = [];
+
+        // -------------------------
+        // Ping (soft check)
+        // -------------------------
+        $messages[] = "🔍 Pinging {$deviceIP}…";
+        $pingCmd = (stripos(PHP_OS, 'WIN') === 0) ? "ping -n 1 {$deviceIP}" : "/usr/bin/ping -c 1 {$deviceIP}";
+        [$pingStatus, $pingOut] = $run($pingCmd);
+        if ($pingStatus !== 0) {
+            $messages[] = "⚠️ Ping failed (continuing) — {$pingOut}";
+        } else {
+            $messages[] = "✅ Ping OK";
+        }
+
+        // -------------------------
+        // ADB connect
+        // -------------------------
+        $messages[] = "🔗 ADB connect to {$deviceIP}:{$port}";
+        $run("$adb disconnect $serial"); // best-effort
+        [$connStatus, $connOut] = $run("$adb connect $serial");
+        if ($connStatus !== 0 || stripos($connOut, 'unable') !== false) {
+            $messages[] = "❌ ADB connect failed: {$connOut}";
+            return response()->json([
+                'success' => false,
+                'message' => 'ADB connect failed.',
+                'messages' => $messages,
+            ], 500);
+        }
+        $messages[] = "✅ ADB connected: {$connOut}";
+
+        // -------------------------
+        // 1) Try exec-out screencap (fast)
+        // -------------------------
+        $messages[] = "📸 Trying exec-out screencap (screencap -p via adb exec-out)…";
+        $cmd = "$adb -s $serial exec-out screencap -p";
+        [$capStatus, $png, $capErr] = $runBinary($cmd);
+
+        // Normalize CRLF -> LF
+        if ($png !== null) {
+            $png = str_replace("\r\n", "\n", $png);
+        }
+
+        // If exec-out succeeded and produced data, try save
+        if ($capStatus === 0 && !empty($png)) {
+            try {
+                $dir      = 'inventories/screenshots';
+                $filename = $inventory->id . '-' . now()->format('YmdHis') . '.png';
+                $path     = $dir . '/' . $filename;
+                Storage::disk('public')->put($path, $png);
+                // update model
+                $inventory->photo = $path;
+                $inventory->save();
+                $run("$adb disconnect $serial");
+                $messages[] = "✅ exec-out screencap saved to storage/{$path}";
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Screenshot captured via adb exec-out.',
+                    'path'    => asset('storage/' . $path),
+                    'method'  => 'adb_exec_out',
+                    'messages' => $messages,
+                ]);
+            } catch (\Throwable $e) {
+                $messages[] = "❌ Failed to write PNG from exec-out: " . $e->getMessage();
+                // continue to fallback
+            }
+        } else {
+            $messages[] = "⚠️ exec-out screencap failed or returned empty. stderr: {$capErr}";
+        }
+
+        // -------------------------
+        // 2) Fallback: screenrecord -> pull -> ffmpeg extract frame
+        // -------------------------
+        $messages[] = "🔁 Trying fallback: screenrecord (short) -> pull -> ffmpeg extract a frame";
+
+        // Confirm adb shell screenrecord exists (we'll attempt)
+        $remoteMp4 = '/sdcard/__tmp_screenrec.mp4';
+        [$shRecStatus, $shRecOut] = $run("$adb -s $serial shell \"ls /system/bin/screenrecord || ls /system/xbin/screenrecord || true\"");
+
+        // Use time-limited screenrecord (3 seconds)
+        $messages[] = "⏱ Recording 3 seconds on device: {$remoteMp4}";
+        [$recStatus, $recOut] = $run("$adb -s $serial shell screenrecord --time-limit 3 {$remoteMp4}");
+        if ($recStatus !== 0) {
+            $messages[] = "❌ screenrecord command failed: {$recOut}";
+        } else {
+            // Pull the MP4 to a temp local file
+            $localMp4   = $tmpDir . DIRECTORY_SEPARATOR . 'inv_' . $inventory->id . '_' . time() . '.mp4';
+            $messages[] = "📤 Pulling recorded mp4 to local: {$localMp4}";
+            [$pullStatus, $mp4binary, $pullErr] = $runBinary("$adb -s $serial pull {$remoteMp4} -");
+
+            // clean remote file best-effort
+            $run("$adb -s $serial shell rm -f {$remoteMp4}");
+
+            if ($pullStatus === 0 && !empty($mp4binary)) {
+                file_put_contents($localMp4, $mp4binary);
+                $messages[] = "✅ Pulled mp4, size: " . filesize($localMp4);
+
+                // Ensure ffmpeg exists
+                if (!file_exists($ffmpegPath)) {
+                    $messages[] = "⚠️ ffmpeg not found at {$ffmpegPath} — cannot extract frame. Install ffmpeg or try scrcpy.";
+                } else {
+                    $localPng = $tmpDir . DIRECTORY_SEPARATOR . 'inv_' . $inventory->id . '_' . time() . '.png';
+                    $ffmpegCmd = escapeshellcmd($ffmpegPath) . ' -y -i ' . escapeshellarg($localMp4) . ' -frames:v 1 -q:v 2 ' . escapeshellarg($localPng) . ' 2>&1';
+                    [$ffExit, $ffOut] = $run($ffmpegCmd);
+                    if ($ffExit === 0 && file_exists($localPng) && filesize($localPng) > 200) {
+                        // read png and store
+                        $pngData = file_get_contents($localPng);
+                        try {
+                            $dir      = 'inventories/screenshots';
+                            $filename = $inventory->id . '-' . now()->format('YmdHis') . '.png';
+                            $path     = $dir . '/' . $filename;
+                            Storage::disk('public')->put($path, $pngData);
+                            $inventory->photo = $path;
+                            $inventory->save();
+                            // cleanup temp files
+                            @unlink($localMp4);
+                            @unlink($localPng);
+                            $run("$adb disconnect $serial");
+                            $messages[] = "✅ Extracted frame saved to storage/{$path}";
+                            return response()->json([
+                                'success' => true,
+                                'message' => 'Screenshot captured via screenrecord + ffmpeg fallback.',
+                                'path'    => asset('storage/' . $path),
+                                'method'  => 'screenrecord+ffmpeg',
+                                'messages' => $messages,
+                            ]);
+                        } catch (\Throwable $e) {
+                            $messages[] = "❌ Failed to store extracted PNG: " . $e->getMessage();
+                        }
+                    } else {
+                        $messages[] = "❌ ffmpeg frame extraction failed or created tiny file. ffmpeg output: {$ffOut}";
+                        @unlink($localPng);
+                    }
+                }
+                @unlink($localMp4);
+            } else {
+                $messages[] = "❌ adb pull failed or produced empty mp4. stderr: {$pullErr}";
+            }
+        }
+
+        // -------------------------
+        // 3) Optional: scrcpy record (if available) -> extract frame
+        // -------------------------
+        if (file_exists($scrcpyPath)) {
+            $messages[] = "🔁 Trying scrcpy headless record -> extract frame (requires scrcpy installed)";
+
+            $localRec = $tmpDir . DIRECTORY_SEPARATOR . 'inv_scrcpy_' . $inventory->id . '_' . time() . '.mp4';
+            // -s target; --no-display runs headless; --record records to file
+            $scrcpyCmd = escapeshellarg($scrcpyPath) . ' -s ' . escapeshellarg("{$deviceIP}:{$port}") . ' --no-display --record ' . escapeshellarg($localRec) . ' --max-size 1024 2>&1';
+            [$scExit, $scOut] = $run($scrcpyCmd);
+            if ($scExit === 0 && file_exists($localRec) && filesize($localRec) > 1000) {
+                // extract frame with ffmpeg if available
+                if (!file_exists($ffmpegPath)) {
+                    $messages[] = "⚠️ ffmpeg required to extract frame from scrcpy recording but not found.";
+                } else {
+                    $localPng = $tmpDir . DIRECTORY_SEPARATOR . 'inv_scrcpy_' . $inventory->id . '_' . time() . '.png';
+                    $ffmpegCmd = escapeshellcmd($ffmpegPath) . ' -y -i ' . escapeshellarg($localRec) . ' -frames:v 1 -q:v 2 ' . escapeshellarg($localPng) . ' 2>&1';
+                    [$ffExit, $ffOut] = $run($ffmpegCmd);
+                    if ($ffExit === 0 && file_exists($localPng) && filesize($localPng) > 200) {
+                        $pngData = file_get_contents($localPng);
+                        try {
+                            $dir      = 'inventories/screenshots';
+                            $filename = $inventory->id . '-' . now()->format('YmdHis') . '.png';
+                            $path     = $dir . '/' . $filename;
+                            Storage::disk('public')->put($path, $pngData);
+                            $inventory->photo = $path;
+                            $inventory->save();
+                            @unlink($localRec);
+                            @unlink($localPng);
+                            $run("$adb disconnect $serial");
+                            $messages[] = "✅ scrcpy -> ffmpeg frame saved to storage/{$path}";
+                            return response()->json([
+                                'success' => true,
+                                'message' => 'Screenshot captured via scrcpy+ffmpeg fallback.',
+                                'path'    => asset('storage/' . $path),
+                                'method'  => 'scrcpy+ffmpeg',
+                                'messages' => $messages,
+                            ]);
+                        } catch (\Throwable $e) {
+                            $messages[] = "❌ Failed to store PNG from scrcpy: " . $e->getMessage();
+                        }
+                    } else {
+                        $messages[] = "❌ scrcpy recording -> ffmpeg extraction failed. ffmpeg output: {$ffOut}";
+                    }
+                }
+                @unlink($localRec);
+            } else {
+                $messages[] = "❌ scrcpy failed or produced nothing. output: {$scOut}";
+            }
+        } else {
+            $messages[] = "ℹ️ scrcpy not installed at {$scrcpyPath} (skipping).";
+        }
+
+        // -------------------------
+        // If we reach here, everything failed: probably hardware/DRM/secure overlay.
+        // -------------------------
+        $messages[] = "❌ All software capture attempts failed. This commonly happens when the device uses hardware overlays, DRM or FLAG_SECURE, or renders video directly to HDMI (framebuffer isn't readable).";
+
+        // Disconnect and return detailed diagnostics to help you decide next steps
+        $run("$adb disconnect $serial");
+
+        $diagnosis = [
+            'possibilities' => [
+                'Device uses hardware/composer overlay or HDMI output -> screencap/screenrecord will produce black images.',
+                'Content is DRM protected or flagged secure -> system prevents screenshots.',
+                'ADB connection or binary mismatch problems (check adb version, keys, permissions).',
+            ],
+            'recommended_actions' => [
+                'If you control the device firmware/app: avoid FLAG_SECURE or render into an accessible surface.',
+                'Try a hardware HDMI capture device (reliable for HDMI output).',
+                'Use vendor/SoC APIs (some boxes expose a capture API), or use minicap/scrcpy with matching native binaries for the device architecture.',
+                'Ensure ffmpeg and scrcpy are installed on the server if you want to use the fallbacks.',
+            ],
+        ];
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Screenshot capture failed (see messages & diagnosis).',
+            'messages' => $messages,
+            'diagnosis' => $diagnosis,
+        ], 500);
+    }
+
+    public function screenshot2(Inventory $inventory): JsonResponse
+    {
+        // ---------- CONFIG ----------
+        $adbPath = '/usr/bin/adb';
+        $homeDir = '/var/www';
+        $keyDir  = '/var/www/.android';
+        $port    = 5555;
+        $ffmpeg  = '/usr/bin/ffmpeg';         // ffmpeg binary for HDMI capture fallback
+        $v4lDevice = '/dev/video0';           // video device for capture card (adjust)
+        $messages = [];
+
+        $deviceIP = $inventory->box_ip;
+        if (!$deviceIP) {
+            return response()->json(['success' => false, 'message' => 'Box IP not found (set box_ip).'], 422);
+        }
+
+        // env for child processes
+        $env = [
+            'HOME'            => $homeDir,
+            'ADB_VENDOR_KEYS' => $keyDir,
+            'PATH'            => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+        ];
+
+        $run = function (string $cmd) use ($env) {
+            $descriptors = [
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ];
+            $proc = proc_open($cmd . ' 2>&1', $descriptors, $pipes, null, $env);
+            if (!is_resource($proc)) {
+                return [1, "Failed to start: {$cmd}"];
+            }
+            $out = stream_get_contents($pipes[1]);
+            fclose($pipes[1]);
+            $exit = proc_close($proc);
+            return [$exit, trim($out)];
+        };
+
+        $runBinary = function (string $cmd) use ($env) {
+            $descriptors = [
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ];
+            $proc = proc_open($cmd, $descriptors, $pipes, null, $env);
+            if (!is_resource($proc)) {
+                return [1, null, "Failed to start: {$cmd}"];
+            }
+            $stdout = stream_get_contents($pipes[1]); // binary
+            $stderr = stream_get_contents($pipes[2]); // text
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            $exit = proc_close($proc);
+            return [$exit, $stdout, trim($stderr)];
+        };
+
+        // ---------- 1) Try adb screencap (fast) ----------
+        $messages[] = "Attempting ADB screenshot via {$deviceIP}:{$port}";
+
+        if (!file_exists($adbPath)) {
+            $messages[] = "ADB binary not found at {$adbPath}";
+        } else {
+            $adb = escapeshellarg($adbPath);
+            $serial = escapeshellarg("{$deviceIP}:{$port}");
+
+            // ensure disconnect (ignore errors)
+            $run("{$adb} disconnect {$serial}");
+
+            [$cStatus, $cOut] = $run("{$adb} connect {$serial}");
+            if ($cStatus !== 0 || stripos($cOut, 'unable') !== false) {
+                $messages[] = "ADB connect failed: {$cOut}";
+            } else {
+                $messages[] = "ADB connected: {$cOut}";
+
+                // exec-out screencap binary to stdout
+                $cmd = "{$adb} -s {$serial} exec-out screencap -p";
+                [$capStatus, $png, $capErr] = $runBinary($cmd);
+
+                if ($capStatus === 0 && $png) {
+                    // normalize CRLF -> LF
+                    $png = str_replace("\r\n", "\n", $png);
+
+                    // Quick content check: many black screenshots are mostly zero bytes or very small entropy;
+                    // we can't perfectly detect 'black', but we can still save and return it for debugging.
+                    $dir = 'inventories/screenshots';
+                    $filename = $inventory->id . '-adb-' . now()->format('YmdHis') . '.png';
+                    $path = $dir . '/' . $filename;
+
+                    try {
+                        Storage::disk('public')->put($path, $png);
+                        $inventory->photo = $path;
+                        $inventory->save();
+
+                        $messages[] = "Saved adb screenshot to storage/{$path}";
+                        $run("{$adb} disconnect {$serial}");
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Screenshot captured (adb).',
+                            'path' => asset('storage/' . $path),
+                            'method' => 'adb',
+                            'messages' => $messages,
+                        ]);
+                    } catch (\Throwable $e) {
+                        $messages[] = "Failed to save PNG: " . $e->getMessage();
+                    }
+                } else {
+                    $messages[] = "ADB screencap exec-out failed. stderr/capErr: {$capErr}";
+                    // Fallback attempt: use shell screencap to file and pull
+                    $messages[] = "Trying fallback (screencap -> /sdcard -> pull)";
+
+                    $tmpRemote = '/sdcard/__tmp_screen.png';
+                    [$shStatus, $shOut] = $run("{$adb} -s {$serial} shell screencap -p {$tmpRemote}");
+                    if ($shStatus === 0) {
+                        [$pullStatus, $png, $pullErr] = $runBinary("{$adb} -s {$serial} pull {$tmpRemote} -");
+                        $run("{$adb} -s {$serial} shell rm -f {$tmpRemote}");
+                        if ($pullStatus === 0 && $png) {
+                            $png = str_replace("\r\n", "\n", $png);
+                            $dir = 'inventories/screenshots';
+                            $filename = $inventory->id . '-adb-fallback-' . now()->format('YmdHis') . '.png';
+                            $path = $dir . '/' . $filename;
+                            try {
+                                Storage::disk('public')->put($path, $png);
+                                $inventory->photo = $path;
+                                $inventory->save();
+                                $messages[] = "Saved adb fallback screenshot to storage/{$path}";
+                                $run("{$adb} disconnect {$serial}");
+                                return response()->json([
+                                    'success' => true,
+                                    'message' => 'Screenshot captured (adb fallback).',
+                                    'path' => asset('storage/' . $path),
+                                    'method' => 'adb-fallback',
+                                    'messages' => $messages,
+                                ]);
+                            } catch (\Throwable $e) {
+                                $messages[] = "Save failed: " . $e->getMessage();
+                            }
+                        } else {
+                            $messages[] = "adb pull failed: {$pullErr}";
+                        }
+                    } else {
+                        $messages[] = "screencap shell failed: {$shOut}";
+                    }
+                    $run("{$adb} disconnect {$serial}");
+                }
+            }
+        }
+
+        // If we reach here, ADB methods failed or produced unusable result.
+        $messages[] = "ADB approach didn't produce a usable screenshot.";
+
+        // ---------- 2) Try HDMI capture (ffmpeg) if a capture card is present ----------
+        if (file_exists($ffmpeg) && file_exists($v4lDevice)) {
+            $messages[] = "Attempting HDMI capture from {$v4lDevice} using ffmpeg";
+
+            $dir = 'inventories/screenshots';
+            $filename = $inventory->id . '-hdmi-' . now()->format('YmdHis') . '.png';
+            $publicPath = storage_path('app/public/' . $dir);
+            if (!is_dir($publicPath)) mkdir($publicPath, 0755, true);
+            $tmpFile = $publicPath . '/' . $filename;
+
+            // Build ffmpeg command:
+            // - capture one frame (-vframes 1) from device
+            // - adjust -video_size if your capture card reports a different default
+            // You may need to set -video_size 1920x1080 or other sizes for your card.
+            $cmd = escapeshellcmd($ffmpeg) . " -y -f video4linux2 -i " . escapeshellarg($v4lDevice) .
+                " -vframes 1 " . escapeshellarg($tmpFile) . " 2>&1";
+
+            [$exit, $out] = $run($cmd);
+            if ($exit === 0 && file_exists($tmpFile)) {
+                // Save to storage disk (public)
+                $relPath = $dir . '/' . $filename;
+                try {
+                    Storage::disk('public')->put($relPath, file_get_contents($tmpFile));
+                    // optional: set inventory photo
+                    $inventory->photo = $relPath;
+                    $inventory->save();
+                    // cleanup temp file
+                    @unlink($tmpFile);
+                    $messages[] = "Saved HDMI screenshot to storage/{$relPath}";
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Screenshot captured (hdmi/ffmpeg).',
+                        'path' => asset('storage/' . $relPath),
+                        'method' => 'hdmi',
+                        'messages' => $messages,
+                    ]);
+                } catch (\Throwable $e) {
+                    $messages[] = "Failed to save HDMI capture: " . $e->getMessage();
+                }
+            } else {
+                $messages[] = "ffmpeg capture failed (exit={$exit}) output: {$out}";
+            }
+        } else {
+            $messages[] = "FFmpeg or capture device not available (ffmpeg: " . (file_exists($ffmpeg) ? 'yes' : 'no') . ", device: " . (file_exists($v4lDevice) ? 'yes' : 'no') . ")";
+        }
+
+        // ---------- 3) Give up, return diagnostics ----------
+        $messages[] = "No reliable screenshot could be produced. Likely reasons: protected/hardware-overlay content, device blocks surface capture, or no capture card / vendor API available.";
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Screenshot failed. See messages for diagnostics.',
+            'messages' => $messages,
+        ], 500);
+    }
+
+    public function screenshot3(Inventory $inventory): JsonResponse
+    {
+        // ─────────────────────────────────────────────────────────────
+        // CONFIG (adjust to your server/device)
+        // ─────────────────────────────────────────────────────────────
+        $adbPath  = '/usr/bin/adb';
+        $ffmpeg   = '/usr/bin/ffmpeg'; // optional (used for screenrecord fallback)
+        $homeDir  = '/var/www';
+        $keyDir   = '/var/www/.android';
+        $port     = 5555;
+        $useFfmpegFallback = file_exists($ffmpeg);
+
+        // Quick sanity
+        $deviceIP = $inventory->box_ip;
+        if (!$deviceIP) {
+            return response()->json(['success' => false, 'message' => 'Box IP not found (set box_ip).'], 422);
+        }
+        if (!file_exists($adbPath)) {
+            return response()->json(['success' => false, 'message' => "ADB binary not found at: {$adbPath}"], 500);
+        }
+
+        // Build environment for child processes
+        $env = [
+            'HOME'            => $homeDir,
+            'ADB_VENDOR_KEYS' => $keyDir,
+            'PATH'            => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+        ];
+
+        $adb    = escapeshellarg($adbPath);
+        $serial = escapeshellarg("{$deviceIP}:{$port}");
+
+        // run (text) and runBinary (binary stdout) helpers
+        $run = function(string $cmd) use ($env) : array {
+            $descriptors = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+            $proc = proc_open($cmd . ' 2>&1', $descriptors, $pipes, null, $env);
+            if (!is_resource($proc)) return [1, "Failed to start process: {$cmd}"];
+            $out = stream_get_contents($pipes[1]);
+            fclose($pipes[1]);
+            $exit = proc_close($proc);
+            return [$exit, trim($out)];
+        };
+
+        $runBinary = function(string $cmd) use ($env) : array {
+            $descriptors = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+            $proc = proc_open($cmd, $descriptors, $pipes, null, $env);
+            if (!is_resource($proc)) return [1, null, 'Failed to start process'];
+            $stdout = stream_get_contents($pipes[1]); // binary
+            $stderr = stream_get_contents($pipes[2]);
+            fclose($pipes[1]); fclose($pipes[2]);
+            $exit = proc_close($proc);
+            return [$exit, $stdout, trim($stderr)];
+        };
+
+        $messages = [];
+
+        // Helper: check if PNG looks "mostly black" (sample pixels)
+        $isMostlyBlack = function($pngData) {
+            if (!$pngData) return true;
+            $im = @imagecreatefromstring($pngData);
+            if ($im === false) return true;
+            $w = imagesx($im); $h = imagesy($im);
+            // sample up to 500 points
+            $samples = 500;
+            $stepX = max(1, intval($w / sqrt($samples)));
+            $stepY = max(1, intval($h / sqrt($samples)));
+            $total = 0; $count = 0;
+            for ($x = 0; $x < $w; $x += $stepX) {
+                for ($y = 0; $y < $h; $y += $stepY) {
+                    $rgb = imagecolorat($im, $x, $y);
+                    $r = ($rgb >> 16) & 0xFF;
+                    $g = ($rgb >> 8) & 0xFF;
+                    $b = $rgb & 0xFF;
+                    // perceived brightness
+                    $brightness = ($r*299 + $g*587 + $b*114) / 1000;
+                    $total += $brightness;
+                    $count++;
+                }
+            }
+            imagedestroy($im);
+            $avg = $count ? ($total / $count) : 0;
+            // threshold (0..255) - 15 is quite dark
+            return ($avg < 15);
+        };
+
+        // 1) soft ping
+        $messages[] = "🔍 Pinging {$deviceIP}…";
+        $pingCmd = (stripos(PHP_OS, 'WIN') === 0) ? "ping -n 1 {$deviceIP}" : "/usr/bin/ping -c 1 {$deviceIP}";
+        [$pingStatus, $pingOut] = $run($pingCmd);
+        if ($pingStatus !== 0) {
+            $messages[] = "⚠️ Ping failed (continuing anyway)";
+            if ($pingOut) $messages[] = $pingOut;
+        } else {
+            $messages[] = "✅ Ping OK";
+        }
+
+        // 2) ADB connect
+        $messages[] = "🔗 ADB connect to {$deviceIP}:{$port}";
+        $run("$adb disconnect $serial"); // best-effort clear
+        [$connStatus, $connOut] = $run("$adb connect $serial");
+        if ($connStatus !== 0 || stripos($connOut, 'unable') !== false) {
+            $messages[] = "❌ ADB connect failed";
+            if ($connOut) $messages[] = $connOut;
+            return response()->json(['success'=>false,'message'=>'ADB connect failed.','messages'=>$messages], 500);
+        }
+        $messages[] = "✅ ADB connected";
+
+        // 2.1 Try to wake & unlock (best-effort)
+        $messages[] = "🔁 Wake/unlock attempt";
+        $run("$adb -s $serial shell input keyevent 224"); // WAKEUP
+        $run("$adb -s $serial shell input keyevent 82");  // MENU (may dismiss lock)
+        // Try dismiss-keyguard (may not be supported on older devices)
+        $run("$adb -s $serial shell wm dismiss-keyguard || true");
+        // short pause to let UI settle
+        usleep(300000); // 300ms
+
+        // 3) exec-out screencap
+        $messages[] = "📸 screencap exec-out";
+        $cmd = "$adb -s $serial exec-out screencap -p";
+        [$capStatus, $png, $capErr] = $runBinary($cmd);
+
+        // Normalize CRLF in PNG streams
+        if ($png !== null) $png = str_replace("\r\n", "\n", $png);
+
+        // If screencap failed or PNG appears empty -> fallback
+        $needFallback = false;
+        if ($capStatus !== 0 || !$png) {
+            $messages[] = "ℹ️ exec-out screencap failed or returned no data: status={$capStatus}";
+            if ($capErr) $messages[] = $capErr;
+            $needFallback = true;
+        } else {
+            // quick check whether the PNG is mostly black
+            if ($isMostlyBlack($png)) {
+                $messages[] = "⚠️ Captured image appears mostly black — trying fallback methods";
+                $needFallback = true;
+            } else {
+                $messages[] = "✅ screencap captured (looks OK)";
+            }
+        }
+
+        // fallback: shell screencap -> pull OR screenrecord -> extract frame (if available)
+        if ($needFallback) {
+            // Try normal shell screencap -> /sdcard/__tmp_screen.png -> pull -
+            $messages[] = "🔁 Trying shell screencap -> pull fallback";
+            $tmpRemote = '/sdcard/__tmp_screen.png';
+            [$shStatus, $shOut] = $run("$adb -s $serial shell screencap -p {$tmpRemote}");
+            if ($shStatus === 0) {
+                [$pullStatus, $png, $pullErr] = $runBinary("$adb -s $serial pull {$tmpRemote} -");
+                // cleanup remote
+                $run("$adb -s $serial shell rm -f {$tmpRemote}");
+                if ($pullStatus === 0 && $png) {
+                    $png = str_replace("\r\n", "\n", $png);
+                    if (!$isMostlyBlack($png)) {
+                        $messages[] = "✅ Pulled screenshot from device filesystem (looks OK)";
+                        $needFallback = false;
+                    } else {
+                        $messages[] = "⚠️ Pulled screenshot still mostly black";
+                    }
+                } else {
+                    $messages[] = "❌ adb pull failed";
+                    if ($pullErr) $messages[] = $pullErr;
+                }
+            } else {
+                $messages[] = "❌ shell screencap on device failed";
+                if ($shOut) $messages[] = $shOut;
+            }
+        }
+
+        // further fallback: screenrecord 1s -> pull -> ffmpeg extract frame (requires ffmpeg)
+        if ($needFallback && $useFfmpegFallback) {
+            $messages[] = "🔁 Trying screenrecord fallback (requires ffmpeg on server)";
+            $tmpRemoteMp4 = '/sdcard/__tmp_rec.mp4';
+            // record 1 second (some devices don't support --time-limit older android may require no param)
+            [$recStatus, $recOut] = $run("$adb -s $serial shell screenrecord --time-limit 1 {$tmpRemoteMp4}");
+            if ($recStatus === 0) {
+                [$pullStatus, $mp4Data, $pullErr] = $runBinary("$adb -s $serial pull {$tmpRemoteMp4} -");
+                // cleanup remote
+                $run("$adb -s $serial shell rm -f {$tmpRemoteMp4}");
+                if ($pullStatus === 0 && $mp4Data) {
+                    // write to temp file, run ffmpeg to extract a frame
+                    $tmpLocal = tempnam(sys_get_temp_dir(), 'inv_mp4_') . '.mp4';
+                    file_put_contents($tmpLocal, $mp4Data);
+                    $tmpOutPng = tempnam(sys_get_temp_dir(), 'inv_png_') . '.png';
+                    // ffmpeg -y -i input -vframes 1 -q:v 2 out.png
+                    $ffCmd = escapeshellarg($ffmpeg) . " -y -i " . escapeshellarg($tmpLocal) . " -vframes 1 -q:v 2 " . escapeshellarg($tmpOutPng) . " 2>&1";
+                    [$ffStatus, $ffOut] = $run($ffCmd);
+                    if ($ffStatus === 0 && file_exists($tmpOutPng)) {
+                        $png = file_get_contents($tmpOutPng);
+                        // cleanup locals
+                        @unlink($tmpLocal); @unlink($tmpOutPng);
+                        if (!$isMostlyBlack($png)) {
+                            $messages[] = "✅ Extracted frame from screenrecord (looks OK)";
+                            $needFallback = false;
+                        } else {
+                            $messages[] = "⚠️ Extracted frame still mostly black";
+                        }
+                    } else {
+                        $messages[] = "❌ ffmpeg extraction failed";
+                        if ($ffOut) $messages[] = $ffOut;
+                        @unlink($tmpLocal);
+                    }
+                } else {
+                    $messages[] = "❌ adb pull of mp4 failed";
+                    if ($pullErr) $messages[] = $pullErr;
+                }
+            } else {
+                $messages[] = "❌ screenrecord on device failed";
+                if ($recOut) $messages[] = $recOut;
+            }
+        }
+
+        if ($needFallback) {
+            // disconnect and return debug info
+            $run("$adb disconnect $serial");
+            $messages[] = "❌ All capture attempts failed or returned black images. Possible reasons: device locked/off, or video surface is hardware-protected (DRM).";
+            return response()->json([
+                'success' => false,
+                'message' => 'Screenshot capture failed or returned black image.',
+                'messages' => $messages,
+            ], 500);
+        }
+
+        // Save PNG to storage
+        $dir      = 'inventories/screenshots';
+        $filename = $inventory->id . '-' . now()->format('YmdHis') . '.png';
+        $path     = $dir . '/' . $filename;
+        try {
+            Storage::disk('public')->put($path, $png);
+        } catch (\Throwable $e) {
+            $messages[] = "❌ Failed to write PNG: " . $e->getMessage();
+            return response()->json(['success'=>false,'message'=>'Failed to save screenshot.','messages'=>$messages],500);
+        }
+
+        // Update inventory photo and disconnect
+        $inventory->photo = $path;
+        $inventory->save();
+        $run("$adb disconnect $serial");
+        $messages[] = "✅ Screenshot saved: storage/{$path}";
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Screenshot captured.',
+            'path'    => asset('storage/' . $path),
+            'method'  => 'adb',
+            'messages'=> $messages,
+        ]);
+    }
+
     /**
      * Try to extract an IP (or host) from a management URL like
      * http(s)://10.0.0.5:8000 or 10.0.0.5, or return null.
@@ -742,101 +1764,6 @@ class InventoryActionController extends Controller
         $parts = parse_url($value);
         if (!$parts || empty($parts['host'])) return null;
         return $parts['host'];
-    }
-
-    public function screenshot_old(Inventory $inventory)
-    {
-        if (!$inventory->mgmt_url) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Management URL not set for this inventory.',
-            ], 422);
-        }
-
-        $base = rtrim($inventory->mgmt_url, '/');
-        $client = new Client([
-            'timeout' => 25,
-            // If your management server has self-signed certs, you can set verify=>false.
-            // Prefer proper certs in production.
-            'verify'  => false,
-        ]);
-
-        $headersJson = ['Accept' => 'application/json'];
-        $headersImg  = [];
-        if ($inventory->mgmt_token) {
-            $headersJson['Authorization'] = 'Bearer '.$inventory->mgmt_token;
-            $headersImg['Authorization']  = 'Bearer '.$inventory->mgmt_token;
-        }
-
-        try {
-            // 1) Ask the STB to capture a screenshot
-            //    (per your swagger: POST /system/screenshot/capture)
-            $resp = $client->post($base.'/system/screenshot/capture', [
-                'headers' => $headersJson,
-            ]);
-            $payload = json_decode((string) $resp->getBody(), true) ?: [];
-
-            // Figure out the image URL. Swagger examples show fields like "uri" or an ID.
-            $imageUrl = null;
-
-            if (!empty($payload['uri'])) {
-                // Could be absolute or relative
-                $imageUrl = Str::startsWith($payload['uri'], ['http://','https://'])
-                    ? $payload['uri']
-                    : $this->joinUrl($base, $payload['uri']);
-            } else {
-                // common fallback: /system/screenshot/{id}/image
-                $id = $payload['id'] ?? $payload['uid'] ?? null;
-                if ($id) {
-                    $imageUrl = $base.'/system/screenshot/'.$id.'/image';
-                }
-            }
-
-            if (!$imageUrl) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Screenshot captured, but image URL was not returned.',
-                    'raw'     => $payload,
-                ], 500);
-            }
-
-            // 2) Download the raw image
-            $imgResp = $client->get($imageUrl, ['headers' => $headersImg]);
-            $mime = $imgResp->getHeaderLine('Content-Type') ?: 'image/jpeg';
-            $ext  = $mime === 'image/png' ? 'png' : 'jpg';
-
-            // 3) Save to public storage
-            $dir = 'inventories/screenshots';
-            $filename = $inventory->id.'-'.now()->format('YmdHis').'.'.$ext;
-            $path = $dir.'/'.$filename;
-
-            Storage::disk('public')->put($path, (string) $imgResp->getBody());
-
-            // 4) Update inventory->photo (so your Photo preview shows it)
-            $inventory->photo = $path;
-            $inventory->save();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Screenshot captured.',
-                'path'    => asset('storage/'.$path),
-                'method'  => 'management-api',
-            ]);
-        } catch (\GuzzleHttp\Exception\RequestException $e) {
-            $code = optional($e->getResponse())->getStatusCode();
-            $body = optional($e->getResponse())->getBody();
-            return response()->json([
-                'success' => false,
-                'message' => 'Screenshot failed.',
-                'code'    => $code,
-                'error'   => (string) $body,
-            ], 500);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 500);
-        }
     }
 
     private function joinUrl(string $base, string $uri): string

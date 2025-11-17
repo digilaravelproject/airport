@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use PDF;
+use App\Http\Controllers\InventoryActionController; // <-- import
 
 class LiveReportController extends Controller
 {
@@ -78,6 +79,27 @@ class LiveReportController extends Controller
 
         foreach ($currentPage as $inv) {
             $inv->is_online = in_array($inv->id, $onlineIds, true);
+        }
+
+        // ----------------------------------------------------------------
+        // NEW: For online boxes only, try to discover active channel name via ADB
+        // (We use InventoryActionController's adb helper - this is lightweight
+        // as we only call it for boxes already detected 'online' by ADB).
+        // ----------------------------------------------------------------
+        $actionCtrl = new InventoryActionController();
+        foreach ($currentPage as $inv) {
+            if (!empty($inv->is_online)) {
+                try {
+                    // discoverActiveChannelAdb returns a channel name string or null
+                    $name = $actionCtrl->discoverActiveChannelAdb($inv);
+                    $inv->active_channel_name = $name ?: null;
+                } catch (\Throwable $e) {
+                    // don't break listing on errors — just leave channel name null
+                    $inv->active_channel_name = null;
+                }
+            } else {
+                $inv->active_channel_name = null;
+            }
         }
 
         $clients = Client::orderBy('name')->get();
@@ -180,7 +202,7 @@ class LiveReportController extends Controller
         }
 
         return null;
-        }
+    }
 
     /**
      * Stream PDF for selected rows (includes ADB Online/Offline).

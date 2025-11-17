@@ -42,7 +42,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
-
+    <hr>
     <!-- Start Inventory Import Section -->
     <div class="row mb-3">
         <div class="col-md-12">
@@ -78,6 +78,7 @@
             </div>
         </div>
     </div>
+    <hr>
     <!-- End Inventory Import Section -->
 
     <!-- Start Channel Import Section -->
@@ -119,6 +120,7 @@
             </div>
         </div>
     </div>
+    <hr>
     <!-- End Channel Import Section -->
 
 </div>

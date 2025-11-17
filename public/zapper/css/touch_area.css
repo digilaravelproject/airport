@@ -1,0 +1,34 @@
+.touch-area {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  touch-action: none;
+}
+
+.feedback {
+  position: absolute;
+  border-radius: 50%;
+  width: 15%;
+  aspect-ratio: 1/1;
+  background-color: white;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  animation: touch-point 0.2s forwards;
+  transition: opacity 0.2s;
+  opacity: 1;
+}
+
+.feedback__released {
+  opacity: 0;
+}
+
+@keyframes touch-point {
+  0% {
+    background-color: rgba(255, 255, 255, 0);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%) scale(15);
+  }
+}

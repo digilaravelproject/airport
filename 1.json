@@ -1,0 +1,730 @@
+{
+    "DTV": [
+        {
+            "name": "1",
+            "desc": "&flix HD",
+            "url": "udp://239.15.0.26:1234",
+            "starting": true
+        },
+        {
+            "name": "2",
+            "desc": "B4U Bhojpuri",
+            "url": "udp://239.15.0.173:1234"
+        },
+        {
+            "name": "3",
+            "desc": "Showbox",
+            "url": "udp://239.15.0.107:1234"
+        },
+        {
+            "name": "4",
+            "desc": "SONY MAX HD",
+            "url": "udp://239.15.0.35:1234"
+        },
+        {
+            "name": "5",
+            "desc": "SONY PIX HD",
+            "url": "udp://239.15.0.32:1234"
+        },
+        {
+            "name": "6",
+            "desc": "SONY SPORTS TEN 1 HD",
+            "url": "udp://239.15.0.45:1234"
+        },
+        {
+            "name": "7",
+            "desc": "SONY SPORTS TEN 2 HD",
+            "url": "udp://239.15.0.46:1234"
+        },
+        {
+            "name": "8",
+            "desc": "SONY SPORTS TEN 3 HD",
+            "url": "udp://239.15.0.47:1234"
+        },
+        {
+            "name": "9",
+            "desc": "SONY SPORTS TEN 5 HD",
+            "url": "udp://239.15.0.48:1234"
+        },
+        {
+            "name": "10",
+            "desc": "Sony Wah",
+            "url": "udp://239.15.0.158:1234"
+        },
+        {
+            "name": "11",
+            "desc": "Sports",
+            "url": "udp://239.15.0.44:1234"
+        },
+        {
+            "name": "12",
+            "desc": "Sports 18",
+            "url": "udp://239.15.0.125:1234"
+        },
+        {
+            "name": "13",
+            "desc": "B4U KADAK",
+            "url": "udp://239.15.0.142:1234"
+        },
+        {
+            "name": "14",
+            "desc": "Star Gold 2",
+            "url": "udp://239.15.0.37:1234"
+        },
+        {
+            "name": "15",
+            "desc": "Star Gold HD",
+            "url": "udp://239.15.0.36:1234"
+        },
+        {
+            "name": "16",
+            "desc": "Star Gold Select HD",
+            "url": "udp://239.15.0.38:1234"
+        },
+        {
+            "name": "17",
+            "desc": "Star Movies HD",
+            "url": "udp://239.15.0.33:1234"
+        },
+        {
+            "name": "18",
+            "desc": "Star Movies Select HD",
+            "url": "udp://239.15.0.34:1234"
+        },
+        {
+            "name": "19",
+            "desc": "Star pravah",
+            "url": "udp://DTH"
+        },
+        {
+            "name": "20",
+            "desc": "Star pravah",
+            "url": "udp://DTH"
+        },
+        {
+            "name": "21",
+            "desc": "Star pravah",
+            "url": "udp://DTH"
+        },
+        {
+            "name": "22",
+            "desc": "Star Utsav Movies",
+            "url": "udp://239.15.0.155:1234"
+        },
+        {
+            "name": "23",
+            "desc": "Sun Marathi",
+            "url": "udp://239.15.0.106:1234"
+        },
+        {
+            "name": "24",
+            "desc": "B4u Movies",
+            "url": "udp://239.15.0.112:1234"
+        },
+        {
+            "name": "25",
+            "desc": "Test Gate Domestic",
+            "url": "udp://239.15.0.2:1234"
+        },
+        {
+            "name": "26",
+            "desc": "Test Gate International",
+            "url": "udp://239.15.0.1:1234"
+        },
+        {
+            "name": "27",
+            "desc": "The Q",
+            "url": "udp://239.15.0.134:1234"
+        },
+        {
+            "name": "28",
+            "desc": "Times Now Navbhara",
+            "url": "udp://239.15.0.166:1234"
+        },
+        {
+            "name": "29",
+            "desc": "Times Now World HD",
+            "url": "udp://239.15.0.12:1234"
+        },
+        {
+            "name": "30",
+            "desc": "TV9 Bharatvarsh",
+            "url": "udp://239.15.0.144:1234"
+        },
+        {
+            "name": "31",
+            "desc": "TV9 Bharatvrarsh",
+            "url": "udp://239.15.0.22:1234"
+        },
+        {
+            "name": "32",
+            "desc": "TV9 Maharashtra",
+            "url": "udp://239.15.0.24:1234"
+        },
+        {
+            "name": "33",
+            "desc": "Vedic",
+            "url": "udp://239.15.0.111:1234"
+        },
+        {
+            "name": "34",
+            "desc": "WION",
+            "url": "udp://239.15.0.19:1234"
+        },
+        {
+            "name": "35",
+            "desc": "B4U Music",
+            "url": "udp://239.15.0.163:1234"
+        },
+        {
+            "name": "36",
+            "desc": "Zee 24 Taas",
+            "url": "udp://239.15.0.25:1234"
+        },
+        {
+            "name": "37",
+            "desc": "Zee Action",
+            "url": "udp://239.15.0.40:1234"
+        },
+        {
+            "name": "38",
+            "desc": "Zee Anmol Cinema",
+            "url": "udp://239.15.0.41:1234"
+        },
+        {
+            "name": "39",
+            "desc": "ZEE ANMOL CINEMA",
+            "url": "udp://239.15.0.148:1234"
+        },
+        {
+            "name": "40",
+            "desc": "Zee Biskope",
+            "url": "udp://239.15.0.131:1234"
+        },
+        {
+            "name": "41",
+            "desc": "Zee Bollywood",
+            "url": "udp://239.15.0.42:1234"
+        },
+        {
+            "name": "42",
+            "desc": "ZEE Chitra Mandir",
+            "url": "udp://239.15.0.171:1234"
+        },
+        {
+            "name": "43",
+            "desc": "Zee Cinema HD",
+            "url": "udp://239.15.0.39:1234"
+        },
+        {
+            "name": "44",
+            "desc": "Zee ganga",
+            "url": "udp://239.15.0.116:1234"
+        },
+        {
+            "name": "45",
+            "desc": "Zee Hindustan",
+            "url": "udp://239.15.0.23:1234"
+        },
+        {
+            "name": "46",
+            "desc": "Bansal News",
+            "url": "udp://239.15.0.200:1234"
+        },
+        {
+            "name": "47",
+            "desc": "ZEE Hindustan",
+            "url": "udp://239.15.0.159:1234"
+        },
+        {
+            "name": "48",
+            "desc": "Zee News",
+            "url": "udp://239.15.0.21:1234"
+        },
+        {
+            "name": "49",
+            "desc": "ZEE News",
+            "url": "udp://239.15.0.170:1234"
+        },
+        {
+            "name": "50",
+            "desc": "ZEE Punjabi",
+            "url": "udp://239.15.0.172:1234"
+        },
+        {
+            "name": "51",
+            "desc": "Zee Talkies HD",
+            "url": "udp://239.15.0.43:1234"
+        },
+        {
+            "name": "52",
+            "desc": "Zing",
+            "url": "udp://239.15.0.147:1234"
+        },
+        {
+            "name": "53",
+            "desc": "BBC World News",
+            "url": "udp://239.15.0.16:1234"
+        },
+        {
+            "name": "54",
+            "desc": "Bharat 24 Vision of New India",
+            "url": "udp://239.15.0.174:1234"
+        },
+        {
+            "name": "55",
+            "desc": "Bhojpuri Cinema",
+            "url": "udp://239.15.0.130:1234"
+        },
+        {
+            "name": "56",
+            "desc": "Big Magic",
+            "url": "udp://239.15.0.141:1234"
+        },
+        {
+            "name": "57",
+            "desc": "Cartoon Network",
+            "url": "udp://239.15.0.49:1234"
+        },
+        {
+            "name": "58",
+            "desc": "&prive HD",
+            "url": "udp://239.15.0.27:1234"
+        },
+        {
+            "name": "59",
+            "desc": "Chardikla Time TV",
+            "url": "udp://239.15.0.195:1234"
+        },
+        {
+            "name": "60",
+            "desc": "Cineplex Bollywood",
+            "url": "udp://239.15.0.135:1234"
+        },
+        {
+            "name": "61",
+            "desc": "CNBC Prime HD",
+            "url": "udp://239.15.0.11:1234"
+        },
+        {
+            "name": "62",
+            "desc": "CNN INTL",
+            "url": "udp://239.15.0.13:1234"
+        },
+        {
+            "name": "63",
+            "desc": "CNN News 18",
+            "url": "udp://239.15.0.14:1234"
+        },
+        {
+            "name": "64",
+            "desc": "Dangal",
+            "url": "udp://239.15.0.129:1234"
+        },
+        {
+            "name": "65",
+            "desc": "DD Arunprabha",
+            "url": "udp://239.15.0.192:1234"
+        },
+        {
+            "name": "66",
+            "desc": "DD Assam",
+            "url": "udp://239.15.0.190:1234"
+        },
+        {
+            "name": "67",
+            "desc": "DD Bangla",
+            "url": "udp://239.15.0.193:1234"
+        },
+        {
+            "name": "68",
+            "desc": "DD Bharati",
+            "url": "udp://239.15.0.177:1234"
+        },
+        {
+            "name": "69",
+            "desc": "9XM",
+            "url": "udp://239.15.0.157:1234"
+        },
+        {
+            "name": "70",
+            "desc": "DD Bihar",
+            "url": "udp://239.15.0.180:1234"
+        },
+        {
+            "name": "71",
+            "desc": "DD Chandana",
+            "url": "udp://239.15.0.186:1234"
+        },
+        {
+            "name": "72",
+            "desc": "DD CHHATTISGARH",
+            "url": "udp://239.15.0.184:1234"
+        },
+        {
+            "name": "73",
+            "desc": "DD Girnar",
+            "url": "udp://239.15.0.108:1234"
+        },
+        {
+            "name": "74",
+            "desc": "DD GOA",
+            "url": "udp://239.15.0.196:1234"
+        },
+        {
+            "name": "75",
+            "desc": "DD Haryana",
+            "url": "udp://239.15.0.197:1234"
+        },
+        {
+            "name": "76",
+            "desc": "DD Himachal Pradesh",
+            "url": "udp://239.15.0.198:1234"
+        },
+        {
+            "name": "77",
+            "desc": "DD India",
+            "url": "udp://239.15.0.105:1234"
+        },
+        {
+            "name": "78",
+            "desc": "DD Jharkhand",
+            "url": "udp://239.15.0.181:1234"
+        },
+        {
+            "name": "79",
+            "desc": "DD Kashir",
+            "url": "udp://239.15.0.185:1234"
+        },
+        {
+            "name": "80",
+            "desc": "Aaj Tak",
+            "url": "udp://239.15.0.168:1234"
+        },
+        {
+            "name": "81",
+            "desc": "DD Kisan",
+            "url": "udp://239.15.0.104:1234"
+        },
+        {
+            "name": "82",
+            "desc": "DD Malayalam",
+            "url": "udp://239.15.0.189:1234"
+        },
+        {
+            "name": "83",
+            "desc": "DD MP",
+            "url": "udp://239.15.0.182:1234"
+        },
+        {
+            "name": "84",
+            "desc": "DD National",
+            "url": "udp://239.15.0.102:1234"
+        },
+        {
+            "name": "85",
+            "desc": "DD News",
+            "url": "udp://239.15.0.101:1234"
+        },
+        {
+            "name": "86",
+            "desc": "DD Oriya",
+            "url": "udp://239.15.0.191:1234"
+        },
+        {
+            "name": "87",
+            "desc": "DD Podhigai",
+            "url": "udp://239.15.0.121:1234"
+        },
+        {
+            "name": "88",
+            "desc": "DD Punjabi",
+            "url": "udp://239.15.0.122:1234"
+        },
+        {
+            "name": "89",
+            "desc": "DD Rajasthan",
+            "url": "udp://239.15.0.178:1234"
+        },
+        {
+            "name": "90",
+            "desc": "DD Retro",
+            "url": "udp://239.15.0.103:1234"
+        },
+        {
+            "name": "91",
+            "desc": "AASTHA",
+            "url": "udp://239.15.0.145:1234"
+        },
+        {
+            "name": "92",
+            "desc": "DD Sahyadri",
+            "url": "udp://239.15.0.123:1234"
+        },
+        {
+            "name": "93",
+            "desc": "DD Saptagiri",
+            "url": "udp://239.15.0.188:1234"
+        },
+        {
+            "name": "94",
+            "desc": "DD Sports",
+            "url": "udp://239.15.0.179:1234"
+        },
+        {
+            "name": "95",
+            "desc": "DD Tripura",
+            "url": "udp://239.15.0.183:1234"
+        },
+        {
+            "name": "96",
+            "desc": "DD UP",
+            "url": "udp://239.15.0.176:1234"
+        },
+        {
+            "name": "97",
+            "desc": "DD UTTARAKHAND",
+            "url": "udp://239.15.0.187:1234"
+        },
+        {
+            "name": "98",
+            "desc": "DD Yadagiri",
+            "url": "udp://239.15.0.175:1234"
+        },
+        {
+            "name": "99",
+            "desc": "Dhamaka Movie",
+            "url": "udp://239.15.0.114:1234"
+        },
+        {
+            "name": "100",
+            "desc": "Dhinchaak 2",
+            "url": "udp://239.15.0.152:1234"
+        },
+        {
+            "name": "101",
+            "desc": "Dnagal 2",
+            "url": "udp://239.15.0.137:1234"
+        },
+        {
+            "name": "102",
+            "desc": "Aastha Bhajan",
+            "url": "udp://239.15.0.194:1234"
+        },
+        {
+            "name": "103",
+            "desc": "Enter10",
+            "url": "udp://239.15.0.151:1234"
+        },
+        {
+            "name": "104",
+            "desc": "ET Now",
+            "url": "udp://239.15.0.15:1234"
+        },
+        {
+            "name": "105",
+            "desc": "Fact Marathi",
+            "url": "udp://239.15.0.124:1234"
+        },
+        {
+            "name": "106",
+            "desc": "Filamchi Bhojpuri",
+            "url": "udp://239.15.0.109:1234"
+        },
+        {
+            "name": "107",
+            "desc": "France 24",
+            "url": "udp://239.15.0.18:1234"
+        },
+        {
+            "name": "108",
+            "desc": "Goldmine",
+            "url": "udp://239.15.0.133:1234"
+        },
+        {
+            "name": "109",
+            "desc": "Goldmine Bhojouri",
+            "url": "udp://239.15.0.117:1234"
+        },
+        {
+            "name": "110",
+            "desc": "Goldmine Bollywood",
+            "url": "udp://239.15.0.136:1234"
+        },
+        {
+            "name": "111",
+            "desc": "Good News Today",
+            "url": "udp://239.15.0.113:1234"
+        },
+        {
+            "name": "112",
+            "desc": "India News",
+            "url": "udp://239.15.0.160:1234"
+        },
+        {
+            "name": "113",
+            "desc": "ABP News",
+            "url": "udp://239.15.0.169:1234"
+        },
+        {
+            "name": "114",
+            "desc": "India TV",
+            "url": "udp://239.15.0.164:1234"
+        },
+        {
+            "name": "115",
+            "desc": "Ishara TV",
+            "url": "udp://239.15.0.146:1234"
+        },
+        {
+            "name": "116",
+            "desc": "Manoranjan Grand",
+            "url": "udp://239.15.0.119:1234"
+        },
+        {
+            "name": "117",
+            "desc": "Manoranjan Movies",
+            "url": "udp://239.15.0.140:1234"
+        },
+        {
+            "name": "118",
+            "desc": "Manoranjan Prime",
+            "url": "udp://239.15.0.118:1234"
+        },
+        {
+            "name": "119",
+            "desc": "Manoranjan TV",
+            "url": "udp://239.15.0.143:1234"
+        },
+        {
+            "name": "120",
+            "desc": "Masti",
+            "url": "udp://239.15.0.162:1234"
+        },
+        {
+            "name": "121",
+            "desc": "MH1 DilSe",
+            "url": "udp://239.15.0.199:1234"
+        },
+        {
+            "name": "122",
+            "desc": "MN+ HD",
+            "url": "udp://239.15.0.28:1234"
+        },
+        {
+            "name": "123",
+            "desc": "MNX HD",
+            "url": "udp://239.15.0.29:1234"
+        },
+        {
+            "name": "124",
+            "desc": "ABZY Cool",
+            "url": "udp://239.15.0.132:1234"
+        },
+        {
+            "name": "125",
+            "desc": "Movie Plus",
+            "url": "udp://239.15.0.139:1234"
+        },
+        {
+            "name": "126",
+            "desc": "MOVIES NOW HD",
+            "url": "udp://239.15.0.30:1234"
+        },
+        {
+            "name": "127",
+            "desc": "MTV Beats",
+            "url": "udp://239.15.0.161:1234"
+        },
+        {
+            "name": "128",
+            "desc": "NDTV 24 x 7",
+            "url": "udp://239.15.0.17:1234"
+        },
+        {
+            "name": "129",
+            "desc": "NDTV India",
+            "url": "udp://239.15.0.149:1234"
+        },
+        {
+            "name": "130",
+            "desc": "News 18 India",
+            "url": "udp://239.15.0.156:1234"
+        },
+        {
+            "name": "131",
+            "desc": "News 24 Think First",
+            "url": "udp://239.15.0.150:1234"
+        },
+        {
+            "name": "132",
+            "desc": "News Nation",
+            "url": "udp://239.15.0.165:1234"
+        },
+        {
+            "name": "133",
+            "desc": "POGO",
+            "url": "udp://239.15.0.50:1234"
+        },
+        {
+            "name": "134",
+            "desc": "Popcorn Movies",
+            "url": "udp://239.15.0.153:1234"
+        },
+        {
+            "name": "135",
+            "desc": "Abzy Movie",
+            "url": "udp://239.15.0.110:1234"
+        },
+        {
+            "name": "136",
+            "desc": "Republic Bharat",
+            "url": "udp://239.15.0.20:1234"
+        },
+        {
+            "name": "137",
+            "desc": "Republic Bharat",
+            "url": "udp://239.15.0.167:1234"
+        },
+        {
+            "name": "138",
+            "desc": "Rishtey Cineplex",
+            "url": "udp://239.15.0.138:1234"
+        },
+        {
+            "name": "139",
+            "desc": "Romedy Now",
+            "url": "udp://239.15.0.31:1234"
+        },
+        {
+            "name": "140",
+            "desc": "Sansad Tv",
+            "url": "udp://239.15.0.126:1234"
+        },
+        {
+            "name": "141",
+            "desc": "Sansad Tv Rajya Sabha",
+            "url": "udp://239.15.0.127:1234"
+        },
+        {
+            "name": "142",
+            "desc": "Sanskar TV",
+            "url": "udp://239.15.0.154:1234"
+        },
+        {
+            "name": "143",
+            "desc": "Shemaroo",
+            "url": "udp://239.15.0.128:1234"
+        },
+        {
+            "name": "144",
+            "desc": "Shemaroo Marathibana",
+            "url": "udp://239.15.0.120:1234"
+        },
+        {
+            "name": "145",
+            "desc": "Shemaroo Umang",
+            "url": "udp://239.15.0.115:1234"
+        }
+    ]
+}
