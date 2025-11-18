@@ -123,5 +123,60 @@
     <hr>
     <!-- End Channel Import Section -->
 
+    <!-- Start Backup & Restore Section (ADDED) -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color:#0f172a;">
+                    <h6 class="text-light mb-0">
+                        <i class="fas fa-database me-2"></i>Backup & Restore Database
+                    </h6>
+                    <small class="text-light">Create DB backup or restore from a .sql file</small>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-4">
+                            <!-- Backup button (runs the script) -->
+                            <form method="POST" action="{{ route('utilities.backup') }}">
+                                @csrf
+                                <label class="form-label fw-semibold"></label>
+                                <button type="submit" class="btn btn-primary w-100" id="backupBtn">
+                                    <i class="fas fa-download me-1"></i> Backup (run script)
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="col-md-8">
+                            <!-- Restore form -->
+                            <form method="POST" action="{{ route('utilities.restore') }}" enctype="multipart/form-data" id="restoreForm">
+                                @csrf
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-6">
+                                        <label for="sql_file" class="form-label fw-semibold">Select .sql File</label>
+                                        <input type="file" name="sql_file" id="sql_file" accept=".sql" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="submit" class="btn btn-danger w-100" onclick="return confirm('This will DROP existing tables and import the uploaded SQL file. Are you sure?')">
+                                            <i class="fas fa-upload me-1"></i> Restore
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3 text-end">
+                                        <small class="text-muted">Upload must be a .sql file. Existing tables will be cleared before import.</small>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    @if ($errors->has('sql_file'))
+                        <div class="text-danger small mt-2">{{ $errors->first('sql_file') }}</div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    <hr>
+    <!-- End Backup & Restore Section -->
+
 </div>
 @endsection

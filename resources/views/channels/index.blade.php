@@ -205,6 +205,9 @@
                                             Active <i class="{{ sortIconCh('active') }}"></i>
                                         </a>
                                     </th>
+
+                                    {{-- NEW: Actions column --}}
+                                    <th style="width:140px;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -220,10 +223,16 @@
                                         <td>{{ $channel->channel_source_in ?? '-' }}</td>
                                         <td>{{ $channel->channel_source_details ?? '-' }}</td>
                                         <td>{{ $channel->language ?? '-' }}</td>
+
+                                        <!-- Actions -->
                                         <td>
-                                            <span class="badge {{ $channel->active ? 'bg-success' : 'bg-danger' }}">
-                                                {{ $channel->active ? 'Yes' : 'No' }}
-                                            </span>
+                                            <form method="POST" action="{{ route('channels.destroy', $channel->id) }}"
+                                                  style="display:inline-block;margin:0;padding:0;"
+                                                  onsubmit="return confirm('Are you sure you want to delete this channel? This action cannot be undone.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-danger" onclick="event.stopPropagation();">Delete</button>
+                                            </form>
                                         </td>
                                     </tr>
                                 @endforeach

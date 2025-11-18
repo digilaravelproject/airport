@@ -172,7 +172,11 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <span class="badge bg-success">Installed</span>
+                                        @if($inv->client)
+                                            <span class="badge bg-success">Installed</span>
+                                        @else
+                                            <span class="badge bg-secondary">In Stock</span>
+                                        @endif
                                     </td>
                                     <td>{{ $inv->warranty_date ? \Carbon\Carbon::parse($inv->warranty_date)->format('Y-m-d') : '-' }}</td>
                                 </tr>

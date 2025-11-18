@@ -258,4 +258,17 @@ class InventoryController extends Controller
         }
         return null;
     }
+
+    public function destroy(Inventory $inventory)
+    {
+        // optionally perform authorization checks here
+        // e.g. $this->authorize('delete', $client);
+
+        // If you need to cascade or handle inventories, do cleanup here.
+        // Example: $client->inventories()->delete(); // if appropriate
+
+        $inventory->delete();
+
+        return redirect()->route('inventories.index')->with('success', 'Box deleted successfully.');
+    }
 }

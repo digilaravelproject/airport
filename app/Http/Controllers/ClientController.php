@@ -77,4 +77,17 @@ class ClientController extends Controller
 
         return redirect()->route('clients.index')->with('success','Client updated successfully.');
     }
+
+    public function destroy(Client $client)
+    {
+        // optionally perform authorization checks here
+        // e.g. $this->authorize('delete', $client);
+
+        // If you need to cascade or handle inventories, do cleanup here.
+        // Example: $client->inventories()->delete(); // if appropriate
+
+        $client->delete();
+
+        return redirect()->route('clients.index')->with('success', 'Client deleted successfully.');
+    }
 }

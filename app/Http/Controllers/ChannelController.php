@@ -202,4 +202,17 @@ class ChannelController extends Controller
         if (in_array($t, ['0','no','n','false','off'], true)) return 0;
         return null;
     }
+
+    public function destroy(Channel $channel)
+    {
+        // optionally perform authorization checks here
+        // e.g. $this->authorize('delete', $client);
+
+        // If you need to cascade or handle inventories, do cleanup here.
+        // Example: $client->inventories()->delete(); // if appropriate
+
+        $channel->delete();
+
+        return redirect()->route('channels.index')->with('success', 'Channel deleted successfully.');
+    }
 }

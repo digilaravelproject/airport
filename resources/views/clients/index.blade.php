@@ -124,6 +124,8 @@
                                             <i class="{{ sortIcon('created_at', request('sort','id'), request('direction','desc')) }}"></i>
                                         </a>
                                     </th>
+                                    {{-- NEW: Actions column --}}
+                                    <th style="width:140px;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -135,11 +137,23 @@
                                         <td>{{ $client->contact_no }}</td>
                                         <td>{{ $client->city }}</td>
                                         <td>{{ $client->created_at ? $client->created_at->format('d-m-Y') : '-' }}</td>
+                                        <td>
+                                            <!-- Delete: simple POST form with method DELETE and browser confirm -->
+                                            <form method="POST" action="{{ route('clients.destroy', $client->id) }}"
+                                                style="display:inline-block;margin:0;padding:0;"
+                                                onsubmit="return confirm('Are you sure you want to delete this client? This action cannot be undone.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <!-- STOP PROPAGATION HERE so row click does NOT fire -->
+                                                <button type="submit" class="btn btn-sm btn-danger" onclick="event.stopPropagation();">Delete</button>
+                                            </form>
+                                        </td>
                                     </tr>
                                 @endforeach
                                 @if($clients->isEmpty())
                                     <tr>
-                                        <td colspan="7" class="text-center text-muted">No clients found.</td>
+                                        <!-- Adjusted colspan to include Actions column -->
+                                        <td colspan="8" class="text-center text-muted">No clients found.</td>
                                     </tr>
                                 @endif
                             </tbody>

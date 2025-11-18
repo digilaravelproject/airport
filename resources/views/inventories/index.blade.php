@@ -223,6 +223,8 @@
                                             Model <i class="{{ sortIconInv('box_model') }}"></i>
                                         </a>
                                     </th>
+                                    {{-- NEW: Actions column --}}
+                                    <th style="width:140px;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -237,11 +239,22 @@
                                         
                                         <td>{{ $inventory->box_fw }}</td>
                                         <td>{{ $inventory->box_model }}</td>
+                                        <td>
+                                            <!-- Delete: simple POST form with method DELETE and browser confirm -->
+                                            <form method="POST" action="{{ route('inventories.destroy', $inventory->id) }}"
+                                                style="display:inline-block;margin:0;padding:0;"
+                                                onsubmit="return confirm('Are you sure you want to delete this box? This action cannot be undone.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <!-- stopPropagation on the button click to prevent row navigation -->
+                                                <button type="submit" class="btn btn-sm btn-danger" onclick="event.stopPropagation();">Delete</button>
+                                            </form>
+                                        </td>
                                     </tr>
                                 @endforeach
                                 @if($inventories->isEmpty())
                                     <tr>
-                                        <td colspan="9" class="text-center text-muted">No inventories found.</td>
+                                        <td colspan="10" class="text-center text-muted">No inventories found.</td>
                                     </tr>
                                 @endif
                             </tbody>
@@ -378,7 +391,6 @@
                         <div class="mb-2 d-flex gap-2 align-items-center">
                             <button type="button" class="btn btn-dark" id="btnPing" {{ !$selectedInventory ? 'disabled' : '' }}>Ping</button>
                             <button type="button" class="btn btn-dark" id="btnReboot" {{ !$selectedInventory ? 'disabled' : '' }}>Reboot</button>
-                            <button type="button" class="btn btn-dark" id="btnScreenshot" {{ !$selectedInventory ? 'disabled' : '' }}>Screenshot</button>
                         </div>
                         <span id="actionStatus" class="ms-2 small text-muted"></span>
                         <div id="screenshotArea" class="mt-2"></div>
@@ -504,13 +516,13 @@ document.getElementById('btnReboot')?.addEventListener('click', async () => {
     pingBtn.disabled = true; rebootBtn.disabled = true;
     actionStatus.textContent = 'Rebooting...'; actionStatus.className = 'ms-2 small text-muted';
     
+    setTimeout(() => {
+        location.reload();
+    }, 5000);
+
     try {
         const data = await postJSON("{{ $selectedInventory ? route('inventories.reboot', $selectedInventory->id) : '#' }}");
-        
-        setTimeout(() => {
-            location.reload();
-        }, 3000);
-
+    
         if (data.success) {
             actionStatus.textContent = data.message || 'Reboot command sent.';
             actionStatus.className = 'ms-2 small text-warning';

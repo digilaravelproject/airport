@@ -159,6 +159,9 @@ Route::middleware('auth')->group(function () {
     // NEW: resolve active channel for one inventory
     Route::get('/utility/active-channel/{inventory}', [UtilityController::class, 'activeChannel'])
     ->name('utility.activeChannel');
+    // Backup & Restore routes
+    Route::post('/utilities/backup', [App\Http\Controllers\UtilityController::class, 'backup'])->name('utilities.backup');
+    Route::post('/utilities/restore', [App\Http\Controllers\UtilityController::class, 'restore'])->name('utilities.restore');
 
 
     // Reports (all) -> manage reports

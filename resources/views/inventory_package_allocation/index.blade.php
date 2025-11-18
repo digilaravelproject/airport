@@ -4,6 +4,10 @@
     #adbProgressModal.modal { z-index: 4000; }
     .modal-backdrop.adb-backdrop { z-index: 3990 !important; }
     .table thead a { font-weight: 600; }
+    /* OR — explicitly target the last TD of each TR (more explicit) */
+    .table tbody tr td:last-child {
+        width: 20% !important;
+    }
 </style>
 
 @php
@@ -458,6 +462,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const formData = new FormData(form);
     const action = form.action;
+
+    setTimeout(() => {
+        location.reload();
+    }, 5000);
 
     fetch(action, {
       method: "POST",

@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    /* OR — explicitly target the last TD of each TR (more explicit) */
+    .table tbody tr td:last-child {
+        width: 20% !important;
+    }
+</style>
 <div class="container-fluid">
     <?php
         $page_title = "Packages";
