@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>Setop Box Management - Unikit</title>
+    <title>IPTV Middleware Server </title>
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
@@ -76,7 +76,7 @@
         </div>
         <div class="media-body ms-2 user-detail align-self-center">
             <h5 class="font-14 m-0 fw-bold">{{ Auth::user()->name ?? 'Guest User' }}</h5>
-            <p class="opacity-50 mb-0">{{ Auth::user()->email ?? 'No Email' }}</p>
+            <p class="mb-0">{{ Auth::user()->email ?? 'No Email' }}</p>
         </div>
     </div>
 
@@ -85,9 +85,21 @@
         <div class="menu-body navbar-vertical">
             <div class="collapse navbar-collapse tab-content" id="sidebarCollapse">
                 <ul class="navbar-nav tab-pane active" id="Main" role="tabpanel">
-                    <li class="menu-label mt-0 text-primary font-12 fw-semibold">
-                        Channel <span>Management</span>
+                <li class="mt-0 mb-4 font-16 fw-semibold no-collapse-item"
+                        style="
+                            display:block !important;
+                            opacity:1 !important;
+                            visibility:visible !important;
+                            white-space:nowrap;
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                            padding-left:12px !important;
+                            margin-top:6px;
+                            color: white;
+                        ">
+                        {{ \Carbon\Carbon::now()->format('l, d M Y') }}
                     </li>
+                    
 
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('clients.*') ? 'active' : '' }}" href="{{ route('clients.index') }}">
@@ -220,10 +232,9 @@
         </main>
 
         <footer class="footer text-center text-sm-start">
-            &copy; <script>document.write(new Date().getFullYear());</script>
-            Setop Box Management
+            &copy; <script>document.write(new Date().getFullYear());</script> CommuNetiques
             <span class="text-muted d-none d-sm-inline-block float-end">
-                Crafted with <i class="mdi mdi-heart text-danger"></i>
+                <a href="http://communetiques.com/support" class="text-decoration-underline">Support</a>
             </span>
         </footer>
     </div>

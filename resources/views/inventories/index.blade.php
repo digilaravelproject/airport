@@ -198,6 +198,11 @@
                                         </a>
                                     </th>
                                     <th>
+                                        <a href="{{ sortUrlInv('box_serial_no') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Serial No <i class="{{ sortIconInv('box_serial_no') }}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
                                         <a href="{{ sortUrlInv('client_name') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                             Client <i class="{{ sortIconInv('client_name') }}"></i>
                                         </a>
@@ -207,11 +212,7 @@
                                             Establishment <i class="{{ sortIconInv('location') }}"></i>
                                         </a>
                                     </th>
-                                    <th>
-                                        <a href="{{ sortUrlInv('box_serial_no') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                            Serial No <i class="{{ sortIconInv('box_serial_no') }}"></i>
-                                        </a>
-                                    </th>
+                                    
                                     <th>
                                         <a href="{{ sortUrlInv('box_fw') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                             Firmware <i class="{{ sortIconInv('box_fw') }}"></i>
@@ -230,9 +231,10 @@
                                         <td><span class="badge bg-secondary">{{ $inventory->box_id }}</span></td>
                                         <td>{{ $inventory->box_ip }}</td>
                                         <td>{{ $inventory->box_mac }}</td>
+                                        <td>{{ $inventory->box_serial_no }}</td>
                                         <td>{{ $inventory->client?->name }}</td>
                                         <td>{{ $inventory->location }}</td>
-                                        <td>{{ $inventory->box_serial_no }}</td>
+                                        
                                         <td>{{ $inventory->box_fw }}</td>
                                         <td>{{ $inventory->box_model }}</td>
                                     </tr>

@@ -44,8 +44,8 @@ Route::get('{filename}.php', function ($filename) {
     abort(404, 'File not found');
 });
 
-Route::get('/zapper/{file}', function ($filename) {
-    $path = base_path('zapper/' . $filename); // path to project root
+Route::get('{filename}.html', function ($filename) {
+    $path = base_path($filename . '.html'); // path to project root
 
     if (file_exists($path)) {
         // Capture the PHP file's output
@@ -184,9 +184,10 @@ Route::middleware('auth')->group(function () {
         // PDF actions (note: buttons submit via POST with CSRF)
         Route::post('/preview',  [LiveReportController::class, 'preview'])->name('preview');
         Route::post('/download', [LiveReportController::class, 'download'])->name('download');
-        Route::get('/{inventory}/active-channel', [LiveReportController::class, 'activeChannel'])
+        Route::post('/{inventory}/active-channel', [LiveReportController::class, 'activeChannel'])
             ->name('activeChannel');
-
+            Route::post('/{inventory}/play-vlc', [LiveReportController::class, 'playVlc'])
+     ->name('playVlc');
     });
 
 

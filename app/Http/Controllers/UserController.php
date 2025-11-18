@@ -73,6 +73,7 @@ class UserController extends Controller
         // Assign roles by name
         $user->syncRoles($request->roles);
 
+
         // Send credentials email
         try {
             Mail::to($user->email)->send(

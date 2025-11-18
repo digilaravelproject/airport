@@ -726,7 +726,7 @@ class InventoryActionController extends Controller
     // use Illuminate\Http\JsonResponse;
     // use Illuminate\Support\Facades\Storage;
 
-    public function screenshot(Inventory $inventory): JsonResponse
+    public function screenshot1(Inventory $inventory): JsonResponse
     {
         // CONFIG
         $adbPath = '/usr/bin/adb';
@@ -991,7 +991,7 @@ class InventoryActionController extends Controller
         ], 500);
     }
 
-    public function screenshot1(Inventory $inventory): JsonResponse
+    public function screenshot(Inventory $inventory): JsonResponse
     {
         // -------------------------
         // CONFIG - adjust if needed

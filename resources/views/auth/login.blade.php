@@ -78,6 +78,9 @@
                 Not registered? 
                 <a href="{{ route('register') }}" class="text-decoration-underline">Register here</a>
             </p>
+            <p class="small text-muted">
+                IPTV Middleware ver.1.0.1
+            </p>
         @endif
     </div>
 </form>
