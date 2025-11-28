@@ -103,7 +103,7 @@
 
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('clients.*') ? 'active' : '' }}" href="{{ route('clients.index') }}">
-                            <i class="ti ti-users menu-icon"></i> <span>Subscribers</span>
+                            <i class="ti ti-users menu-icon"></i> <span>Clients</span>
                         </a>
                     </li>
 

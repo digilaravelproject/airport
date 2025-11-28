@@ -191,6 +191,8 @@ Route::middleware('auth')->group(function () {
             ->name('activeChannel');
             Route::post('/{inventory}/play-vlc', [LiveReportController::class, 'playVlc'])
      ->name('playVlc');
+    Route::post('/{inventory}/fetch-status', [LiveReportController::class, 'fetchStatus'])
+    ->name('fetch-status');
     });
 
 

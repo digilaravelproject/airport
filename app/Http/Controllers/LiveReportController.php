@@ -26,6 +26,7 @@ class LiveReportController extends Controller
     public function index(Request $request)
     {
         $search    = trim((string) $request->get('search', ''));
+        $field     = trim((string) $request->get('field', 'all'));
         $perPage   = (int) ($request->get('per_page', 10) ?: 10);
         $page      = max(1, (int) $request->get('page', 1));
 
@@ -38,7 +39,7 @@ class LiveReportController extends Controller
             'client_name'   => 'clients.name',
             'id'            => 'inventories.id',
         ];
-       
+    
         if ($request->has('sort')) {
             $sort = $request->get('sort', 'id');
             $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
@@ -53,28 +54,65 @@ class LiveReportController extends Controller
         $baseQuery = Inventory::query()
             ->with('client');
 
-        // NOTE: removed `channel_source_in` from DB search because the inventories table
-        // does not have that column (it was causing SQLSTATE[42S22] errors).
-        if ($search) {
-            $baseQuery->where(function ($q) use ($search) {
-                $q->where('box_model', 'like', "%{$search}%")
-                  ->orWhere('box_serial_no', 'like', "%{$search}%")
-                  ->orWhere('box_mac', 'like', "%{$search}%")
-                  ->orWhere('box_fw', 'like', "%{$search}%")
-                  ->orWhere('box_id', 'like', "%{$search}%")
-                  ->orWhere('box_ip', 'like', "%{$search}%")
-                  ->orWhere('location', 'like', "%{$search}%")
-                  ->orWhere('stream_url', 'like', "%{$search}%")
-                  // search client name via relationship
-                  ->orWhereHas('client', function ($cq) use ($search) {
-                      $cq->where('name', 'like', "%{$search}%");
-                  });
-            });
+        // Field-aware search handling
+        if ($search !== '') {
+            $like = "%{$search}%";
+
+            if ($field !== 'all') {
+                switch ($field) {
+                    case 'box_id':
+                    case 'box_ip':
+                    case 'box_model':
+                    case 'box_serial_no':
+                    case 'box_mac':
+                    case 'box_fw':
+                    case 'location':
+                    case 'stream_url':
+                        $baseQuery->where("inventories.{$field}", 'like', $like);
+                        break;
+
+                    case 'client_name':
+                        $baseQuery->whereHas('client', function ($cq) use ($like) {
+                            $cq->where('name', 'like', $like);
+                        });
+                        break;
+
+                    default:
+                        // fallback to searching common columns
+                        $baseQuery->where(function ($q) use ($like) {
+                            $q->where('box_model', 'like', $like)
+                            ->orWhere('box_serial_no', 'like', $like)
+                            ->orWhere('box_mac', 'like', $like)
+                            ->orWhere('box_fw', 'like', $like)
+                            ->orWhere('box_id', 'like', $like)
+                            ->orWhere('box_ip', 'like', $like)
+                            ->orWhere('location', 'like', $like)
+                            ->orWhereHas('client', function ($cq) use ($like) {
+                                $cq->where('name', 'like', $like);
+                            });
+                        });
+                        break;
+                }
+            } else {
+                // search across multiple columns + client relationship
+                $baseQuery->where(function ($q) use ($like) {
+                    $q->where('box_model', 'like', $like)
+                    ->orWhere('box_serial_no', 'like', $like)
+                    ->orWhere('box_mac', 'like', $like)
+                    ->orWhere('box_fw', 'like', $like)
+                    ->orWhere('box_id', 'like', $like)
+                    ->orWhere('box_ip', 'like', $like)
+                    ->orWhere('location', 'like', $like)
+                    ->orWhereHas('client', function ($cq) use ($like) {
+                        $cq->where('name', 'like', $like);
+                    });
+                });
+            }
         }
 
         if ($sort === 'client_name') {
             $baseQuery->leftJoin('clients', 'clients.id', '=', 'inventories.client_id')
-                      ->select('inventories.*');
+                    ->select('inventories.*');
         }
 
         $baseQuery->orderBy($sortCol, $direction);
@@ -85,19 +123,31 @@ class LiveReportController extends Controller
 
         $currentPage = collect($inventories->items());
 
-        // mark online using existing service
-        $onlineIds = $this->onlineService->detectOnline(
-            $currentPage->map(fn ($inv) => (object) [
-                'id'       => $inv->id,
-                'box_ip'   => $inv->box_ip,
-                'adb_port' => $inv->adb_port ?? null,
-            ])
-        );
+        // Build the subset we actually want to run online checks for:
+// only inventories that have a client and an IP to check.
+$toCheck = $currentPage->filter(fn($item) => !empty($item->client->id) && !empty($item->box_ip));
 
-        foreach ($currentPage as $inv) {
-            $inv->is_online = in_array($inv->id, $onlineIds, true);
-        }
+// If there are items to check, call the online service once.
+$onlineIds = [];
+if ($toCheck->isNotEmpty()) {
+    $onlineIds = $this->onlineService->detectOnline(
+        $toCheck->map(fn ($inv) => (object) [
+            'id'       => $inv->id,
+            'box_ip'   => $inv->box_ip,
+            'adb_port' => $inv->adb_port ?? null,
+        ])
+    );
+}
 
+// Apply the result back to the page items.
+// Inventories with a client id get boolean is_online, others get empty string.
+foreach ($currentPage as $inv) {
+    if (!empty($inv->client->id)) {
+        $inv->is_online = in_array($inv->id, $onlineIds, true);
+    } else {
+        $inv->is_online = '';
+    }
+}
         // Attempt best-effort initial discovery to populate stream_status & resolved_channel_name
         foreach ($currentPage as $inv) {
             $inv->stream_status = $inv->stream_status ?? null;
@@ -110,16 +160,16 @@ class LiveReportController extends Controller
                         if (!empty($res['stream_status'])) $inv->stream_status = $res['stream_status'];
                         if (!empty($res['name'])) $inv->active_channel_name = $inv->active_channel_name ?? $res['name'];
                         if (!empty($res['channel_name'])) $inv->resolved_channel_name = $res['channel_name'];
-                        if (!empty($res['raw_source'])) $inv->channel_source_in = $inv->channel_source_in ?? $res['raw_source'];
+                        if (!empty($res['raw_source'])) $inv->channel_url = $inv->channel_url ?? $res['raw_source'];
                     }
                 } catch (Throwable $e) {
                     // ignore
                 }
             } else {
                 // populate from existing DB fields if present
-                if (!empty($inv->channel_source_in)) {
+                if (!empty($inv->channel_url)) {
                     // try resolve channel name from channels table
-                    $ch = Channel::where('source_in', $inv->channel_source_in)->first();
+                    $ch = Channel::where('channel_url', $inv->channel_url)->first();
                     if ($ch) $inv->resolved_channel_name = $ch->name;
                 }
             }
@@ -131,10 +181,46 @@ class LiveReportController extends Controller
             'inventories' => $inventories,
             'clients'     => $clients,
             'search'      => $search,
+            'field'       => $field,
             'sort'        => $sort,
             'direction'   => $direction,
         ]);
     }
+    
+    /**
+     * Per-inventory ping endpoint (single-record online detection).
+     * Returns JSON: { success: true, is_online: bool }
+     */
+    public function ping(Request $request, Inventory $inventory)
+    {
+        try {
+            // Use the existing InventoryOnlineService in the same way you used detectOnline
+            // Build a single-entry collection/object expected by detectOnline
+            $check = collect([
+                (object) [
+                    'id' => $inventory->id,
+                    'box_ip' => $inventory->box_ip,
+                    'adb_port' => $inventory->adb_port ?? null,
+                ]
+            ]);
+
+            $onlineIds = $this->onlineService->detectOnline($check);
+
+            $isOnline = in_array($inventory->id, $onlineIds, true);
+
+            return response()->json([
+                'success' => true,
+                'is_online' => $isOnline,
+            ]);
+        } catch (Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ping check failed.',
+                'error' => app()->isProduction() ? null : $e->getMessage(),
+            ], 500);
+        }
+    }
+
 
     /**
      * AJAX per-row endpoint. Tries ADB, then mgmt API, then stream_url.
@@ -331,7 +417,7 @@ class LiveReportController extends Controller
                 $result['stream_status'] = $app ?? null;
 
                 // set instance props for blade convenience (not persisted)
-                $inventory->channel_source_in = $candidate;
+                $inventory->channel_url = $candidate;
                 $inventory->active_channel_name = $candidate;
                 $inventory->stream_status = $app ?? null;
 
@@ -485,9 +571,9 @@ class LiveReportController extends Controller
 
         $inventories->each(function ($inv) use ($onlineIds) {
             $inv->is_online = in_array($inv->id, $onlineIds, true);
-            // try to resolve channel name for PDF if channel_source_in present
-            if (!empty($inv->channel_source_in)) {
-                $ch = Channel::where('source_in', $inv->channel_source_in)->first();
+            // try to resolve channel name for PDF if channel_url present
+            if (!empty($inv->channel_url)) {
+                $ch = Channel::where('channel_url', $inv->channel_url)->first();
                 if ($ch) $inv->resolved_channel_name = $ch->name;
             }
         });
@@ -500,7 +586,7 @@ class LiveReportController extends Controller
     {
         try {
             $payloadUrl = $request->input('url');
-            $url = $payloadUrl ?: ($inventory->channel_source_in ?? $inventory->stream_url ?? null);
+            $url = $payloadUrl ?: ($inventory->channel_url ?? $inventory->stream_url ?? null);
 
             if (empty($url)) {
                 return response()->json(['success' => false, 'message' => 'No stream URL provided.'], 422);
@@ -585,5 +671,3 @@ class LiveReportController extends Controller
         }
     }
 }
-
-

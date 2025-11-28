@@ -8,6 +8,8 @@
     .table tbody tr td:last-child {
         width: 20% !important;
     }
+    /* Search form small tweaks to align with other inventory page look */
+    .search-form .form-control-sm, .search-form .form-select-sm { height: calc(1.5em + .5rem + 2px); }
 </style>
 
 @php
@@ -70,9 +72,29 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
+                <!-- Header with Search form (keeps original header text + new search UI) -->
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Inventory Packages List</h5>
+
+                    <!-- Search form (keeps sort/direction when submitting) -->
+                    @php
+                        // Reset URL: preserve sort/direction but drop search/field/page
+                        $preserve = request()->except(['search','field','page']);
+                        $resetUrl = url()->current() . (count($preserve) ? '?' . http_build_query($preserve) : '');
+                    @endphp
+
+                    <form method="GET" action="{{ url()->current() }}" class="d-flex search-form" style="gap:.5rem;">
+                        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Search">
+
+                        {{-- Preserve current sort in the search form --}}
+                        <input type="hidden" name="sort" value="{{ request('sort','id') }}">
+                        <input type="hidden" name="direction" value="{{ request('direction','desc') }}">
+
+                        <button type="submit" class="btn btn-sm btn-primary">Search</button>
+                        <a href="{{ $resetUrl }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                    </form>
                 </div>
+
                 <div class="card-body">
                     <div class="table-responsive">
                         @php use Illuminate\Support\Facades\Storage; @endphp
@@ -165,6 +187,11 @@
                                         </td>
                                     </tr>
                                 @endforeach
+                                @if($inventories->isEmpty())
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted">No inventories found.</td>
+                                    </tr>
+                                @endif
                             </tbody>
                         </table>
                     </div>
@@ -178,7 +205,7 @@
     </div>
 </div>
 
-{{-- Modal + scripts below remain unchanged in structure --}}
+{{-- Modal + scripts remain unchanged (same as your original code) --}}
 <!-- Inventory Package Modal -->
 <div class="modal fade" id="inventoryPackageModal" tabindex="-1" aria-labelledby="inventoryPackageModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -277,6 +304,7 @@
 </div>
 
 <script>
+    /* === your original JS (openForm, hideAnyLoader, showAdbProgress, showAdbResult, form submission) unchanged === */
     function openForm(mode, data = null) {
         const modalTitle = document.getElementById("inventoryPackageModalLabel");
         const form = document.getElementById("inventoryPackageForm");

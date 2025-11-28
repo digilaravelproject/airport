@@ -1,0 +1,40 @@
+{
+    "DTV": [
+        {
+            "name": "1",
+            "desc": "Zee Biskope",
+            "url": "udp://239.15.0.31:1234",
+            "starting": true
+        },
+        {
+            "name": "2",
+            "desc": "Aaj Tak",
+            "url": "udp://239.15.0.16:1234"
+        },
+        {
+            "name": "3",
+            "desc": "ZEE ANMOL",
+            "url": "udp://239.15.0.18:1234"
+        },
+        {
+            "name": "4",
+            "desc": "B4U MUSIC",
+            "url": "udp://239.15.0.9:1234"
+        },
+        {
+            "name": "5",
+            "desc": "ZEE NEWS",
+            "url": "udp://239.15.0.50:1234"
+        },
+        {
+            "name": "6",
+            "desc": "ZEE Chitra Mandir",
+            "url": "udp://239.15.0.70:1234"
+        },
+        {
+            "name": "7",
+            "desc": "ZEE ANMOL CINEMA",
+            "url": "udp://239.15.0.48:1234"
+        }
+    ]
+}

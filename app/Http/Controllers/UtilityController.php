@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Process;
 
 class UtilityController extends Controller
 {
@@ -21,27 +22,45 @@ class UtilityController extends Controller
      * Make sure apache user is allowed to run the script via sudoers (see notes).
      */
     public function backup(Request $request)
-    {
-        try {
-            // path to your script - ensure this is correct
-            $script = '/usr/local/bin/sql_autobackup.sh';
+{
+    try {
+        // path to your script - ensure this is correct
+        $script = '/usr/local/bin/sql_autobackup.sh';
 
-            if (!File::exists($script)) {
-                return redirect()->back()->with('error', "Backup script not found at: {$script}");
-            }
-
-            // run script asynchronously so the web request doesn't hang
-            // use & to send to background
-            // Ensure apache user can run this with sudo without password.
-            $cmd = 'sudo ' . escapeshellcmd($script) . ' > /dev/null 2>&1 &';
-            shell_exec($cmd);
-
-            return redirect()->back()->with('success', 'Backup script triggered.');
-        } catch (\Exception $e) {
-            Log::error('Backup failed: '.$e->getMessage());
-            return redirect()->back()->with('error', 'Failed to trigger backup: ' . $e->getMessage());
+        if (! File::exists($script)) {
+            return redirect()->back()->with('error', "Backup script not found at: {$script}");
         }
+
+        // ensure script is executable (best-effort)
+        if (! is_executable($script)) {
+            @chmod($script, 0755);
+        }
+
+        // Build a shell command that detaches the script and echoes the pid.
+        // Explanation:
+        //  - nohup keeps the process running after PHP exits
+        //  - sudo runs script as root (requires proper sudoers config, see notes)
+        //  - > /dev/null 2>&1 & runs in background
+        //  - echo $! prints the background PID immediately so we can show it to user
+        $cmd = "nohup sudo " . escapeshellcmd($script) . " > /dev/null 2>&1 & echo $!";
+
+        // Use Symfony Process to run the command; it will return almost instantly because of `echo $!`
+        $process = Process::fromShellCommandline($cmd);
+        // small timeout so Process doesn't hang; command is immediate (echo)
+        $process->setTimeout(10);
+        $process->run();
+
+        $output = trim($process->getOutput());
+        $pid = $output !== '' ? $output : null;
+
+        $msg = 'Backup script triggered.' . ($pid ? " (pid: {$pid})" : '');
+
+        return redirect()->back()->with('success', $msg);
+    } catch (\Throwable $e) {
+        Log::error('Backup trigger failed: '.$e->getMessage());
+        return redirect()->back()->with('error', 'Failed to trigger backup: ' . $e->getMessage());
     }
+}
 
     /**
      * Restore database from uploaded .sql file

@@ -222,7 +222,13 @@
                                         <td>{{ $channel->language }}</td>
                                         <td>{{ $channel->channel_source_in ?? '-' }}</td>
                                         <td>{{ $channel->channel_source_details ?? '-' }}</td>
-                                        <td>{{ $channel->language ?? '-' }}</td>
+                                        <td>
+    @if($channel->active == 1)
+        <span class="badge bg-success">Active</span>
+    @else
+        <span class="badge bg-danger">Inactive</span>
+    @endif
+</td>
 
                                         <!-- Actions -->
                                         <td>

@@ -32,7 +32,7 @@
 @endphp
 
 <div class="container-fluid">
-    <?php $page_title = "Inventories"; $sub_title = "Setop Boxes"; ?>
+    <?php $page_title = "Inventory"; $sub_title = "Setop Boxes"; ?>
 
     <div class="row">
         <div class="col-sm-12">
@@ -153,7 +153,8 @@
         <div class="col-md-9">
             <div class="card">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Inventories</h5>
+                    <h5 class="mb-0">Set Top 
+Boxes</h5>
                     <form method="GET" action="{{ route('inventories.index') }}" class="d-flex">
                         <input type="hidden" name="assign" value="{{ request('assign','all') }}">
                         <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm me-2" placeholder="Search">

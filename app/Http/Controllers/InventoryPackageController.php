@@ -26,8 +26,11 @@ class InventoryPackageController extends Controller
             'client_name'   => 'clients.name',
             'packages'      => 'packages_count',   // number of allocated packages
             'created_at'    => 'inventories.created_at',
+            'box_ip'        => 'inventories.box_ip',
+            'location'      => 'inventories.location',
         ];
 
+        // Sort params
         if ($request->has('sort')) {
             $sort = $request->get('sort', 'id');
             $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
@@ -44,12 +47,83 @@ class InventoryPackageController extends Controller
                   ->select('inventories.*'); // keep Inventory model hydration correct
         }
 
+        // SEARCH handling
+        $search = trim((string)$request->get('search', ''));
+        $field  = $request->get('field', 'all');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search, $field) {
+                $like = '%' . str_replace('%', '\\%', $search) . '%';
+
+                // field-specific search
+                if ($field !== 'all') {
+                    switch ($field) {
+                        case 'box_id':
+                            $q->where('inventories.box_id', 'like', $like);
+                            break;
+                        case 'box_ip':
+                            $q->where('inventories.box_ip', 'like', $like);
+                            break;
+                        case 'box_model':
+                            $q->where('inventories.box_model', 'like', $like);
+                            break;
+                        case 'box_serial_no':
+                            $q->where('inventories.box_serial_no', 'like', $like);
+                            break;
+                        case 'box_mac':
+                            $q->where('inventories.box_mac', 'like', $like);
+                            break;
+                        case 'box_fw':
+                            $q->where('inventories.box_fw', 'like', $like);
+                            break;
+                        case 'location':
+                            $q->where('inventories.location', 'like', $like);
+                            break;
+                        case 'client_name':
+                            $q->whereHas('client', function ($qq) use ($like) {
+                                $qq->where('name', 'like', $like);
+                            });
+                            break;
+                        case 'packages':
+                            $q->whereHas('packages', function ($qq) use ($like) {
+                                $qq->where('name', 'like', $like);
+                            });
+                            break;
+                        default:
+                            // fallback
+                            $q->where('inventories.box_id', 'like', $like);
+                            break;
+                    }
+                } else {
+                    // 'all' fields - search across common inventory columns + client name + package name
+                    $q->where('inventories.box_id', 'like', $like)
+                      ->orWhere('inventories.box_ip', 'like', $like)
+                      ->orWhere('inventories.box_model', 'like', $like)
+                      ->orWhere('inventories.box_serial_no', 'like', $like)
+                      ->orWhere('inventories.box_mac', 'like', $like)
+                      ->orWhere('inventories.location', 'like', $like)
+                      ->orWhere('inventories.box_fw', 'like', $like);
+
+                    // client name
+                    $q->orWhereHas('client', function ($qq) use ($like) {
+                        $qq->where('name', 'like', $like);
+                    });
+
+                    // package name
+                    $q->orWhereHas('packages', function ($qq) use ($like) {
+                        $qq->where('name', 'like', $like);
+                    });
+                }
+            });
+        }
+
         $inventories = $query->orderBy($sortColumn, $direction)
             ->paginate(10)
             ->withQueryString();
 
         $packages = Package::all();
 
+        // pass search params back so blade can reuse request() as needed
         return view('inventory_package_allocation.index', compact('inventories', 'packages', 'sort', 'direction'));
     }
 
@@ -71,9 +145,9 @@ class InventoryPackageController extends Controller
                 $item = [
                     "name" => (string) ($k + 1),
                     "desc" => $channel->channel_name,
-                    "url"  => (str_starts_with($channel->channel_source_in, 'udp://'))
-                        ? $channel->channel_source_in
-                        : 'udp://' . $channel->channel_source_in,
+                    "url"  => (str_starts_with($channel->channel_url, 'udp://'))
+                        ? $channel->channel_url
+                        : 'udp://' . $channel->channel_url,
                 ];
                 if ($counter === 1) {
                     $item["starting"] = true;
@@ -141,9 +215,9 @@ class InventoryPackageController extends Controller
                 $item = [
                     "name" => (string) ($k + 1),
                     "desc" => $channel->channel_name,
-                    "url"  => (str_starts_with($channel->channel_source_in, 'udp://'))
-                        ? $channel->channel_source_in
-                        : 'udp://' . $channel->channel_source_in,
+                    "url"  => (str_starts_with($channel->channel_url, 'udp://'))
+                        ? $channel->channel_url
+                        : 'udp://' . $channel->channel_url,
                 ];
                 if ($counter === 1) {
                     $item["starting"] = true;

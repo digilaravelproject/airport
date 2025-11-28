@@ -68,7 +68,7 @@
                         @foreach($clients as $client)
                             <option value="{{ $client->id }}"
                                 {{ (string)request('client_id') === (string)$client->id ? 'selected' : '' }}>
-                                {{ $client->id }} - {{ $client->name }}
+                                {{ $client->name }}
                             </option>
                         @endforeach
                     </select>
@@ -87,20 +87,10 @@
             <form id="selectionForm" method="POST" target="_self">
                 @csrf
 
-                <div class="d-flex align-items-center mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="selectAll">
-                        <label class="form-check-label fw-semibold" for="selectAll">
-                            Select All Records
-                        </label>
-                    </div>
-                </div>
-
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th style="width:40px;"></th>
                                 <th>
                                     <a href="{{ sortUrlInstalled('box_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                         Box ID <i class="{{ sortIconInstalled('box_id') }}"></i>
@@ -114,6 +104,11 @@
                                 <th>
                                     <a href="{{ sortUrlInstalled('box_mac') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                         MAC ID <i class="{{ sortIconInstalled('box_mac') }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ sortUrlInstalled('box_serial_no') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
+                                        Serial No <i class="{{ sortIconInstalled('box_serial_no') }}"></i>
                                     </a>
                                 </th>
                                 <th>
@@ -131,11 +126,7 @@
                                         Box Model <i class="{{ sortIconInstalled('box_model') }}"></i>
                                     </a>
                                 </th>
-                                <th>
-                                    <a href="{{ sortUrlInstalled('box_serial_no') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
-                                        Serial No <i class="{{ sortIconInstalled('box_serial_no') }}"></i>
-                                    </a>
-                                </th>
+
                                 <th>Packages</th>
                                 <th>Status</th>
                                 <th>
@@ -147,23 +138,21 @@
                         </thead>
                         <tbody>
                             @forelse ($inventories as $idx => $inv)
-                                <tr>
-                                    <td>
-                                        <input type="checkbox" class="row-check" name="selected_ids[]" value="{{ $inv->id }}">
-                                    </td>
+                                <tr data-id="{{ $inv->id }}">
                                     <td><span class="badge bg-secondary">{{ $inv->box_id }}</span></td>
                                     <td>{{ $inv->box_ip }}</td>
                                     <td>{{ $inv->box_mac }}</td>
+                                    <td>{{ $inv->box_serial_no }}</td>
                                     <td>
                                         @if($inv->client)
-                                            {{ $inv->client->id }} - {{ $inv->client->name }}
+                                            {{ $inv->client->name }}
                                         @else
                                             <span class="text-muted">No client</span>
                                         @endif
                                     </td>
                                     <td>{{ $inv->location }}</td>
                                     <td>{{ $inv->box_model }}</td>
-                                    <td>{{ $inv->box_serial_no }}</td>
+
                                     <td>
                                         @if($inv->packages->count())
                                             {{ $inv->packages->pluck('name')->join(', ') }}
@@ -213,52 +202,40 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const selectAll = document.getElementById('selectAll');
     const form = document.getElementById('selectionForm');
     const btnView = document.getElementById('btnViewSelected');
     const btnDownload = document.getElementById('btnDownloadSelected');
 
-    // helper to get all row checkboxes
-    const getRowChecks = () => Array.from(document.querySelectorAll('input.row-check'));
-
-    function setAllRows(state) {
-        getRowChecks().forEach(cb => cb.checked = state);
-        selectAll.indeterminate = false;
-        selectAll.checked = state;
+    // Collect visible row ids from the rendered table (tbody rows with data-id)
+    function collectVisibleIds() {
+        return Array.from(document.querySelectorAll('table tbody tr[data-id]'))
+            .map(tr => tr.dataset.id)
+            .filter(Boolean);
     }
 
-    if (selectAll) {
-        selectAll.addEventListener('change', (e) => {
-            setAllRows(e.target.checked);
-        });
-    }
-
-    document.addEventListener('change', (e) => {
-        if (!e.target.classList.contains('row-check')) return;
-        const cbs = getRowChecks();
-        const checkedCount = cbs.filter(cb => cb.checked).length;
-        if (checkedCount === 0) {
-            selectAll.checked = false;
-            selectAll.indeterminate = false;
-        } else if (checkedCount === cbs.length) {
-            selectAll.checked = true;
-            selectAll.indeterminate = false;
-        } else {
-            selectAll.checked = false;
-            selectAll.indeterminate = true;
-        }
-    });
-
-    // --- ✅ prevent page from "loading" forever on new tab open ---
+    // POST form data with selected_ids[]=... (all visible rows)
     function openInNewTab(actionUrl, isDownload = false) {
-        const formData = new FormData(form);
+        const ids = collectVisibleIds();
+        if (!ids.length) {
+            alert('No records to send.'); return;
+        }
+
+        const formData = new FormData();
+        // append CSRF token
+        formData.append('_token', '{{ csrf_token() }}');
+
+        ids.forEach(id => formData.append('selected_ids[]', id));
+
         const newTab = window.open('', '_blank');
         fetch(actionUrl, {
             method: 'POST',
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            headers: { /* CSRF already in formData */ },
             body: formData
         })
-        .then(res => res.blob())
+        .then(res => {
+            if (!res.ok) throw new Error('Server error: ' + res.status);
+            return res.blob();
+        })
         .then(blob => {
             const fileURL = URL.createObjectURL(blob);
             if (isDownload) {
@@ -289,3 +266,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endsection
+
+

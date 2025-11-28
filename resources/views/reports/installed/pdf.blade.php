@@ -24,10 +24,10 @@
             <th>Box ID</th>
             <th>Box IP</th>
             <th>MAC ID</th>
+            <th>Serial No</th>
             <th>Client</th>
             <th>Establishment</th>
             <th>Box Model</th>
-            <th>Serial No</th>
             <th>Packages</th>
             <th>Status</th>
             <th>Warranty</th>
@@ -36,9 +36,6 @@
     <tbody>
         @foreach($inventories as $i => $inv)
             <tr>
-                <td>
-                    <input type="checkbox" class="row-check" name="selected_ids[]" value="{{ $inv->id }}">
-                </td>
 
                 <td>
                     <span class="badge bg-secondary">{{ $inv->box_id }}</span>
@@ -48,9 +45,11 @@
 
                 <td>{{ $inv->box_mac ?? '-' }}</td>
 
+                <td>{{ $inv->box_serial_no ?? '-' }}</td>
+
                 <td>
                     @if($inv->client)
-                        {{ $inv->client->id }} - {{ $inv->client->name }}
+                        {{ $inv->client->name }}
                     @else
                         <span class="text-muted">No client</span>
                     @endif
@@ -59,8 +58,6 @@
                 <td>{{ $inv->location ?? '-' }}</td>
 
                 <td>{{ $inv->box_model ?? '-' }}</td>
-
-                <td>{{ $inv->box_serial_no ?? '-' }}</td>
 
                 <td>
                     @if($inv->packages->count())

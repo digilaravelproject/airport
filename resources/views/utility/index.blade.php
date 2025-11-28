@@ -8,6 +8,12 @@
     .summary-card:hover { transform: translateY(-1px); }
     .summary-active { border-color:#0d6efd !important; box-shadow: 0 0 0 .1rem rgba(13,110,253,.15); }
     .table thead a { font-weight:600; }
+
+    /* preview area styling */
+    #filePreviewArea { max-height:60vh; overflow:auto; }
+    #filePreviewArea pre { white-space:pre-wrap; word-break:break-word; font-size:.9rem; }
+    #filePreviewArea table { width:100%; border-collapse:collapse; }
+    #filePreviewArea table th, #filePreviewArea table td { border:1px solid #ddd; padding:.35rem .5rem; text-align:left; font-size:.86rem; }
 </style>
 
 <div class="container-fluid">
@@ -58,13 +64,12 @@
                         @csrf
                         <div class="row align-items-end g-3">
                             <div class="col-md-6">
-                                <label for="file" class="form-label fw-semibold">Select File</label>
-                                <input type="file" name="file" id="file" accept=".xlsx,.xls,.csv" class="form-control" required>
+                                <label for="file_inventory" class="form-label fw-semibold">Select File</label>
+                                <!-- id changed to file_inventory -->
+                                <input type="file" name="file" id="file_inventory" accept=".xlsx,.xls,.csv,.txt,.json" class="form-control import-file-input" data-form-id="importForm" required>
                             </div>
                             <div class="col-md-3">
-                                <button type="submit" class="btn btn-success w-100">
-                                    <i class="fas fa-upload me-1"></i> Import
-                                </button>
+                                <!-- Import button removed per request -->
                             </div>
                             <div class="col-md-3 text-end">
                                 <a href="{{ asset('sample/Inventory_Import_Format.xlsx') }}"
@@ -96,13 +101,12 @@
                         @csrf
                         <div class="row align-items-end g-3">
                             <div class="col-md-6">
-                                <label for="file" class="form-label fw-semibold">Select File</label>
-                                <input type="file" name="file" id="file" accept=".xlsx,.xls,.csv" class="form-control" required>
+                                <label for="file_channel" class="form-label fw-semibold">Select File</label>
+                                <!-- id changed to file_channel -->
+                                <input type="file" name="file" id="file_channel" accept=".xlsx,.xls,.csv,.txt,.json" class="form-control import-file-input" data-form-id="channelImportForm" required>
                             </div>
                             <div class="col-md-3">
-                                <button type="submit" class="btn btn-success w-100">
-                                    <i class="fas fa-upload me-1"></i> Import
-                                </button>
+                                <!-- Import button removed -->
                             </div>
                             <div class="col-md-3 text-end">
                                 <a href="{{ asset('sample/Channel_Import_Format.xlsx') }}"
@@ -141,7 +145,7 @@
                                 @csrf
                                 <label class="form-label fw-semibold"></label>
                                 <button type="submit" class="btn btn-primary w-100" id="backupBtn">
-                                    <i class="fas fa-download me-1"></i> Backup (run script)
+                                    <i class="fas fa-upload me-1"></i> Backup
                                 </button>
                             </form>
                         </div>
@@ -157,11 +161,11 @@
                                     </div>
                                     <div class="col-md-3">
                                         <button type="submit" class="btn btn-danger w-100" onclick="return confirm('This will DROP existing tables and import the uploaded SQL file. Are you sure?')">
-                                            <i class="fas fa-upload me-1"></i> Restore
+                                            <i class="fas fa-download me-1"></i> Restore
                                         </button>
                                     </div>
                                     <div class="col-md-3 text-end">
-                                        <small class="text-muted">Upload must be a .sql file. Existing tables will be cleared before import.</small>
+                                        <small class="text-muted">select the latest SQL file from the backup location</small>
                                     </div>
                                 </div>
                             </form>
@@ -179,4 +183,188 @@
     <!-- End Backup & Restore Section -->
 
 </div>
+
+<!-- Shared File Preview / Confirm Modal -->
+<div class="modal fade" id="filePreviewModal" tabindex="-1" aria-labelledby="filePreviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="filePreviewModalLabel">File ready to import</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">File selected:</p>
+        <p class="small">
+            <a href="#" id="previewFileLink" target="_blank" rel="noopener noreferrer" class="fw-semibold text-decoration-underline"></a>
+        </p>
+        <div class="text-muted small" id="fileInfo"></div>
+
+        <hr>
+
+        <div id="filePreviewArea" class="mt-2">
+            <!-- Preview will be injected here (text or table) -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="cancelImportBtn" class="btn btn-outline-secondary">Cancel</button>
+        <button type="button" id="confirmImportBtn" class="btn btn-success">Import</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SheetJS (for xlsx preview) -->
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Keep state of selected file and the form to submit
+    let currentFile = null;
+    let currentForm = null;
+    let currentBlobUrl = null;
+    const modalEl = document.getElementById('filePreviewModal');
+    const previewLink = document.getElementById('previewFileLink');
+    const fileInfo = document.getElementById('fileInfo');
+    const confirmBtn = document.getElementById('confirmImportBtn');
+    const cancelBtn = document.getElementById('cancelImportBtn');
+    const previewArea = document.getElementById('filePreviewArea');
+
+    // bootstrap modal instance
+    const bsModal = new bootstrap.Modal(modalEl);
+
+    // helper: extension
+    function extFromName(name) {
+        if (!name) return '';
+        const m = name.split('.').pop().toLowerCase();
+        return m || '';
+    }
+
+    // attach change handlers to all file inputs with class .import-file-input
+    document.querySelectorAll('.import-file-input').forEach(input => {
+        input.addEventListener('change', async function (e) {
+            const files = input.files;
+            if (!files || files.length === 0) return;
+
+            currentFile = files[0];
+            const formId = input.dataset.formId || input.closest('form')?.id;
+            currentForm = formId ? document.getElementById(formId) : input.closest('form');
+
+            // revoke previous blob if any
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl);
+                currentBlobUrl = null;
+            }
+
+            // create a blob url for direct open (works for text/csv types)
+            try {
+                currentBlobUrl = URL.createObjectURL(currentFile);
+            } catch (err) {
+                currentBlobUrl = null;
+            }
+
+            // populate modal base info
+            previewLink.textContent = currentFile.name;
+            previewLink.href = currentBlobUrl || '#';
+            fileInfo.textContent = [ currentFile.type || 'unknown type', Math.round(currentFile.size / 1024) + ' KB' ].join(' • ');
+
+            // clear preview area
+            previewArea.innerHTML = '';
+
+            const ext = extFromName(currentFile.name);
+
+            // handle by extension
+            if (ext === 'csv' || ext === 'txt' || ext === 'json') {
+                // read as text and show in modal + provide "Open in new tab" button
+                const txt = await currentFile.text().catch(()=>null);
+                if (txt !== null) {
+                    const pre = document.createElement('pre');
+                    pre.textContent = txt;
+                    previewArea.appendChild(pre);
+
+                    // ensure link opens in new tab; for text types browser usually opens inline
+                    previewLink.textContent = currentFile.name + ' (Open in new tab)';
+                    previewLink.href = currentBlobUrl;
+                    previewLink.target = '_blank';
+                } else {
+                    // fallback
+                    previewArea.innerHTML = '<div class="small text-muted">Preview not available. You can open the file in a new tab.</div>';
+                }
+
+            } else if (ext === 'xlsx' || ext === 'xls') {
+                // parse using SheetJS and render first sheet as table
+                try {
+                    const arrayBuffer = await currentFile.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+                    // render all sheets (or only first)
+                    const firstSheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[firstSheetName];
+                    const html = XLSX.utils.sheet_to_html(sheet);
+
+                    // sheet_to_html includes a <table> markup — inject into previewArea
+                    previewArea.innerHTML = html;
+
+                    // change preview link text: clicking will scroll to preview (not open)
+                    previewLink.textContent = currentFile.name + ' (Preview below)';
+                    previewLink.href = '#';
+                    previewLink.removeAttribute('target');
+                    previewLink.onclick = (ev) => {
+                        ev.preventDefault();
+                        // scroll modal content to preview area
+                        previewArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    };
+                } catch (err) {
+                    console.error('SheetJS parse error', err);
+                    previewArea.innerHTML = '<div class="small text-danger">Unable to preview spreadsheet in browser. You can download/open the file locally.</div>';
+                    previewLink.textContent = currentFile.name;
+                    previewLink.href = currentBlobUrl || '#';
+                    previewLink.target = '_blank';
+                }
+            } else {
+                // unknown binary — show helpful message and link to download/open
+                previewArea.innerHTML = '<div class="small text-muted">Browser cannot preview this file type inline. Use the link above to open/download with your local app.</div>';
+                previewLink.textContent = currentFile.name + ' (Open / Download)';
+                previewLink.href = currentBlobUrl || '#';
+                previewLink.target = '_blank';
+            }
+
+            // show the modal
+            bsModal.show();
+        });
+    });
+
+    // Cancel -> reload page to reset input state
+    cancelBtn.addEventListener('click', function () {
+        bsModal.hide();
+        // slight delay to ensure modal closed, then reload
+        setTimeout(() => { location.reload(); }, 150);
+    });
+
+    // Confirm -> submit the associated form
+    confirmBtn.addEventListener('click', function () {
+        if (!currentForm) {
+            alert('Form not found.'); return;
+        }
+        bsModal.hide();
+        setTimeout(() => { currentForm.submit(); }, 120);
+    });
+
+    // cleanup blob URL when modal closed
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        if (currentBlobUrl) {
+            URL.revokeObjectURL(currentBlobUrl);
+            currentBlobUrl = null;
+        }
+        // reset preview link onclick behavior
+        previewLink.onclick = null;
+        previewLink.removeAttribute('target');
+    });
+
+    // defensive: if user navigates away revoke any blob
+    window.addEventListener('beforeunload', function () {
+        if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+    });
+});
+</script>
+
 @endsection

@@ -1,0 +1,35 @@
+{
+    "DTV": [
+        {
+            "name": "1",
+            "desc": "ZEE ANMOL",
+            "url": "udp://239.15.0.18:1234",
+            "starting": true
+        },
+        {
+            "name": "2",
+            "desc": "ZEE ANMOL CINEMA",
+            "url": "udp://239.15.0.48:1234"
+        },
+        {
+            "name": "3",
+            "desc": "ZEE ANMOL CINEMA 2",
+            "url": "udp://239.15.0.56:1234"
+        },
+        {
+            "name": "4",
+            "desc": "Zee Biskope",
+            "url": "udp://239.15.0.31:1234"
+        },
+        {
+            "name": "5",
+            "desc": "ZEE Chitra Mandir",
+            "url": "udp://239.15.0.70:1234"
+        },
+        {
+            "name": "6",
+            "desc": "ZEE NEWS",
+            "url": "udp://239.15.0.50:1234"
+        }
+    ]
+}

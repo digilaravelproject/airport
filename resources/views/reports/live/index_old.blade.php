@@ -61,23 +61,14 @@
             <div class="card">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">All Live Boxes</h5>
-
-                    <!-- SEARCH FORM: added (search + field + preserve sort/direction + Reset) -->
-                    @php
-                        $preserve = request()->except(['search','field','page']);
-                        $resetUrl = url()->current() . (count($preserve) ? '?' . http_build_query($preserve) : '');
-                    @endphp
-                    <form method="GET" action="{{ route('live-reports.index') }}" class="d-flex align-items-center" style="gap:.5rem;">
-                        <input type="text" name="search" value="{{ request('search','') }}"
-                               class="form-control form-control-sm" placeholder="Search">
-
+                    <!-- <form method="GET" action="{{ route('live-reports.index') }}" class="d-flex">
+                        <input type="text" name="search" value="{{ $search ?? '' }}"
+                               class="form-control form-control-sm me-2" placeholder="Search">
                         <input type="hidden" name="sort" value="{{ request('sort','id') }}">
                         <input type="hidden" name="direction" value="{{ request('direction','desc') }}">
-
-                        <button type="submit" class="btn btn-sm btn-primary">Search</button>
-                        <a href="{{ $resetUrl }}" class="btn btn-sm btn-outline-secondary">Reset</a>
-                    </form>
-                    <!-- /SEARCH FORM -->
+                        <button type="submit" class="btn btn-sm btn-primary me-2">Search</button>
+                        <a href="{{ route('live-reports.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                    </form> -->
                 </div>
 
                 <div class="card-body">
@@ -140,13 +131,14 @@
                                         $isOnline = $inventory->is_online ?? false;
                                         $streamStatus = $inventory->stream_status ?? null;
 
+                                       
                                         $candidateUrl = null;
-                                        if (!empty($inventory->channel_url) && preg_match('#^(https?|udp|rtp|rtsp)://#i', $inventory->channel_url)) {
-                                            $candidateUrl = $inventory->channel_url;
+                                        if (!empty($inventory->channel_source_in) && preg_match('#^(https?|udp|rtp|rtsp)://#i', $inventory->channel_source_in)) {
+                                            $candidateUrl = $inventory->channel_source_in;
                                         } elseif (!empty($inventory->stream_url) && preg_match('#^(https?|udp|rtp|rtsp)://#i', $inventory->stream_url)) {
                                             $candidateUrl = $inventory->stream_url;
-                                        } elseif (!empty($inventory->channel_url) && preg_match('#^[0-9\.:\[\]]+:[0-9]+$#', $inventory->channel_url)) {
-                                            $candidateUrl = 'udp://'.$inventory->channel_url;
+                                        } elseif (!empty($inventory->channel_source_in) && preg_match('#^[0-9\.:\[\]]+:[0-9]+$#', $inventory->channel_source_in)) {
+                                            $candidateUrl = 'udp://'.$inventory->channel_source_in;
                                         }
                                     @endphp
                                     @php
@@ -154,22 +146,11 @@
                                         $displayName = $candidateUrl;
 
                                         if (!empty($candidateUrl)) {
-                                            $channel = \App\Models\Channel::where('channel_url', $raw)->first();
+                                            $channel = \App\Models\Channel::where('channel_source_in', $raw)->first();
                                             if ($channel && $channel->channel_name) {
                                                 $displayName = $channel->channel_name;
                                             }
                                         }
-
-                                        $displayName1 =  $inventory->channel_url;
-                                        $raw1 = preg_replace('#^udp://#i', '', $displayName1);
-
-                                        if (!empty($inventory->channel_url)) {
-                                            $channel1 = \App\Models\Channel::where('channel_url', $raw1)->first();
-                                            if ($channel1 && $channel1->channel_name) {
-                                                $displayName1 = $channel1->channel_name;
-                                            }
-                                        }
-
                                     @endphp
 
                                     <tr data-inventory-id="{{ $inventory->id }}">
@@ -205,12 +186,12 @@
                                                                 {{ $displayName ?: $candidateUrl }}
                                                             </button>
                                                         @elseif($isOnline && !empty($displayName))
-                                                            <button onclick="launchPlayer('{{ preg_replace('#^udp://#i', '', $inventory->channel_url) }}')" class="text-truncate d-inline-block channel-name" style="max-width:160px;" title="{{ $inventory->channel_url ?? $inventory->stream_url ?? '' }}">
+                                                            <button onclick="launchPlayer('{{ preg_replace('#^udp://#i', '', $inventory->channel_source_in) }}')" class="text-truncate d-inline-block channel-name" style="max-width:160px;" title="{{ $inventory->channel_source_in ?? $inventory->stream_url ?? '' }}">
                                                                 {{ $displayName }}
                                                             </button>
-                                                        @elseif($isOnline && !empty($displayName1))
-                                                            <button onclick="launchPlayer('{{ preg_replace('#^udp://#i', '', $inventory->channel_url) }}')" class="text-truncate d-inline-block channel-name" style="max-width:160px;">
-                                                                {{ $displayName1 }}
+                                                        @elseif($isOnline && !empty($inventory->channel_source_in))
+                                                            <button onclick="launchPlayer('{{ preg_replace('#^udp://#i', '', $inventory->channel_source_in) }}')" class="text-truncate d-inline-block channel-name" style="max-width:160px;">
+                                                                {{ $inventory->channel_source_in }}
                                                             </button>
                                                         @else
                                                             <span class="text-muted channel-placeholder">—</span>

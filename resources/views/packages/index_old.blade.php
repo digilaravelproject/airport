@@ -6,35 +6,7 @@
     .table tbody tr td:last-child {
         width: 20% !important;
     }
-
-    /* ensure selected and channel list columns share similar height behavior */
-    #selectedNamesWrap { max-height: 240px; overflow-y: auto; }
-    #channelsWrapper { max-height: 240px; overflow-y: auto; }
-    
 </style>
-<style>
-    /* Fix table row height & alignment */
-    #channelsListTable td,
-    #channelsListTable th {
-        white-space: nowrap;            /* Single line only */
-        padding: 10px 12px !important;  /* Equal padding */
-        vertical-align: middle !important;
-    }
-
-    /* Ensure number column stays aligned and centered */
-    #channelsListTable td:first-child,
-    #channelsListTable th:first-child {
-        text-align: center;
-        width: 80px !important;
-    }
-
-    /* Prevent table overflow issues */
-    #channelsListTable {
-        table-layout: auto;
-        width: 100%;
-    }
-</style>
-
 <div class="container-fluid">
     <?php
         $page_title = "Packages";
@@ -128,7 +100,6 @@
                                 color: white;
                                 cursor: grab;
                                 user-select: none;
-                                margin: 0 .25rem .25rem 0;
                             }
                             .selected-item .handle {
                                 display:inline-flex;
@@ -142,7 +113,7 @@
                                 font-size: 12px;
                             }
                             .selected-item.dragging {
-                                opacity: .45;
+                                opacity: .5;
                                 transform: scale(.98);
                             }
                             .selected-item-number { font-weight:700; margin-right:6px; }
@@ -153,30 +124,6 @@
                                 padding: 0 .25rem;
                                 font-size: 14px;
                                 line-height: 1;
-                            }
-
-                            /* placeholder while dragging */
-                            .selected-placeholder {
-                                display: inline-flex;
-                                align-items: center;
-                                gap: .4rem;
-                                padding: .28rem .5rem;
-                                border-radius: .375rem;
-                                background: rgba(0,0,0,0.05);
-                                color: #333;
-                                border: 1px dashed rgba(0,0,0,0.2);
-                                margin: 0 .25rem .25rem 0;
-                                min-width: 80px;
-                                min-height: 24px;
-                            }
-
-                            /* drag mirror (created in JS) styling */
-                            .drag-mirror {
-                                position: fixed;
-                                pointer-events: none;
-                                z-index: 99999;
-                                transform: translate(-50%,-50%) scale(1.01);
-                                opacity: 0.95;
                             }
 
                             /* show-all link styling in table cell */
@@ -304,7 +251,7 @@
         </div>
     </div>
 
-    <!-- Package Modal (layout updated: selected channels left, filters + list right) -->
+    <!-- Package Modal (unchanged layout, with DnD & ordering JS below) -->
     <div class="modal fade" id="packageModal" tabindex="-1" aria-labelledby="packageModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -342,95 +289,87 @@
                         @enderror
                     </div>
 
-                    <!-- Channels & filters (UPDATED layout: selected on left, list + filters on right) -->
+                    <!-- Channels & filters (unchanged) -->
                     <div class="mb-3">
-                        <div class="row g-3">
-                          <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
-                              <label class="form-label mb-0">Channels</label>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center">
+                            <label class="form-label mb-0">Channels</label>
 
-                              <div class="d-flex gap-3 align-items-center flex-wrap">
-                                  <div class="d-flex align-items-center gap-2">
-                                      <label class="mb-0 small text-muted">Type:</label>
-                                      <select id="channel_filter_type" class="form-select form-select-sm" style="min-width: 120px;" disabled>
-                                          <option value="all" selected>All</option>
-                                          <option value="paid">Paid</option>
-                                          <option value="free">Free</option>
-                                      </select>
-                                  </div>
-
-                                  <div class="d-flex align-items-center gap-2">
-                                      <label class="mb-0 small text-muted">Genre:</label>
-                                      <select id="channel_filter_genre" class="form-select form-select-sm" style="min-width: 140px;" disabled>
-                                          <option value="all" selected>All</option>
-                                          @foreach($genres as $genre)
-                                              <option value="{{ strtolower($genre) }}">{{ ucfirst($genre) }}</option>
-                                          @endforeach
-                                      </select>
-                                  </div>
-
-                                  <div class="d-flex align-items-center gap-2">
-                                      <label class="mb-0 small text-muted">Language:</label>
-                                      <select id="channel_filter_language" class="form-select form-select-sm" style="min-width: 140px;" disabled>
-                                          <option value="all" selected>All</option>
-                                          @foreach($languages as $lang)
-                                              <option value="{{ strtolower($lang) }}">{{ ucfirst($lang) }}</option>
-                                          @endforeach
-                                      </select>
-                                  </div>
-
-                                  <div class="form-check ms-2">
-                                      <input class="form-check-input" type="checkbox" id="select_all_channels" disabled>
-                                      <label class="form-check-label" for="select_all_channels">Select all (visible)</label>
-                                  </div>
-                              </div>
-                          </div>
-                          <!-- LEFT: Filters + channels list -->
-                            <div class="col-md-8">
-                                <div id="channelsWrapper" class="border rounded p-2" style="max-height:240px; overflow-y:auto;">
-                                    @foreach($channels as $ch)
-                                        @php
-                                            $type = strtolower(trim($ch->channel_type));
-                                            $genre = strtolower(trim($ch->channel_genre ?? ''));
-                                            $language = strtolower(trim($ch->language ?? ''));
-                                        @endphp
-                                        <div class="form-check channel-row" data-type="{{ $type }}" data-genre="{{ $genre }}" data-language="{{ $language }}">
-                                            <input
-                                                class="form-check-input channel-checkbox"
-                                                type="checkbox"
-                                                name="channel_checkbox_dummy[]"
-                                                value="{{ $ch->id }}"
-                                                id="channel_{{ $ch->id }}"
-                                                data-name="{{ $ch->channel_name }}">
-                                            <label class="form-check-label" for="channel_{{ $ch->id }}">
-                                                {{ $ch->channel_name }}
-                                                <span class="badge bg-light text-dark border ms-2">{{ ucfirst($type) }}</span>
-                                                @if($ch->channel_genre)
-                                                    <span class="badge bg-light text-dark border ms-1">{{ $ch->channel_genre }}</span>
-                                                @endif
-                                                @if($ch->language)
-                                                    <span class="badge bg-light text-dark border ms-1">{{ $ch->language }}</span>
-                                                @endif
-                                            </label>
-                                        </div>
-                                    @endforeach
+                            <div class="d-flex gap-3 align-items-center flex-wrap">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 small text-muted">Type:</label>
+                                    <select id="channel_filter_type" class="form-select form-select-sm" style="min-width: 120px;" disabled>
+                                        <option value="all" selected>All</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="free">Free</option>
+                                    </select>
                                 </div>
 
-                                <div class="small text-muted mt-1 d-flex flex-wrap align-items-center gap-2">
-                                    <span><span id="visibleCount">0</span> visible • <span id="selectedCount">0</span> selected</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 small text-muted">Genre:</label>
+                                    <select id="channel_filter_genre" class="form-select form-select-sm" style="min-width: 140px;" disabled>
+                                        <option value="all" selected>All</option>
+                                        @foreach($genres as $genre)
+                                            <option value="{{ strtolower($genre) }}">{{ ucfirst($genre) }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
 
-                                <!-- ordered inputs will be injected here at submit -->
-                                <div id="ordered_channel_inputs"></div>
-                            </div>
-                            <!-- RIGHT: Selected channels (drag/drop area) -->
-                            <div class="col-md-4">
-                                <label class="form-label mb-1">Selected Channels (drag to reorder)</label>
-                                <div id="selectedNamesWrap" class="border rounded p-2" style="min-height:180px; max-height:240px; overflow:auto;">
-                                    <div id="selectedNames" class="d-flex flex-wrap gap-1" aria-live="polite"></div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 small text-muted">Language:</label>
+                                    <select id="channel_filter_language" class="form-select form-select-sm" style="min-width: 140px;" disabled>
+                                        <option value="all" selected>All</option>
+                                        @foreach($languages as $lang)
+                                            <option value="{{ strtolower($lang) }}">{{ ucfirst($lang) }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
-                                <div class="small text-muted mt-1">Ordered selection will be sent to the server on Save.</div>
+
+                                <div class="form-check ms-2">
+                                    <input class="form-check-input" type="checkbox" id="select_all_channels" disabled>
+                                    <label class="form-check-label" for="select_all_channels">Select all (visible)</label>
+                                </div>
                             </div>
                         </div>
+
+                        <div id="channelsWrapper" class="border rounded p-2 mt-2" style="max-height:240px; overflow-y:auto;">
+                            @foreach($channels as $ch)
+                                @php
+                                    $type = strtolower(trim($ch->channel_type));
+                                    $genre = strtolower(trim($ch->channel_genre ?? ''));
+                                    $language = strtolower(trim($ch->language ?? ''));
+                                @endphp
+                                <div class="form-check channel-row" data-type="{{ $type }}" data-genre="{{ $genre }}" data-language="{{ $language }}">
+                                    <input
+                                        class="form-check-input channel-checkbox"
+                                        type="checkbox"
+                                        name="channel_checkbox_dummy[]"
+                                        value="{{ $ch->id }}"
+                                        id="channel_{{ $ch->id }}"
+                                        data-name="{{ $ch->channel_name }}">
+                                    <label class="form-check-label" for="channel_{{ $ch->id }}">
+                                        {{ $ch->channel_name }}
+                                        <span class="badge bg-light text-dark border ms-2">{{ ucfirst($type) }}</span>
+                                        @if($ch->channel_genre)
+                                            <span class="badge bg-light text-dark border ms-1">{{ $ch->channel_genre }}</span>
+                                        @endif
+                                        @if($ch->language)
+                                            <span class="badge bg-light text-dark border ms-1">{{ $ch->language }}</span>
+                                        @endif
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div class="small text-muted mt-1 d-flex flex-wrap align-items-center gap-2">
+                            <span><span id="visibleCount">0</span> visible • <span id="selectedCount">0</span> selected</span>
+                        </div>
+
+                        <div id="selectedNamesWrap" class="mt-2" style="min-height: 1rem;">
+                            <div id="selectedNames" class="d-flex flex-wrap gap-1" aria-live="polite"></div>
+                        </div>
+
+                        <!-- ordered inputs will be injected here at submit -->
+                        <div id="ordered_channel_inputs"></div>
                     </div>
 
                     <!-- Status -->
@@ -453,7 +392,7 @@
 
     <!-- Channels "Show all" Modal (new) -->
     <div class="modal fade" id="channelsModal" tabindex="-1" aria-labelledby="channelsModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-sm modal-dialog-scrollable">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="channelsModalLabel">Channels (All)</h5>
@@ -461,7 +400,7 @@
           </div>
           <div class="modal-body">
             <div class="table-responsive">
-                <table class="table table-striped table-bordered mb-0 channel-table-compact" id="channelsListTable">
+                <table class="table table-striped table-bordered mb-0" id="channelsListTable">
                     <thead class="table-light">
                         <tr>
                             <th style="width:80px">#</th>
@@ -480,6 +419,7 @@
         </div>
       </div>
     </div>
+
 </div>
 
 <script>
@@ -497,7 +437,6 @@
     const selectedCountEl = document.getElementById('selectedCount');
     const visibleCountEl = document.getElementById('visibleCount');
     const selectedNames = document.getElementById('selectedNames');
-    const selectedNamesWrap = document.getElementById('selectedNamesWrap');
     const filterType = document.getElementById('channel_filter_type');
     const filterGenre = document.getElementById('channel_filter_genre');
     const filterLanguage = document.getElementById('channel_filter_language');
@@ -512,6 +451,7 @@
         const name = cb.dataset.name || cb.getAttribute('data-name') || cb.nextElementSibling?.innerText || 'Unknown';
         const wrapper = document.createElement('div');
         wrapper.className = 'selected-item';
+        wrapper.setAttribute('draggable','true');
         wrapper.dataset.id = id;
 
         const handle = document.createElement('span');
@@ -549,6 +489,17 @@
         });
         wrapper.appendChild(rem);
 
+        // dnd handlers (visual only — container manages insertion)
+        wrapper.addEventListener('dragstart', (e) => {
+            wrapper.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', id);
+        });
+        wrapper.addEventListener('dragend', () => {
+            wrapper.classList.remove('dragging');
+            updateNumbers();
+        });
+
         return wrapper;
     }
 
@@ -561,39 +512,22 @@
         selectedCountEl.textContent = channelsWrapper.querySelectorAll('.channel-checkbox:checked').length;
     }
 
-    // Order normalization: compute visual order by element positions (top, left)
-    function normalizeOrderByPosition() {
-        const items = Array.from(selectedNames.querySelectorAll('.selected-item'));
-        if (!items.length) return [];
+    // get element after which we should insert based on pointer X
+    function getDragAfterElement(container, x) {
+        const draggableElements = [...container.querySelectorAll('.selected-item:not(.dragging)')];
 
-        // Map items to positions (use getBoundingClientRect)
-        const mapped = items.map(it => {
-            const r = it.getBoundingClientRect();
-            return {
-                el: it,
-                top: Math.round(r.top),
-                left: Math.round(r.left),
-                width: Math.round(r.width),
-                height: Math.round(r.height),
-                cx: Math.round(r.left + r.width / 2),
-                cy: Math.round(r.top + r.height / 2)
-            };
+        let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+        draggableElements.forEach(child => {
+            const box = child.getBoundingClientRect();
+            // center difference (positive when pointer is to right of center)
+            const offset = x - (box.left + box.width / 2);
+            // we want the first element where offset < 0 but closest to zero
+            if (offset < 0 && offset > closest.offset) {
+                closest = { offset: offset, element: child };
+            }
         });
-
-        // Group rows using a tolerance based on average height
-        const heights = mapped.map(m => m.height).filter(Boolean);
-        const avgH = heights.length ? Math.max(8, Math.round(heights.reduce((a,b)=>a+b,0)/heights.length)) : 24;
-        const rowTol = Math.max(8, Math.round(avgH / 2));
-
-        // Sort by top then left using row tolerance
-        mapped.sort((a,b) => {
-            if (Math.abs(a.top - b.top) > rowTol) return a.top - b.top;
-            return a.left - b.left;
-        });
-
-        // Re-append in that visual order (stable)
-        mapped.forEach(m => selectedNames.appendChild(m.el));
-        return mapped.map(m => m.el.dataset.id);
+        // return element that should come after the dragging element (i.e. insertBefore this)
+        return closest.element;
     }
 
     // build selectedNames DOM based on the order array (ids)
@@ -607,12 +541,11 @@
             const item = buildSelectedItem(cb);
             selectedNames.appendChild(item);
         });
-        // ensure DOM order matches visual (safeguard)
-        normalizeOrderByPosition();
         updateNumbers();
     }
 
     // ensure selectedNames matches current checked boxes.
+    // strategy: keep current order of selectedNames (if any), append new checked items at end, remove unchecked
     function syncSelectedNamesWithCheckboxes() {
         const checkedCbs = Array.from(channelsWrapper.querySelectorAll('.channel-checkbox:checked'));
         const currentOrder = Array.from(selectedNames.children).map(c => c.dataset.id);
@@ -636,15 +569,13 @@
         // filter out any ids that are no longer checked
         const finalOrder = currentOrder.filter(id => checkedCbs.some(cb => cb.value === id));
 
-        // rebuild in that order
+        // rebuild
         selectedNames.innerHTML = '';
         finalOrder.forEach((id) => {
             const node = idToNode[id];
             if (node) selectedNames.appendChild(node);
         });
 
-        // ensure visual normalization and update counters
-        normalizeOrderByPosition();
         updateNumbers();
     }
 
@@ -782,8 +713,6 @@
             if (!selectedNames.querySelector('[data-id="'+cb.value+'"]')) {
                 const item = buildSelectedItem(cb);
                 selectedNames.appendChild(item);
-                // normalize so wrapped order is consistent
-                normalizeOrderByPosition();
             }
         } else {
             // remove item from selectedNames
@@ -794,290 +723,50 @@
         updateCountsAndMaster();
     });
 
-    /* -------------- Pointer-based DnD (mouse + touch) -------------- */
-
-    let draggingNode = null;
-    let dragMirror = null;
-    let placeholder = null;
-    let startPointerOffset = { x: 0, y: 0 };
-
-    // create placeholder node (reused)
-    function createPlaceholder(width, height) {
-        const ph = document.createElement('div');
-        ph.className = 'selected-placeholder';
-        ph.style.width = width ? width + 'px' : '';
-        ph.style.height = height ? height + 'px' : '';
-        return ph;
-    }
-
-    // pointerdown on handle or item -> start drag
-    selectedNames.addEventListener('pointerdown', (e) => {
-        const handle = e.target.closest('.handle');
-        const item = e.target.closest('.selected-item');
-        if (!item) return;
-
-        // only start drag if pointer is on handle OR target is the item itself but not on the remove button
-        const removeBtn = e.target.closest('.remove-item');
-        if (!handle && removeBtn) return; // don't start drag when clicking remove
-
+    // dragover on selectedNames -> reposition dragging element
+    selectedNames.addEventListener('dragover', (e) => {
         e.preventDefault();
-        try { item.setPointerCapture(e.pointerId); } catch (_) {}
-
-        startDrag(item, e);
+        const dragging = selectedNames.querySelector('.dragging');
+        if (!dragging) return;
+        const afterElement = getDragAfterElement(selectedNames, e.clientX);
+        if (afterElement == null) {
+            selectedNames.appendChild(dragging);
+        } else {
+            selectedNames.insertBefore(dragging, afterElement);
+        }
     });
 
-    function startDrag(node, pointerEvent) {
-        // set state
-        draggingNode = node;
-        draggingNode.classList.add('dragging');
-
-        // create drag mirror (clone) and style it
-        dragMirror = node.cloneNode(true);
-        dragMirror.classList.add('drag-mirror');
-        dragMirror.style.width = node.offsetWidth + 'px';
-        dragMirror.style.height = node.offsetHeight + 'px';
-        dragMirror.style.boxSizing = 'border-box';
-        dragMirror.style.margin = '0';
-        dragMirror.style.opacity = '0.95';
-        dragMirror.style.transform = 'translate(-50%,-50%)';
-        document.body.appendChild(dragMirror);
-
-        // compute pointer offset inside node so mirror stays aligned near pointer
-        const rect = node.getBoundingClientRect();
-        startPointerOffset.x = pointerEvent.clientX - (rect.left + rect.width / 2);
-        startPointerOffset.y = pointerEvent.clientY - (rect.top + rect.height / 2);
-
-        // create and insert placeholder
-        placeholder = createPlaceholder(rect.width, rect.height);
-        node.parentNode.insertBefore(placeholder, node.nextSibling);
-
-        // hide original node visually but keep in DOM (so keyboard/readers unaffected)
-        node.style.visibility = 'hidden';
-
-        // attach move/end listeners to document to track pointer outside container
-        document.addEventListener('pointermove', onPointerMove, { passive: false });
-        document.addEventListener('pointerup', onPointerUp);
-        document.addEventListener('pointercancel', onPointerUp);
-    }
-
-    // autoscroll while dragging near top/bottom of selectedNamesWrap
-    function autoScrollIfNeeded(clientY) {
-        if (!selectedNamesWrap) return;
-        const rect = selectedNamesWrap.getBoundingClientRect();
-        const edge = 48; // px threshold
-        const maxSpeed = 18; // px per move call
-        if (clientY < rect.top + edge) {
-            const pct = Math.max(0, (edge - (clientY - rect.top)) / edge);
-            selectedNamesWrap.scrollTop -= Math.max(1, Math.ceil(pct * maxSpeed));
-        } else if (clientY > rect.bottom - edge) {
-            const pct = Math.max(0, ((clientY - (rect.bottom - edge)) / edge));
-            selectedNamesWrap.scrollTop += Math.max(1, Math.ceil(pct * maxSpeed));
-        }
-    }
-
-    // get row groups (array of arrays of items) and their average top/bottom
-    function computeRowGroups(items) {
-        if (!items.length) return [];
-        const rects = items.map(it => {
-            const r = it.getBoundingClientRect();
-            return { el: it, top: r.top, bottom: r.bottom, left: r.left, right: r.right, cx: r.left + r.width/2 };
-        });
-        // cluster by top with tolerance
-        const groups = [];
-        const tol = 12;
-        rects.forEach(r => {
-            let found = false;
-            for (const g of groups) {
-                if (Math.abs(g.avgTop - r.top) <= tol) {
-                    g.items.push(r);
-                    g.avgTop = (g.avgTop*(g.items.length-1) + r.top)/g.items.length;
-                    g.avgBottom = (g.avgBottom*(g.items.length-1) + r.bottom)/g.items.length;
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                groups.push({ items: [r], avgTop: r.top, avgBottom: r.bottom });
-            }
-        });
-        // sort groups by avgTop
-        groups.sort((a,b)=> a.avgTop - b.avgTop);
-        // sort each group's items by left
-        groups.forEach(g => g.items.sort((x,y)=> x.left - y.left));
-        return groups;
-    }
-
-    // find insertion index given clientX/clientY robustly for wrapped rows
-    function findInsertionIndex(clientX, clientY) {
-        const items = Array.from(selectedNames.querySelectorAll('.selected-item:not(.dragging)'));
-        if (items.length === 0) return 0;
-
-        const groups = computeRowGroups(items);
-        if (!groups.length) return 0;
-
-        // If pointer above first row -> insert at 0
-        if (clientY < groups[0].avgTop - 8) return 0;
-        // If pointer below last row -> insert at end
-        const lastGroup = groups[groups.length - 1];
-        if (clientY > lastGroup.avgBottom + 8) return items.length;
-
-        // find the group (row) closest vertically to pointer
-        let chosenGroup = groups[0];
-        let bestDist = Math.abs(clientY - groups[0].avgTop);
-        for (let i=1;i<groups.length;i++){
-            const d = Math.abs(clientY - groups[i].avgTop);
-            if (d < bestDist) { bestDist = d; chosenGroup = groups[i]; }
-        }
-
-        // inside chosen row, find first item with centerX > clientX
-        for (let i=0;i<chosenGroup.items.length;i++){
-            const it = chosenGroup.items[i];
-            if (clientX < it.cx) {
-                // compute overall index of this item among all items
-                let overallIndex = 0;
-                for (const g of groups) {
-                    if (g === chosenGroup) break;
-                    overallIndex += g.items.length;
-                }
-                overallIndex += i;
-                return overallIndex;
-            }
-        }
-
-        // if not found in row (pointer to right), insert after the row's last item
-        let indexAfterRow = 0;
-        for (const g of groups) {
-            indexAfterRow += g.items.length;
-            if (g === chosenGroup) break;
-        }
-        return indexAfterRow;
-    }
-
-    function onPointerMove(e) {
-        if (!draggingNode || !dragMirror) return;
-
+    // when drop finished (drop also fires), update numbers
+    selectedNames.addEventListener('drop', (e) => {
         e.preventDefault();
-
-        // move mirror
-        dragMirror.style.left = (e.clientX - startPointerOffset.x) + 'px';
-        dragMirror.style.top = (e.clientY - startPointerOffset.y) + 'px';
-
-        // autoscroll
-        autoScrollIfNeeded(e.clientY);
-
-        // compute insertion index robustly
-        const items = Array.from(selectedNames.querySelectorAll('.selected-item:not(.dragging)'));
-        if (items.length === 0) {
-            if (placeholder.parentNode !== selectedNames) selectedNames.appendChild(placeholder);
-            return;
-        }
-
-        const idx = findInsertionIndex(e.clientX, e.clientY);
-
-        // Insert placeholder at computed position
-        if (idx >= items.length) {
-            if (placeholder.parentNode !== selectedNames) selectedNames.appendChild(placeholder);
-            else {
-                const last = selectedNames.children[selectedNames.children.length - 1];
-                if (last !== placeholder) selectedNames.appendChild(placeholder);
-            }
-        } else {
-            const beforeEl = items[idx];
-            if (placeholder.parentNode !== selectedNames || selectedNames.children[idx] !== placeholder) {
-                selectedNames.insertBefore(placeholder, beforeEl);
-            }
-        }
-    }
-
-    function onPointerUp(e) {
-        if (!draggingNode) return;
-
-        // remove listeners
-        document.removeEventListener('pointermove', onPointerMove);
-        document.removeEventListener('pointerup', onPointerUp);
-        document.removeEventListener('pointercancel', onPointerUp);
-
-        // replace placeholder with node
-        if (placeholder && placeholder.parentNode) {
-            placeholder.parentNode.insertBefore(draggingNode, placeholder);
-            placeholder.parentNode.removeChild(placeholder);
-        } else {
-            if (draggingNode.parentNode !== selectedNames) selectedNames.appendChild(draggingNode);
-        }
-
-        // cleanup mirror and restore node styles
-        if (dragMirror && dragMirror.parentNode) dragMirror.parentNode.removeChild(dragMirror);
-        draggingNode.style.visibility = '';
-        draggingNode.classList.remove('dragging');
-
-        // finalize: ensure DOM order matches visual layout
-        normalizeOrderByPosition();
-
-        // clear state
-        draggingNode = null;
-        dragMirror = null;
-        placeholder = null;
-
-        // finally update numbers (checkboxes unchanged)
+        // mark any checkboxes in the final order if needed (checkbox state remains)
         updateNumbers();
-    }
-
-    // When an item is removed via its remove button or programmatic change, ensure no stale mirror/placeholder.
-    function cancelActiveDrag() {
-        if (dragMirror && dragMirror.parentNode) dragMirror.parentNode.removeChild(dragMirror);
-        if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
-        if (draggingNode) { draggingNode.style.visibility = ''; draggingNode.classList.remove('dragging'); }
-        draggingNode = dragMirror = placeholder = null;
-        document.removeEventListener('pointermove', onPointerMove);
-        document.removeEventListener('pointerup', onPointerUp);
-        document.removeEventListener('pointercancel', onPointerUp);
-    }
-
-    // If user navigates away or modal closed while dragging, cancel
-    document.addEventListener('visibilitychange', cancelActiveDrag);
-    window.addEventListener('blur', cancelActiveDrag);
-
-    /* -------------- end pointer DnD -------------- */
+    });
 
     // Before submit, create ordered hidden inputs channel_id[] according to current selectedNames order
-    // IMPORTANT: preventDefault -> normalize -> wait one frame -> then set inputs and submit.
     form.addEventListener('submit', (e) => {
-        e.preventDefault();
-
         orderedInputsContainer.innerHTML = '';
+        const orderIds = Array.from(selectedNames.children).map(c => c.dataset.id);
 
-        // normalize final order according to positions (this ensures correct order for wrapped rows)
-        normalizeOrderByPosition();
-
-        // wait one animation frame to ensure layout is settled, then gather order & submit
-        requestAnimationFrame(() => {
-            const finalOrder = Array.from(selectedNames.children).map(c => c.dataset.id);
-
-            // fallback: if empty, collect checked checkboxes (no order available)
-            if (finalOrder.length === 0) {
-                const checked = Array.from(channelsWrapper.querySelectorAll('.channel-checkbox:checked')).map(cb => cb.value);
-                checked.forEach(id => {
-                    const inp = document.createElement('input');
-                    inp.type = 'hidden';
-                    inp.name = 'channel_id[]';
-                    inp.value = id;
-                    orderedInputsContainer.appendChild(inp);
-                });
-                // finally submit form
-                form.submit();
-                return;
-            }
-
-            finalOrder.forEach(id => {
+        // fallback: if empty, collect checked checkboxes (no order available)
+        if (orderIds.length === 0) {
+            const checked = Array.from(channelsWrapper.querySelectorAll('.channel-checkbox:checked')).map(cb => cb.value);
+            checked.forEach(id => {
                 const inp = document.createElement('input');
                 inp.type = 'hidden';
                 inp.name = 'channel_id[]';
                 inp.value = id;
                 orderedInputsContainer.appendChild(inp);
             });
+            return;
+        }
 
-            // finally submit form
-            form.submit();
+        orderIds.forEach(id => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'channel_id[]';
+            inp.value = id;
+            orderedInputsContainer.appendChild(inp);
         });
     });
 
@@ -1130,8 +819,6 @@
         updateNumbers();
         window.addEventListener('resize', () => {
             setTimeout(initDescriptionPreviews, 150);
-            // cancel any active drag if resizing (avoid odd states)
-            cancelActiveDrag();
         });
     });
 
