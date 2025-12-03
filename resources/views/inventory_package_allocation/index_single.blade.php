@@ -83,23 +83,16 @@
                         $resetUrl = url()->current() . (count($preserve) ? '?' . http_build_query($preserve) : '');
                     @endphp
 
-                    <div class="d-flex align-items-center" style="gap:.5rem;">
-                        <form method="GET" action="{{ url()->current() }}" class="d-flex search-form" style="gap:.5rem;">
-                            <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Search">
+                    <form method="GET" action="{{ url()->current() }}" class="d-flex search-form" style="gap:.5rem;">
+                        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Search">
 
-                            {{-- Preserve current sort in the search form --}}
-                            <input type="hidden" name="sort" value="{{ request('sort','id') }}">
-                            <input type="hidden" name="direction" value="{{ request('direction','desc') }}">
+                        {{-- Preserve current sort in the search form --}}
+                        <input type="hidden" name="sort" value="{{ request('sort','id') }}">
+                        <input type="hidden" name="direction" value="{{ request('direction','desc') }}">
 
-                            <button type="submit" class="btn btn-sm btn-primary">Search</button>
-                            <a href="{{ $resetUrl }}" class="btn btn-sm btn-outline-secondary">Reset</a>
-                        </form>
-
-                        <!-- Bulk assign button -->
-                        <button id="bulkAssignBtn" class="btn btn-sm btn-success" disabled>
-                            <i class="las la-layer-group me-1"></i> Assign to selected
-                        </button>
-                    </div>
+                        <button type="submit" class="btn btn-sm btn-primary">Search</button>
+                        <a href="{{ $resetUrl }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                    </form>
                 </div>
 
                 <div class="card-body">
@@ -108,9 +101,6 @@
                         <table class="table table-bordered table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width:40px;">
-                                        <input type="checkbox" id="select_all_rows" title="Select all">
-                                    </th>
                                     <th>
                                         <a href="{{ sortUrlIPA('box_id') }}" class="text-reset text-decoration-none d-inline-flex align-items-center gap-1">
                                             Box ID <i class="{{ sortIconIPA('box_id') }}"></i>
@@ -163,13 +153,6 @@
                                         $invPayload['json_url'] = $jsonUrl;
                                     @endphp
                                     <tr>
-                                        <td class="align-middle text-center">
-                                            <input type="checkbox"
-                                                   class="row-select"
-                                                   data-id="{{ $inventory->id }}"
-                                                   data-boxid="{{ $inventory->box_id }}"
-                                                   data-client="{{ $inventory->client->name ?? '' }}">
-                                        </td>
                                         <td><span class="badge bg-secondary">{{ $inventory->box_id }}</span></td>
                                         <td>{{ $inventory->box_model }}</td>
                                         <td>{{ $inventory->box_serial_no }}</td>
@@ -206,7 +189,7 @@
                                 @endforeach
                                 @if($inventories->isEmpty())
                                     <tr>
-                                        <td colspan="10" class="text-center text-muted">No inventories found.</td>
+                                        <td colspan="9" class="text-center text-muted">No inventories found.</td>
                                     </tr>
                                 @endif
                             </tbody>
@@ -222,7 +205,7 @@
     </div>
 </div>
 
-{{-- Modal + scripts remain unchanged (same as your original code) but extended to support bulk mode --}}
+{{-- Modal + scripts remain unchanged (same as your original code) --}}
 <!-- Inventory Package Modal -->
 <div class="modal fade" id="inventoryPackageModal" tabindex="-1" aria-labelledby="inventoryPackageModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -240,12 +223,7 @@
                 </div>
 
                 <div class="modal-body">
-                    {{-- Single inventory id (kept for legacy single-edit) --}}
                     <input type="hidden" id="inventory_id" class="form-control" />
-
-                    {{-- For bulk mode we will inject inputs named inventory_ids[] dynamically into the form --}}
-                    <div id="bulkInventoryInputs"></div>
-
                     <div class="mb-3">
                         <label class="form-label">Box ID</label>
                         <input type="text" id="box_id" class="form-control" readonly />
@@ -326,7 +304,7 @@
 </div>
 
 <script>
-    /* === your original JS (openForm, hideAnyLoader, showAdbProgress, showAdbResult, form submission) unchanged but extended === */
+    /* === your original JS (openForm, hideAnyLoader, showAdbProgress, showAdbResult, form submission) unchanged === */
     function openForm(mode, data = null) {
         const modalTitle = document.getElementById("inventoryPackageModalLabel");
         const form = document.getElementById("inventoryPackageForm");
@@ -337,7 +315,6 @@
         const selectedCountEl = document.getElementById("selectedCount");
         const totalCountEl = document.getElementById("totalCount");
         const selectedNameEl = document.getElementById("selectedPackageName");
-        const bulkInventoryInputs = document.getElementById("bulkInventoryInputs");
         const pkgCheckboxes = () => Array.from(document.querySelectorAll("#packagesWrapper .pkg-checkbox"));
 
         function enforceSingleSelection(changedCb) {
@@ -367,7 +344,6 @@
 
         // Reset
         form.reset();
-        bulkInventoryInputs.innerHTML = "";
         document.getElementById("inventory_id").value = "";
         document.getElementById("box_id").value = "";
         document.getElementById("box_ip").value = "";
@@ -392,7 +368,6 @@
             };
         });
 
-        // SINGLE EDIT (existing behavior)
         if (mode === "edit" && data) {
             modalTitle.innerText = "Assign Packages";
             form.action = "/inventory-packages/" + data.id + "/assign";
@@ -417,7 +392,6 @@
             viewJsonLink.style.display = "none";
         }
 
-        // VIEW mode (existing)
         if (mode === "view" && data) {
             modalTitle.innerText = "View Inventory Packages";
             document.getElementById("inventory_id").value = data.id;
@@ -444,39 +418,6 @@
             }
 
             saveBtn.style.display = "none";
-        }
-
-        // BULK mode: data expected { ids: [...], boxIds: [...] }
-        if ((mode === "bulk" || mode === "edit_bulk") && data) {
-            const ids = Array.isArray(data.ids) ? data.ids : [];
-            const boxIds = Array.isArray(data.boxIds) ? data.boxIds : [];
-
-            modalTitle.innerText = `Assign Packages to ${ids.length} inventories`;
-            form.action = "/inventory-packages/assign-multiple";
-            saveBtn.style.display = "inline-block";
-
-            // show aggregated info
-            document.getElementById("inventory_id").value = "";
-            document.getElementById("box_id").value = `Multiple selected (${boxIds.length})`;
-            document.getElementById("box_ip").value = "-";
-            document.getElementById("inventory_box_model").value = "-";
-            document.getElementById("inventory_serial").value = "-";
-            document.getElementById("inventory_client").value = "-";
-
-            // inject hidden inputs inventory_ids[]
-            bulkInventoryInputs.innerHTML = "";
-            ids.forEach((iid) => {
-                const inp = document.createElement("input");
-                inp.type = "hidden";
-                inp.name = "inventory_ids[]";
-                inp.value = iid;
-                bulkInventoryInputs.appendChild(inp);
-            });
-
-            pkgCheckboxes().forEach((cb) => (cb.disabled = false));
-            enforceSingleSelection(currentSelected());
-            updateCounts();
-            viewJsonLink.style.display = "none";
         }
     }
 
@@ -544,66 +485,12 @@ document.addEventListener("DOMContentLoaded", function () {
   const form = document.getElementById("inventoryPackageForm");
   if (!form) return;
 
-  // Bulk selection controls
-  const selectAllRows = document.getElementById("select_all_rows");
-  const rowSelects = () => Array.from(document.querySelectorAll(".row-select"));
-  const bulkBtn = document.getElementById("bulkAssignBtn");
-
-  function updateBulkBtnState() {
-      const selected = rowSelects().filter(ch => ch.checked);
-      bulkBtn.disabled = selected.length === 0;
-  }
-
-  // individual row checkbox change
-  document.addEventListener("change", function(e) {
-      if (e.target && e.target.matches(".row-select")) {
-          updateBulkBtnState();
-          // update select_all_rows indeterminate/checked
-          const rows = rowSelects();
-          const selected = rows.filter(r => r.checked).length;
-          if (selected === 0) {
-              selectAllRows.checked = false;
-              selectAllRows.indeterminate = false;
-          } else if (selected === rows.length) {
-              selectAllRows.checked = true;
-              selectAllRows.indeterminate = false;
-          } else {
-              selectAllRows.checked = false;
-              selectAllRows.indeterminate = true;
-          }
-      }
-  });
-
-  // header select all
-  if (selectAllRows) {
-      selectAllRows.addEventListener("change", function() {
-          const v = this.checked;
-          rowSelects().forEach(r => r.checked = v);
-          updateBulkBtnState();
-      });
-  }
-
-  // Bulk assign button click -> open modal in bulk mode
-  if (bulkBtn) {
-      bulkBtn.addEventListener("click", function() {
-          const selected = rowSelects().filter(ch => ch.checked);
-          const ids = selected.map(s => s.dataset.id);
-          const boxIds = selected.map(s => s.dataset.boxid);
-          // call existing openForm with new mode 'bulk'
-          openForm("bulk", { ids: ids, boxIds: boxIds });
-          // show modal explicitly (if button not using data-bs-toggle)
-          const mb = new bootstrap.Modal(document.getElementById("inventoryPackageModal"));
-          mb.show();
-      });
-  }
-
   form.addEventListener("submit", function (e) {
     e.preventDefault();
 
     const formData = new FormData(form);
     const action = form.action;
 
-    // fallback reload guard - server-driven flow will show the ADB modal + reload
     setTimeout(() => {
         location.reload();
     }, 5000);

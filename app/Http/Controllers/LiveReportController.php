@@ -14,6 +14,7 @@ use PDF;
 use Throwable;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class LiveReportController extends Controller
 {
@@ -29,6 +30,7 @@ class LiveReportController extends Controller
         $field     = trim((string) $request->get('field', 'all'));
         $perPage   = (int) ($request->get('per_page', 10) ?: 10);
         $page      = max(1, (int) $request->get('page', 1));
+        $status    = trim((string) $request->get('status', '')); // NEW: status filter (online|offline|'')
 
         $map = [
             'box_id'        => 'inventories.box_id',
@@ -39,7 +41,7 @@ class LiveReportController extends Controller
             'client_name'   => 'clients.name',
             'id'            => 'inventories.id',
         ];
-    
+
         if ($request->has('sort')) {
             $sort = $request->get('sort', 'id');
             $direction = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
@@ -117,60 +119,136 @@ class LiveReportController extends Controller
 
         $baseQuery->orderBy($sortCol, $direction);
 
-        $inventories = $baseQuery
-            ->paginate($perPage, ['*'], 'page', $page)
-            ->appends($request->query());
+        // If user selected status (online/offline), we must evaluate online status for the matching records
+        // to filter correctly across entire result set. We'll fetch the full set, run online detection,
+        // then filter and paginate in-memory.
+        if (in_array($status, ['online', 'offline'], true)) {
+            // fetch all matching inventories (careful: this could be large depending on DB size)
+            $all = $baseQuery->get();
 
-        $currentPage = collect($inventories->items());
+            // Build objects for online detection (only those with client & box_ip)
+            $toCheck = $all->filter(fn($item) => !empty($item->client->id) && !empty($item->box_ip));
 
-        // Build the subset we actually want to run online checks for:
-// only inventories that have a client and an IP to check.
-$toCheck = $currentPage->filter(fn($item) => !empty($item->client->id) && !empty($item->box_ip));
+            $onlineIds = [];
+            if ($toCheck->isNotEmpty()) {
+                $onlineIds = $this->onlineService->detectOnline(
+                    $toCheck->map(fn ($inv) => (object) [
+                        'id'       => $inv->id,
+                        'box_ip'   => $inv->box_ip,
+                        'adb_port' => $inv->adb_port ?? null,
+                    ])
+                );
+            }
 
-// If there are items to check, call the online service once.
-$onlineIds = [];
-if ($toCheck->isNotEmpty()) {
-    $onlineIds = $this->onlineService->detectOnline(
-        $toCheck->map(fn ($inv) => (object) [
-            'id'       => $inv->id,
-            'box_ip'   => $inv->box_ip,
-            'adb_port' => $inv->adb_port ?? null,
-        ])
-    );
-}
-
-// Apply the result back to the page items.
-// Inventories with a client id get boolean is_online, others get empty string.
-foreach ($currentPage as $inv) {
-    if (!empty($inv->client->id)) {
-        $inv->is_online = in_array($inv->id, $onlineIds, true);
-    } else {
-        $inv->is_online = '';
-    }
-}
-        // Attempt best-effort initial discovery to populate stream_status & resolved_channel_name
-        foreach ($currentPage as $inv) {
-            $inv->stream_status = $inv->stream_status ?? null;
-            $inv->resolved_channel_name = null;
-
-            if (!empty($inv->is_online)) {
-                try {
-                    $res = $this->discoverActiveChannelAdb($inv);
-                    if (is_array($res)) {
-                        if (!empty($res['stream_status'])) $inv->stream_status = $res['stream_status'];
-                        if (!empty($res['name'])) $inv->active_channel_name = $inv->active_channel_name ?? $res['name'];
-                        if (!empty($res['channel_name'])) $inv->resolved_channel_name = $res['channel_name'];
-                        if (!empty($res['raw_source'])) $inv->channel_url = $inv->channel_url ?? $res['raw_source'];
-                    }
-                } catch (Throwable $e) {
-                    // ignore
+            // apply boolean flags
+            $all->each(function ($inv) use ($onlineIds) {
+                if (!empty($inv->client->id)) {
+                    $inv->is_online = in_array($inv->id, $onlineIds, true);
+                } else {
+                    $inv->is_online = '';
                 }
-            } else {
-                // populate from existing DB fields if present
-                if (!empty($inv->channel_url)) {
-                    // try resolve channel name from channels table
-                    $ch = Channel::where('channel_url', $inv->channel_url)->first();
-                    if ($ch) $inv->resolved_channel_name = $ch->name;
+            });
+
+            // initial discovery best-effort for stream_status/resolved name (only for online ones to speed up)
+            foreach ($all as $inv) {
+                $inv->stream_status = $inv->stream_status ?? null;
+                $inv->resolved_channel_name = null;
+                if (!empty($inv->is_online)) {
+                    try {
+                        $res = $this->discoverActiveChannelAdb($inv);
+                        if (is_array($res)) {
+                            if (!empty($res['stream_status'])) $inv->stream_status = $res['stream_status'];
+                            if (!empty($res['name'])) $inv->active_channel_name = $inv->active_channel_name ?? $res['name'];
+                            if (!empty($res['channel_name'])) $inv->resolved_channel_name = $res['channel_name'];
+                            if (!empty($res['raw_source'])) $inv->channel_url = $inv->channel_url ?? $res['raw_source'];
+                        }
+                    } catch (Throwable $e) {
+                        // ignore
+                    }
+                } else {
+                    if (!empty($inv->channel_url)) {
+                        $ch = Channel::where('channel_url', $inv->channel_url)->first();
+                        if ($ch) $inv->resolved_channel_name = $ch->name;
+                    }
+                }
+            }
+
+            // filter according to requested status
+            $filtered = $all->filter(function ($inv) use ($status) {
+                if ($status === 'online') return !empty($inv->is_online);
+                return empty($inv->is_online);
+            })->values();
+
+            $total = $filtered->count();
+            $itemsForPage = $filtered->slice(($page - 1) * $perPage, $perPage)->values();
+
+            // create LengthAwarePaginator so blade pagination works
+            $inventories = new LengthAwarePaginator(
+                $itemsForPage,
+                $total,
+                $perPage,
+                $page,
+                [
+                    'path' => url()->current(),
+                    'query' => $request->query(),
+                ]
+            );
+        } else {
+            // default behavior: normal paginate (fast)
+            $inventories = $baseQuery
+                ->paginate($perPage, ['*'], 'page', $page)
+                ->appends($request->query());
+
+            $currentPage = collect($inventories->items());
+
+            // Build the subset we actually want to run online checks for:
+            // only inventories that have a client and an IP to check.
+            $toCheck = $currentPage->filter(fn($item) => !empty($item->client->id) && !empty($item->box_ip));
+
+            $onlineIds = [];
+            if ($toCheck->isNotEmpty()) {
+                $onlineIds = $this->onlineService->detectOnline(
+                    $toCheck->map(fn ($inv) => (object) [
+                        'id'       => $inv->id,
+                        'box_ip'   => $inv->box_ip,
+                        'adb_port' => $inv->adb_port ?? null,
+                    ])
+                );
+            }
+
+            // Apply the result back to the page items.
+            foreach ($currentPage as $inv) {
+                if (!empty($inv->client->id)) {
+                    $inv->is_online = in_array($inv->id, $onlineIds, true);
+                } else {
+                    $inv->is_online = '';
+                }
+            }
+
+            // Attempt best-effort initial discovery to populate stream_status & resolved_channel_name
+            foreach ($currentPage as $inv) {
+                $inv->stream_status = $inv->stream_status ?? null;
+                $inv->resolved_channel_name = null;
+
+                if (!empty($inv->is_online)) {
+                    try {
+                        $res = $this->discoverActiveChannelAdb($inv);
+                        if (is_array($res)) {
+                            if (!empty($res['stream_status'])) $inv->stream_status = $res['stream_status'];
+                            if (!empty($res['name'])) $inv->active_channel_name = $inv->active_channel_name ?? $res['name'];
+                            if (!empty($res['channel_name'])) $inv->resolved_channel_name = $res['channel_name'];
+                            if (!empty($res['raw_source'])) $inv->channel_url = $inv->channel_url ?? $res['raw_source'];
+                        }
+                    } catch (Throwable $e) {
+                        // ignore
+                    }
+                } else {
+                    // populate from existing DB fields if present
+                    if (!empty($inv->channel_url)) {
+                        // try resolve channel name from channels table
+                        $ch = Channel::where('channel_url', $inv->channel_url)->first();
+                        if ($ch) $inv->resolved_channel_name = $ch->name;
+                    }
                 }
             }
         }
@@ -186,7 +264,7 @@ foreach ($currentPage as $inv) {
             'direction'   => $direction,
         ]);
     }
-    
+
     /**
      * Per-inventory ping endpoint (single-record online detection).
      * Returns JSON: { success: true, is_online: bool }
@@ -220,7 +298,6 @@ foreach ($currentPage as $inv) {
             ], 500);
         }
     }
-
 
     /**
      * AJAX per-row endpoint. Tries ADB, then mgmt API, then stream_url.

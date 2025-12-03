@@ -6,8 +6,6 @@ use App\Models\Inventory;
 use App\Models\Package;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Schema;
-
 class InventoryPackageController extends Controller
 {
     public function index(Request $request)
@@ -129,9 +127,56 @@ class InventoryPackageController extends Controller
         return view('inventory_package_allocation.index', compact('inventories', 'packages', 'sort', 'direction'));
     }
 
-    /**
-     * Assign packages to a single inventory (existing behavior).
-     */
+    public function assign_old(Request $request, Inventory $inventory)
+    {
+        $request->validate([
+            'package_ids'   => 'required|array',
+            'package_ids.*' => 'exists:packages,id',
+        ]);
+
+        $inventory->packages()->sync($request->package_ids);
+        $packages = $inventory->packages()->with('channels')->get();
+
+        $data = [];
+        foreach ($packages as $package) {
+            $channels = [];
+            $counter = 1;
+            foreach ($package->channels as $k => $channel) {
+                $item = [
+                    "name" => (string) ($k + 1),
+                    "desc" => $channel->channel_name,
+                    "url"  => (str_starts_with($channel->channel_url, 'udp://'))
+                        ? $channel->channel_url
+                        : 'udp://' . $channel->channel_url,
+                ];
+                if ($counter === 1) {
+                    $item["starting"] = true;
+                }
+                $channels[] = $item;
+                $counter++;
+            }
+            $data['DTV'] = $channels;
+        }
+
+        $filename = $inventory->box_id . ".json";
+        $path = base_path($filename);
+        if (!file_exists(dirname($path))) {
+            mkdir(dirname($path), 0777, true);
+        }
+        if (file_exists($path)) {
+            unlink($path);
+        }
+        file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        $ip = $inventory->box_ip ?? null;
+        if ($ip) {
+            $messages = $this->rebootViaAdb($ip);
+            return response()->json(['success' => true, 'messages' => $messages]);
+        }
+
+        return response()->json(['success' => true, 'messages' => ['Packages assigned, reboot skipped (no device IP).']]);
+    }
+
     public function assign(Request $request, Inventory $inventory)
     {
         $request->validate([
@@ -139,62 +184,8 @@ class InventoryPackageController extends Controller
             'package_ids.*' => 'exists:packages,id',
         ]);
 
-        // Use common helper so bulk and single processing is identical
-        $messages = $this->processInventoryAssignment($inventory, $request->package_ids);
-
-        return response()->json(['success' => true, 'messages' => $messages]);
-    }
-
-    /**
-     * Assign packages to multiple inventories.
-     * New endpoint used by bulk UI.
-     */
-    public function assignMultiple(Request $request)
-    {
-        $request->validate([
-            'package_ids'     => 'required|array',
-            'package_ids.*'   => 'exists:packages,id',
-            'inventory_ids'   => 'required|array',
-            'inventory_ids.*' => 'exists:inventories,id',
-        ]);
-
-        $inventoryIds = $request->inventory_ids;
-        $packageIds = $request->package_ids;
-
-        $allMessages = [];
-
-        foreach ($inventoryIds as $iid) {
-            $inventory = Inventory::find($iid);
-            if (! $inventory) {
-                $allMessages[] = "❌ Inventory id {$iid} not found (skipped).";
-                continue;
-            }
-
-            $messages = $this->processInventoryAssignment($inventory, $packageIds);
-
-            // annotate messages so user knows which inventory they refer to
-            $prefix = "Inventory {$inventory->box_id} (id: {$inventory->id}):";
-            $allMessages[] = $prefix;
-            foreach ($messages as $m) {
-                $allMessages[] = "  " . $m;
-            }
-        }
-
-        return response()->json(['success' => true, 'messages' => $allMessages]);
-    }
-
-    /**
-     * Common per-inventory processing:
-     * - sync packages
-     * - build JSON file per inventory (same shape as before)
-     * - attempt ADB reboot if IP available
-     *
-     * Returns array of messages (strings) describing steps and output.
-     */
-    private function processInventoryAssignment(Inventory $inventory, array $packageIds): array
-    {
-        // Keep the same sync behavior (overwrites previous).
-        $inventory->packages()->sync($packageIds);
+        // keep your existing sync behavior
+        $inventory->packages()->sync($request->package_ids);
 
         // Fetch packages (no eager channels here; we'll load channels per-package in saved order)
         $packages = $inventory->packages()->get();
@@ -207,9 +198,9 @@ class InventoryPackageController extends Controller
             $orderCol   = null;
 
             // check for known ordering columns on pivot
-            if (Schema::hasColumn($pivotTable, 'sort_order')) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn($pivotTable, 'sort_order')) {
                 $orderCol = 'sort_order';
-            } elseif (Schema::hasColumn($pivotTable, 'position')) {
+            } elseif (\Illuminate\Support\Facades\Schema::hasColumn($pivotTable, 'position')) {
                 $orderCol = 'position';
             }
 
@@ -218,9 +209,9 @@ class InventoryPackageController extends Controller
                 ? $relation->orderBy($pivotTable . '.' . $orderCol, 'asc')->get()
                 : $relation->orderBy('channels.id', 'asc')->get();
 
-            // fallback sort (if pivot missing)
-            $channelsOrdered = $relation->get()
+            $channelsOrdered = $relation->get() // or ->all() if you already have collection
                 ->sortBy(function ($channel) {
+                    // handle missing pivot or nulls defensively
                     return $channel->pivot->sort_order ?? PHP_INT_MAX;
                 })
                 ->values();
@@ -249,27 +240,22 @@ class InventoryPackageController extends Controller
         $filename = $inventory->box_id . ".json";
         $path = base_path($filename);
         if (!file_exists(dirname($path))) {
-            @mkdir(dirname($path), 0777, true);
+            mkdir(dirname($path), 0777, true);
         }
         if (file_exists($path)) {
-            @unlink($path);
+            unlink($path);
         }
-
         file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
         $ip = $inventory->box_ip ?? null;
-        $messages = [];
         if ($ip) {
-            $adbMessages = $this->rebootViaAdb($ip);
-            // prefix per-inventory
-            $messages = array_merge($messages, $adbMessages);
-        } else {
-            $messages[] = "Packages assigned, reboot skipped (no device IP).";
+            $messages = $this->rebootViaAdb($ip);
+            return response()->json(['success' => true, 'messages' => $messages]);
         }
 
-        return $messages;
+        return response()->json(['success' => true, 'messages' => ['Packages assigned, reboot skipped (no device IP).']]);
     }
-
+    
     private function rebootViaAdb(string $deviceIP): array
     {
         $port     = 5555;
@@ -351,6 +337,68 @@ class InventoryPackageController extends Controller
         // Give it a few seconds before wait-for-device
         sleep(5);
         [$waitStatus, $waitOut] = $run("$adb -s $serial wait-for-device");
+        if ($waitStatus === 0) {
+            $messages[] = "✅ Device rebooted and is back online";
+        } else {
+            $messages[] = "⚠️ Device did not come back online automatically";
+            if (!empty($waitOut)) { $messages = array_merge($messages, $waitOut); }
+        }
+
+        return $messages;
+    }
+
+    private function rebootViaAdb_old(string $deviceIP): array
+    {
+        $port = 5555;
+        $messages = [];
+        $adbPath = '/usr/bin/adb';
+
+        if (!file_exists($adbPath)) {
+            return ["❌ ADB binary not found at: $adbPath"];
+        }
+
+        putenv('ADB_VENDOR_KEYS=/var/www/.android');
+
+        $adb    = escapeshellarg($adbPath);
+        $serial = escapeshellarg("{$deviceIP}:{$port}");
+
+        // 1) Ping
+        $messages[] = "🔍 Pinging device at $deviceIP...";
+        $pingCmd = (stripos(PHP_OS, 'WIN') === 0) ? "ping -n 1 $deviceIP" : "ping -c 1 $deviceIP";
+        exec($pingCmd, $pingOut, $pingStatus);
+        if ($pingStatus !== 0) {
+            $messages[] = "❌ Device not reachable (ping failed)";
+            return $messages;
+        }
+        $messages[] = "✅ Device is online";
+        sleep(1);
+
+        // 2) ADB connect
+        $messages[] = "🔗 Connecting via ADB...";
+        exec("$adb disconnect $serial", $discOut, $discStatus);
+        exec("$adb connect $serial", $connOut, $connStatus);
+        if ($connStatus !== 0) {
+            $messages[] = "❌ Failed to connect via ADB";
+            if (!empty($connOut)) { $messages = array_merge($messages, $connOut); }
+            return $messages;
+        }
+        $messages[] = "✅ ADB connected";
+        sleep(1);
+
+        // 3) Reboot
+        $messages[] = "🔁 Sending reboot command...";
+        exec("$adb -s $serial reboot", $rebootOut, $rebootStatus);
+        if ($rebootStatus === 0) {
+            $messages[] = "✅ Reboot command sent successfully";
+        } else {
+            $messages[] = "❌ Failed to send reboot command";
+            if (!empty($rebootOut)) { $messages = array_merge($messages, $rebootOut); }
+            return $messages;
+        }
+
+        // 4) Wait for device
+        $messages[] = "⏳ Waiting for device to come back online...";
+        exec("$adb -s $serial wait-for-device", $waitOut, $waitStatus);
         if ($waitStatus === 0) {
             $messages[] = "✅ Device rebooted and is back online";
         } else {

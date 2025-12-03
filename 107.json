@@ -2,19 +2,254 @@
     "DTV": [
         {
             "name": "1",
-            "desc": "Aaj Tak",
-            "url": "udp://239.15.0.168:1234",
+            "desc": "DD Rajasthan",
+            "url": "udp://",
             "starting": true
         },
         {
             "name": "2",
-            "desc": "&flix HD",
-            "url": "udp://239.15.0.26:1234"
+            "desc": "DD Retro",
+            "url": "udp://"
         },
         {
             "name": "3",
+            "desc": "DD Sahyadri",
+            "url": "udp://"
+        },
+        {
+            "name": "4",
+            "desc": "9XM",
+            "url": "udp://"
+        },
+        {
+            "name": "5",
+            "desc": "&prive HD",
+            "url": "udp://"
+        },
+        {
+            "name": "6",
+            "desc": "Aaj Tak",
+            "url": "udp://"
+        },
+        {
+            "name": "7",
+            "desc": "&flix HD",
+            "url": "udp://"
+        },
+        {
+            "name": "8",
+            "desc": "AASTHA",
+            "url": "udp://"
+        },
+        {
+            "name": "9",
+            "desc": "Aastha Bhajan",
+            "url": "udp://"
+        },
+        {
+            "name": "10",
             "desc": "ABP News",
-            "url": "udp://239.15.0.169:1234"
+            "url": "udp://"
+        },
+        {
+            "name": "11",
+            "desc": "ABZY Cool",
+            "url": "udp://"
+        },
+        {
+            "name": "12",
+            "desc": "Abzy Movie",
+            "url": "udp://"
+        },
+        {
+            "name": "13",
+            "desc": "B4U Bhojpuri",
+            "url": "udp://"
+        },
+        {
+            "name": "14",
+            "desc": "B4U KADAK",
+            "url": "udp://"
+        },
+        {
+            "name": "15",
+            "desc": "B4u Movies",
+            "url": "udp://"
+        },
+        {
+            "name": "16",
+            "desc": "B4U Music",
+            "url": "udp://"
+        },
+        {
+            "name": "17",
+            "desc": "Bansal News",
+            "url": "udp://"
+        },
+        {
+            "name": "18",
+            "desc": "BBC World News",
+            "url": "udp://"
+        },
+        {
+            "name": "19",
+            "desc": "Bharat 24 Vision of New India",
+            "url": "udp://"
+        },
+        {
+            "name": "20",
+            "desc": "Bhojpuri Cinema",
+            "url": "udp://"
+        },
+        {
+            "name": "21",
+            "desc": "Big Magic",
+            "url": "udp://"
+        },
+        {
+            "name": "22",
+            "desc": "Cartoon Network",
+            "url": "udp://"
+        },
+        {
+            "name": "23",
+            "desc": "Chardikla Time TV",
+            "url": "udp://"
+        },
+        {
+            "name": "24",
+            "desc": "Cineplex Bollywood",
+            "url": "udp://"
+        },
+        {
+            "name": "25",
+            "desc": "CNBC Prime HD",
+            "url": "udp://"
+        },
+        {
+            "name": "26",
+            "desc": "CNN INTL",
+            "url": "udp://"
+        },
+        {
+            "name": "27",
+            "desc": "CNN News 18",
+            "url": "udp://"
+        },
+        {
+            "name": "28",
+            "desc": "Dangal",
+            "url": "udp://"
+        },
+        {
+            "name": "29",
+            "desc": "DD Arunprabha",
+            "url": "udp://"
+        },
+        {
+            "name": "30",
+            "desc": "DD Assam",
+            "url": "udp://"
+        },
+        {
+            "name": "31",
+            "desc": "DD Bangla",
+            "url": "udp://"
+        },
+        {
+            "name": "32",
+            "desc": "DD Bharati",
+            "url": "udp://"
+        },
+        {
+            "name": "33",
+            "desc": "DD Bihar",
+            "url": "udp://"
+        },
+        {
+            "name": "34",
+            "desc": "DD Chandana",
+            "url": "udp://"
+        },
+        {
+            "name": "35",
+            "desc": "DD CHHATTISGARH",
+            "url": "udp://"
+        },
+        {
+            "name": "36",
+            "desc": "DD Girnar",
+            "url": "udp://"
+        },
+        {
+            "name": "37",
+            "desc": "DD GOA",
+            "url": "udp://"
+        },
+        {
+            "name": "38",
+            "desc": "DD Haryana",
+            "url": "udp://"
+        },
+        {
+            "name": "39",
+            "desc": "DD Himachal Pradesh",
+            "url": "udp://"
+        },
+        {
+            "name": "40",
+            "desc": "DD India",
+            "url": "udp://"
+        },
+        {
+            "name": "41",
+            "desc": "DD Jharkhand",
+            "url": "udp://"
+        },
+        {
+            "name": "42",
+            "desc": "DD Kashir",
+            "url": "udp://"
+        },
+        {
+            "name": "43",
+            "desc": "DD Kisan",
+            "url": "udp://"
+        },
+        {
+            "name": "44",
+            "desc": "DD Malayalam",
+            "url": "udp://"
+        },
+        {
+            "name": "45",
+            "desc": "DD MP",
+            "url": "udp://"
+        },
+        {
+            "name": "46",
+            "desc": "DD National",
+            "url": "udp://"
+        },
+        {
+            "name": "47",
+            "desc": "DD News",
+            "url": "udp://"
+        },
+        {
+            "name": "48",
+            "desc": "DD Oriya",
+            "url": "udp://"
+        },
+        {
+            "name": "49",
+            "desc": "DD Podhigai",
+            "url": "udp://"
+        },
+        {
+            "name": "50",
+            "desc": "DD Punjabi",
+            "url": "udp://"
         }
     ]
 }

@@ -151,6 +151,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/inventory-packages/{inventory}/assign', [InventoryPackageController::class, 'assign'])
         ->middleware('permission:manage allocations')
         ->name('inventory-packages.assign');
+    
+    // new bulk assign
+    Route::post('inventory-packages/assign-multiple', [InventoryPackageController::class, 'assignMultiple'])->name('inventory-packages.assignMultiple');
 
     // Utility -> manage utilities
     Route::get('/utility/online', [UtilityController::class, 'index'])

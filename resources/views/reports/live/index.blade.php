@@ -71,6 +71,13 @@
                         <input type="text" name="search" value="{{ request('search','') }}"
                                class="form-control form-control-sm" placeholder="Search">
 
+                        {{-- Status dropdown (new) --}}
+                        <select name="status" class="form-select form-select-sm" style="width:140px;">
+                            <option value="" {{ request('status','') === '' ? 'selected' : '' }}>All status</option>
+                            <option value="online" {{ request('status','') === 'online' ? 'selected' : '' }}>Online</option>
+                            <option value="offline" {{ request('status','') === 'offline' ? 'selected' : '' }}>Offline</option>
+                        </select>
+
                         <input type="hidden" name="sort" value="{{ request('sort','id') }}">
                         <input type="hidden" name="direction" value="{{ request('direction','desc') }}">
 
@@ -150,7 +157,8 @@
                                         }
                                     @endphp
                                     @php
-                                        $raw = preg_replace('#^udp://#i', '', $candidateUrl);
+                                        //$raw = preg_replace('#^udp://#i', '', $candidateUrl);
+                                        $raw = $candidateUrl;
                                         $displayName = $candidateUrl;
 
                                         if (!empty($candidateUrl)) {
