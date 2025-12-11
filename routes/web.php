@@ -151,10 +151,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/inventory-packages/{inventory}/assign', [InventoryPackageController::class, 'assign'])
         ->middleware('permission:manage allocations')
         ->name('inventory-packages.assign');
-    
-    // new bulk assign
+// new bulk assign
     Route::post('inventory-packages/assign-multiple', [InventoryPackageController::class, 'assignMultiple'])->name('inventory-packages.assignMultiple');
-
     // Utility -> manage utilities
     Route::get('/utility/online', [UtilityController::class, 'index'])
         ->middleware('permission:manage utilities')
@@ -165,7 +163,7 @@ Route::middleware('auth')->group(function () {
     // Backup & Restore routes
     Route::post('/utilities/backup', [App\Http\Controllers\UtilityController::class, 'backup'])->name('utilities.backup');
     Route::post('/utilities/restore', [App\Http\Controllers\UtilityController::class, 'restore'])->name('utilities.restore');
-
+Route::get('utilities/backup-download/{filename}', [UtilityController::class, 'downloadBackup'])->name('utilities.downloadBackup');
 
     // Reports (all) -> manage reports
     Route::get('/reports',           [ReportController::class, 'index'])

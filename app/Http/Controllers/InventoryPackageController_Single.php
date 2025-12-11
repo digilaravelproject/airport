@@ -208,14 +208,12 @@ class InventoryPackageController extends Controller
             $channelsOrdered = $orderCol
                 ? $relation->orderBy($pivotTable . '.' . $orderCol, 'asc')->get()
                 : $relation->orderBy('channels.id', 'asc')->get();
-
-            $channelsOrdered = $relation->get() // or ->all() if you already have collection
+$channelsOrdered = $relation->get() // or ->all() if you already have collection
                 ->sortBy(function ($channel) {
                     // handle missing pivot or nulls defensively
                     return $channel->pivot->sort_order ?? PHP_INT_MAX;
                 })
                 ->values();
-
             $channels = [];
             $counter  = 1;
             foreach ($channelsOrdered as $k => $channel) {

@@ -606,7 +606,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // fallback reload guard - server-driven flow will show the ADB modal + reload
     setTimeout(() => {
         location.reload();
-    }, 5000);
+    }, 10000);
 
     fetch(action, {
       method: "POST",

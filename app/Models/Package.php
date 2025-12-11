@@ -25,11 +25,13 @@ class Package extends Model
 
     public function clients()
     {
-        return $this->belongsToMany(\App\Models\Client::class, 'client_package');
+        return $this->belongsToMany(Client::class, 'client_package');
     }
 
+     // ✅ Many-to-Many with Inventory
     public function inventories()
     {
-        return $this->belongsToMany(\App\Models\Inventory::class, 'inventory_package');
+        return $this->belongsToMany(Inventory::class, 'inventory_package');
     }
 }
+

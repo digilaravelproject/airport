@@ -1,3 +1,4 @@
+
 @extends('layouts.app')
 
 @section('content')
@@ -14,6 +15,10 @@
     #filePreviewArea pre { white-space:pre-wrap; word-break:break-word; font-size:.9rem; }
     #filePreviewArea table { width:100%; border-collapse:collapse; }
     #filePreviewArea table th, #filePreviewArea table td { border:1px solid #ddd; padding:.35rem .5rem; text-align:left; font-size:.86rem; }
+
+    /* backup link area */
+    .backup-result { margin-top: .75rem; }
+    .backup-file-link { word-break: break-all; display:block; }
 </style>
 
 <div class="container-fluid">
@@ -148,6 +153,25 @@
                                     <i class="fas fa-upload me-1"></i> Backup
                                 </button>
                             </form>
+
+                            <!-- Here we show the latest backup link (if available) -->
+                            <div class="backup-result">
+                                @if(session('backup_file'))
+                                    @php $bf = session('backup_file'); @endphp
+                                    <div class="small text-muted">Latest backup:</div>
+                                    <a href="{{ $bf['url'] }}" class="btn btn-outline-success btn-sm backup-file-link mt-1" target="_blank" rel="noopener noreferrer" >
+                                        <i class="fas fa-file-download me-1"></i> {{ $bf['name'] }}
+                                    </a>
+                                @elseif(isset($latestBackup) && $latestBackup)
+                                    {{-- $latestBackup passed from controller --}}
+                                    <div class="small text-muted">Latest backup:</div>
+                                    <a href="{{ $latestBackup['url'] }}" class="btn btn-outline-success btn-sm backup-file-link mt-1" target="_blank" rel="noopener noreferrer" >
+                                        <i class="fas fa-file-download me-1"></i> {{ $latestBackup['name'] }}
+                                    </a>
+                                @else
+                                    <div class="small text-muted">No recent backup found (after triggering, check this area again).</div>
+                                @endif
+                            </div>
                         </div>
 
                         <div class="col-md-8">
